@@ -1,4 +1,4 @@
-package me.myogoo.myotus.commands;
+package me.myogoo.myotus.commands.myotus;
 
 import me.myogoo.myotus.api.command.MyoCommand;
 

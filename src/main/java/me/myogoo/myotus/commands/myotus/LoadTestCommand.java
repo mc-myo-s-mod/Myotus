@@ -1,4 +1,4 @@
-package me.myogoo.myotus.commands;
+package me.myogoo.myotus.commands.myotus;
 
 import com.mojang.brigadier.context.CommandContext;
 import me.myogoo.myotus.api.command.MyoCommand;
@@ -12,10 +12,8 @@ public class LoadTestCommand {
     @MyoExecute
     public static int execute(CommandContext<CommandSourceStack> context) {
         ModIntegrationManager.getActiveIntegrations().keySet().stream().forEach(x -> {
-            context.getSource().sendSuccess(() -> Component.literal(String.format("Active Integrations: %s", x.getDisplayModName())),true);
-
+            context.getSource().sendSuccess(() -> Component.literal(String.format("Active Integrations: %s", x.getDisplayModName())), true);
         });
-
         return 1;
     }
 }

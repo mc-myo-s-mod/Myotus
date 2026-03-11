@@ -1,4 +1,4 @@
-package me.myogoo.myotus.command;
+package me.myogoo.myotus.commands;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
