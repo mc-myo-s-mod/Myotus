@@ -1,11 +1,11 @@
-package me.myogoo.myotus.api;
+package me.myogoo.myotus.api.config;
 
 import appeng.client.gui.Icon;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Terminal Config 화면의 탭 정보를 담는 레코드.
+ * A record containing tab information for the Terminal Config screen.
  */
 public record ConfigTab(
         Component title,
@@ -13,14 +13,14 @@ public record ConfigTab(
         ItemStack iconStack,
         ConfigTabProvider provider) {
     /**
-     * Icon 기반 탭 생성
+     * Creates a tab based on an Icon
      */
     public ConfigTab(Component title, Icon icon, ConfigTabProvider provider) {
         this(title, icon, null, provider);
     }
 
     /**
-     * ItemStack 아이콘 기반 탭 생성
+     * Creates a tab based on an ItemStack icon
      */
     public ConfigTab(Component title, ItemStack iconStack, ConfigTabProvider provider) {
         this(title, null, iconStack, provider);

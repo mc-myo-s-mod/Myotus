@@ -2,7 +2,7 @@ package me.myogoo.myotus;
 
 import com.mojang.logging.LogUtils;
 
-import me.myogoo.myotus.api.ConfigTab;
+import me.myogoo.myotus.api.config.ConfigTab;
 import me.myogoo.myotus.api.annotation.itemList.emi.EMI;
 import me.myogoo.myotus.api.annotation.itemList.jei.JEI;
 import me.myogoo.myotus.api.annotation.itemList.rei.REI;
@@ -37,14 +37,6 @@ public class Myotus {
     public void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             ModIntegrationManager.initialize();
-
-            // 임의의 테스트 탭 추가
-            TerminalConfig.registerTab(new ConfigTab(
-                    Component.literal("Test Tab"),
-                    new ItemStack(Items.APPLE),
-                    (widgets, screen) -> {
-                        // 탭이 선택되었을 때 배치할 위젯 로직 작성
-                    }));
         });
     }
 

@@ -1,4 +1,4 @@
-package me.myogoo.myotus.client.gui;
+package me.myogoo.myotus.client.gui.config;
 
 import appeng.client.gui.AESubScreen;
 import appeng.client.gui.Icon;
@@ -6,10 +6,11 @@ import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.widgets.TabButton;
 import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
-import me.myogoo.myotus.api.ConfigTab;
+import me.myogoo.myotus.api.config.ConfigTab;
 import me.myogoo.myotus.client.gui.widgets.button.MyoReportButton;
 import me.myogoo.myotus.integration.ae2.TerminalConfig;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ public class CustomTabSettingsScreen<C extends MEStorageMenu>
         for (var child : this.renderables) {
             String className = child.getClass().getSimpleName();
             if (className.contains("Text") || className.contains("Label")) {
-                if (child instanceof net.minecraft.client.gui.components.AbstractWidget widget) {
+                if (child instanceof AbstractWidget widget) {
                     widget.visible = false;
                 }
             }
@@ -65,8 +66,7 @@ public class CustomTabSettingsScreen<C extends MEStorageMenu>
     }
 
     private void buildTabBar() {
-        // AE2 기본 탭
-        TabButton ae2Tab = new TabButton(Icon.COG, Component.literal("AE2 Settings"), btn -> selectTab(0));
+        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable("myotus.gui.button.ae2_setting"), btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(selectedTab == 0);
         this.addRenderableWidget(ae2Tab);
