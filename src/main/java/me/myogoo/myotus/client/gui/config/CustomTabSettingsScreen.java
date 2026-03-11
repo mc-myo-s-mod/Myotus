@@ -27,8 +27,9 @@ public class CustomTabSettingsScreen<C extends MEStorageMenu>
     private final MEStorageScreen<C> parentScreen;
     private final List<ConfigTab> customTabs;
 
-    public CustomTabSettingsScreen(MEStorageScreen<C> parent, int tabIndex) {
-        super(parent, "/screens/terminals/terminal_settings.json");
+    public CustomTabSettingsScreen(MEStorageScreen<C> parent, int tabIndex, String stylePath) {
+        //super(parent, "/screens/terminals/terminal_settings.json");
+        super(parent, String.format("/screens/config/%s", stylePath));
         this.parentScreen = parent;
         this.selectedTab = tabIndex;
         this.customTabs = TerminalConfig.getTabs();
@@ -66,7 +67,7 @@ public class CustomTabSettingsScreen<C extends MEStorageMenu>
     }
 
     private void buildTabBar() {
-        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable("myotus.gui.button.ae2_setting"), btn -> selectTab(0));
+        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable("gui.myotus.button.ae2setting"), btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(selectedTab == 0);
         this.addRenderableWidget(ae2Tab);
@@ -105,11 +106,12 @@ public class CustomTabSettingsScreen<C extends MEStorageMenu>
 
 
     private void selectTab(int index) {
+
         if (this.selectedTab != index) {
             if (index == 0) {
                 Minecraft.getInstance().setScreen(new TabbedTerminalSettingsScreen<>(this.parentScreen));
             } else {
-                Minecraft.getInstance().setScreen(new CustomTabSettingsScreen<>(this.parentScreen, index));
+                Minecraft.getInstance().setScreen(new CustomTabSettingsScreen<>(this.parentScreen, index, TerminalConfig.getTabStyle(index - 1)));
             }
         }
     }

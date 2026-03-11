@@ -1,0 +1,33 @@
+{
+  "$schema": "../schema.json",
+  "includes": [
+    "config.json"
+  ],
+  "text": {
+    "sss": {
+      "position": {
+        "left": 8,
+        "top": 7
+      },
+      "text": {
+        "translate": "asdas"
+      }
+    },
+    "testss": {
+      "position": {
+        "left": 8,
+        "top": 110
+      },
+      "text": {
+        "translate": "asasd"
+      }
+    }
+  },
+  "widgets": {
+    "ttt": {
+      "left": 10,
+      "top": 50,
+      "width": 180
+    }
+  }
+}

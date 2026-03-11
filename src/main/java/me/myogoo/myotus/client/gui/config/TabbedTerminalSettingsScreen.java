@@ -42,7 +42,7 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
     }
 
     private void buildTabBar() {
-        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable("myotus.gui.button.ae2_setting"), btn -> selectTab(0));
+        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable("gui.myotus.button.ae2setting"), btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(true);
         this.addRenderableWidget(ae2Tab);
@@ -79,7 +79,7 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
 
     private void selectTab(int index) {
         if (index != 0) {
-            Minecraft.getInstance().setScreen(new CustomTabSettingsScreen<>(this.parentScreen, index));
+            Minecraft.getInstance().setScreen(new CustomTabSettingsScreen<>(this.parentScreen, index,TerminalConfig.getTabStyle(index - 1)));
         }
     }
 

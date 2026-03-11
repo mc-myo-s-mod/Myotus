@@ -2,9 +2,7 @@ package me.myogoo.myotus.integration.ae2;
 
 import me.myogoo.myotus.api.config.ConfigTab;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Tab registry for the Terminal Config screen.
@@ -13,7 +11,7 @@ import java.util.List;
 public class TerminalConfig {
 
     private static final List<ConfigTab> TABS = new ArrayList<>();
-
+    private static final List<String> TAB_STYLE = new ArrayList<>();
     /**
      * Registers a new tab. Tabs are displayed in the order they are registered.
      * The first tab (AE2 default settings) is added automatically, so tabs
@@ -23,6 +21,7 @@ public class TerminalConfig {
      */
     public static void registerTab(ConfigTab tab) {
         TABS.add(tab);
+        TAB_STYLE.add(tab.stylePath());
     }
 
     /**
@@ -30,5 +29,9 @@ public class TerminalConfig {
      */
     public static List<ConfigTab> getTabs() {
         return Collections.unmodifiableList(TABS);
+    }
+
+    public static String getTabStyle(int index) {
+        return TAB_STYLE.get(index);
     }
 }
