@@ -8,6 +8,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforgespi.language.ModFileScanData;
 import net.neoforged.neoforgespi.language.ModFileScanData.AnnotationData;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +25,7 @@ public class MyotusCommand {
         LOGGER.info("Scanning for Myotus commands...");
 
         List<Class<?>> commandClasses = new ArrayList<>();
-        org.objectweb.asm.Type myoCommandType = org.objectweb.asm.Type.getType(MyoCommand.class);
+        Type myoCommandType = Type.getType(MyoCommand.class);
 
         // Find all classes annotated with @MyoCommand
         for (ModFileScanData scanData : ModList.get().getAllScanData()) {

@@ -6,30 +6,26 @@ import appeng.client.gui.me.common.TerminalSettingsScreen;
 import appeng.menu.me.common.MEStorageMenu;
 import appeng.client.gui.widgets.TabButton;
 
-import me.myogoo.myotus.api.config.ConfigTab;
+import me.myogoo.myotus.api.config.AE2TerminalConfigTab;
+import me.myogoo.myotus.api.config.TerminalConfigTab;
+import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
 import me.myogoo.myotus.client.gui.widgets.button.MyoReportButton;
-import me.myogoo.myotus.integration.ae2.TerminalConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * AE2의 TerminalSettingsScreen을 확장한 탭 기반 설정 화면.
- * 첫 번째 탭은 AE2 기본 설정(기존 상속 구조) 그대로 유지,
- * 이후 탭은 TerminalConfig에 등록된 CustomTabSettingsScreen으로 전환됩니다.
- */
 public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends TerminalSettingsScreen<C> {
 
     private final List<TabButton> tabButtons = new ArrayList<>();
     private final MEStorageScreen<C> parentScreen;
-    private final List<ConfigTab> customTabs;
+    private final List<TerminalConfigTab> customTabs;
 
     public TabbedTerminalSettingsScreen(MEStorageScreen<C> parent) {
         super(parent);
         this.parentScreen = parent;
-        this.customTabs = TerminalConfig.getTabs();
+        this.customTabs = AE2TerminalConfigTab.getTabs();
         this.addToLeftToolbar(new MyoReportButton());
     }
 
@@ -49,15 +45,9 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
         tabButtons.add(ae2Tab);
 
         for (int i = 0; i < customTabs.size(); i++) {
-            ConfigTab tab = customTabs.get(i);
+            var tab = customTabs.get(i);
             final int tabIndex = i + 1;
-            TabButton tabBtn;
-            if (tab.iconStack() != null) {
-                tabBtn = new TabButton(tab.iconStack(), tab.title(), btn -> selectTab(tabIndex));
-            } else {
-                tabBtn = new TabButton(tab.icon() != null ? tab.icon() : Icon.COG, tab.title(),
-                        btn -> selectTab(tabIndex));
-            }
+            CustomTabButton tabBtn = tab.getTabButton(button -> selectTab(tabIndex));
             tabBtn.setStyle(TabButton.Style.HORIZONTAL);
             tabBtn.setSelected(false);
             this.addRenderableWidget(tabBtn);
@@ -79,7 +69,7 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
 
     private void selectTab(int index) {
         if (index != 0) {
-            Minecraft.getInstance().setScreen(new CustomTabSettingsScreen<>(this.parentScreen, index,TerminalConfig.getTabStyle(index - 1)));
+            Minecraft.getInstance().setScreen(new CustomConfigTabScreen<>(this.parentScreen, index));
         }
     }
 

@@ -30,7 +30,7 @@ public final class ModIntegrationManager {
                                 "error.myotus.mod.loading.version.mismatch",
                                 mod.getDisplayModName(),
                                 mod.getModVersion(),
-                                mod.getVersionRange()));
+                                mod.getMiniumVersion()));
             }
 
             activeIntegrations.put(mod, mod.getAnnotationClass());

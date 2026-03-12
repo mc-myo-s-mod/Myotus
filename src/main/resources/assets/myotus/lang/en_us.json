@@ -1,6 +1,7 @@
 {
   "gui.myotus.button.bug_report.tooltip": "Report this config terminal bugs to the mod author.",
   "gui.myotus.button.ae2setting": "AE2 Terminal Setting",
-  "error.myotus.mod.loading.version.mismatch": "Mod '%s' version %s does not meet the required version range: %s",
-  "config.myotus.general": "Myotus Setting"
+  "error.myotus.mod.loading.version.mismatch": "The %s must be version %s or higher. Current version: %s",
+  "gui.myotus.config.title": "Myotus Setting",
+  "gui.myotus.checkbox.tab_sorting": "Sort tabs by active"
 }

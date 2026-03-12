@@ -11,8 +11,9 @@ import net.minecraft.network.chat.Component;
 public class LoadTestCommand {
     @MyoExecute
     public static int execute(CommandContext<CommandSourceStack> context) {
-        ModIntegrationManager.getActiveIntegrations().keySet().stream().forEach(x -> {
-            context.getSource().sendSuccess(() -> Component.literal(String.format("Active Integrations: %s", x.getDisplayModName())), true);
+        context.getSource().sendSuccess(() -> Component.literal("Active Mod Integrations:"), false);
+        ModIntegrationManager.getActiveIntegrations().keySet().forEach(x -> {
+            context.getSource().sendSuccess(() -> Component.literal(x.getDisplayModName()), true);
         });
         return 1;
     }
