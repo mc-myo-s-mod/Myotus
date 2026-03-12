@@ -9,8 +9,8 @@ import net.minecraft.network.chat.Component;
 public class MyotusConfigTab {
     public static void initialize() {
         AE2TerminalConfigTab.registerTab(new TerminalConfigTab(
-                MyoIcon.MYOTUS_CONFIG.getBlitter(),
                 Component.translatable("gui.myotus.config.title"),
+                MyoIcon.MYOTUS_CONFIG,
                 "myotus.json",
                 new MyotusConfigScreen()
         ));
