@@ -14,7 +14,7 @@ public class CustomTabButton extends TabButton {
     @Nullable
     private Blitter blitter;
     @Nullable
-    private ItemStack item;
+    private ItemStack stack;
 
     public CustomTabButton(MyoIcon icon, Component message, OnPress onPress) {
         this(icon.getBlitter(), message, onPress);
@@ -31,6 +31,8 @@ public class CustomTabButton extends TabButton {
 
     public CustomTabButton(ItemStack stack, Component message, OnPress onPress) {
         super(stack, message, onPress);
+        this.stack =  stack;
+
     }
 
     @Override
@@ -66,14 +68,13 @@ public class CustomTabButton extends TabButton {
 
             if (blitter != null) {
                 blitter.dest(getX() + iconX, getY() + iconY - 1).blit(guiGraphics);
-            }
-            if (item != null) {
+            } else if (stack != null && !stack.isEmpty()) {
                 var pose = guiGraphics.pose();
                 pose.pushPose();
                 pose.translate(0f, -1f, 100);
-                guiGraphics.renderItem(this.item, getX() + iconX, getY() + iconY);
+                guiGraphics.renderItem(this.stack, getX() + iconX, getY() + iconY);
                 var font = Minecraft.getInstance().font;
-                guiGraphics.renderItemDecorations(font, this.item, getX() + iconX, getY() + iconY);
+                guiGraphics.renderItemDecorations(font, this.stack, getX() + iconX, getY() + iconY);
                 pose.popPose();
             } else {
                 super.renderWidget(guiGraphics, x, y, partial);

@@ -9,6 +9,8 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.Objects;
+
 /**
  * A record containing tab information for the Terminal Config screen.
  */
@@ -28,10 +30,8 @@ public record TerminalConfigTab(Component title, Blitter blitter, ItemStack stac
     }
 
     public CustomTabButton getTabButton(Button.OnPress onPress) {
-        if(stack == null) {
-            return new CustomTabButton(blitter, title, onPress);
-        } else {
+        if(stack != null) {
             return new CustomTabButton(stack, title, onPress);
-        }
+        } else return new CustomTabButton(Objects.requireNonNullElseGet(blitter, Icon.COG::getBlitter), title, onPress);
     }
 }
