@@ -12,6 +12,7 @@ import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
 import me.myogoo.myotus.client.gui.widgets.button.MyoReportButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -97,10 +98,16 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
         }
     }
 
-
+    @Override
+    public List<Rect2i> getExclusionZones() {
+        var list = super.getExclusionZones();
+        int startX = this.leftPos + this.imageWidth - 3;
+        int startY = this.topPos + 2;
+        list.add(new Rect2i(startX, startY, 22, 22 * tabButtons.size()));
+        return list;
+    }
 
     private void selectTab(int index) {
-
         if (this.selectedTab != index) {
             if (index == 0) {
                 Minecraft.getInstance().setScreen(new TabbedTerminalSettingsScreen<>(this.parentScreen));

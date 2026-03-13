@@ -11,6 +11,7 @@ import me.myogoo.myotus.api.config.TerminalConfigTab;
 import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
 import me.myogoo.myotus.client.gui.widgets.button.MyoReportButton;
 import net.minecraft.client.Minecraft;
+ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -65,6 +66,15 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
             tab.setPosition(startX, currentY);
             currentY += tab.getHeight();
         }
+    }
+
+    @Override
+    public List<Rect2i> getExclusionZones() {
+        var list = super.getExclusionZones();
+        int startX = this.leftPos + this.imageWidth - 3;
+        int startY = this.topPos + 2;
+        list.add(new Rect2i(startX, startY, 22, 22 * tabButtons.size()));
+        return list;
     }
 
     private void selectTab(int index) {
