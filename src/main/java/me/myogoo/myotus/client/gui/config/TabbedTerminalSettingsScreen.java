@@ -8,11 +8,11 @@ import appeng.client.gui.widgets.TabButton;
 
 import me.myogoo.myotus.api.config.AE2TerminalConfigTab;
 import me.myogoo.myotus.api.config.TerminalConfigTab;
+import me.myogoo.myotus.client.TranslateKey;
 import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
 import me.myogoo.myotus.client.gui.widgets.button.MyoReportButton;
 import net.minecraft.client.Minecraft;
  import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +39,7 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
     }
 
     private void buildTabBar() {
-        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable("gui.myotus.button.ae2setting"), btn -> selectTab(0));
+        TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(), btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(true);
         this.addRenderableWidget(ae2Tab);

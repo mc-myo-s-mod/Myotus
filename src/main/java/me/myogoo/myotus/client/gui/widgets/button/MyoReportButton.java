@@ -1,5 +1,6 @@
 package me.myogoo.myotus.client.gui.widgets.button;
 
+import me.myogoo.myotus.client.TranslateKey;
 import me.myogoo.myotus.client.gui.MyoIcon;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -14,7 +15,7 @@ public class MyoReportButton extends CustomImageButton {
 
     @Override
     public List<Component> getTooltipMessage() {
-        return Collections.singletonList(Component.translatable("gui.myotus.button.bug_report.tooltip"));
+        return Collections.singletonList(TranslateKey.TOOLTIP_REPORT_BUG.getTranslate());
     }
 
     private static void openBugReport() {

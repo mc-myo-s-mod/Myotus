@@ -8,12 +8,13 @@ import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
 import me.myogoo.myotus.api.config.AE2TerminalConfigTab;
 import me.myogoo.myotus.api.config.TerminalConfigTab;
+import me.myogoo.myotus.client.TranslateKey;
+import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
 import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
 import me.myogoo.myotus.client.gui.widgets.button.MyoReportButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,8 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
     private final List<TerminalConfigTab> customTabs;
 
     public CustomConfigTabScreen(MEStorageScreen<C> parent, int tabIndex) {
-        super(parent, String.format("/screens/config/%s", AE2TerminalConfigTab.getTabs().get(tabIndex -1).stylePath()));
+        super(parent,
+                String.format("/screens/config/%s", AE2TerminalConfigTab.getTabs().get(tabIndex - 1).stylePath()));
         this.parentScreen = parent;
         this.selectedTab = tabIndex;
         this.customTabs = AE2TerminalConfigTab.getTabs();
@@ -68,7 +70,8 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
     }
 
     private void buildTabBar() {
-        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable("gui.myotus.button.ae2setting"), btn -> selectTab(0));
+        TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(),
+                btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(selectedTab == 0);
         this.addRenderableWidget(ae2Tab);
@@ -96,6 +99,19 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
             tab.setPosition(startX, currentY);
             currentY += tab.getHeight();
         }
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // listening 상태인 KeyBindingButton에 키 이벤트를 먼저 전달
+        for (var renderable : this.renderables) {
+            if (renderable instanceof KeyBindingButton keyBinding && keyBinding.isListening()) {
+                if (keyBinding.keyPressed(keyCode, scanCode, modifiers)) {
+                    return true;
+                }
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
