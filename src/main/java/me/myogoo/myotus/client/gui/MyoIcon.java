@@ -7,7 +7,8 @@ import net.minecraft.resources.ResourceLocation;
 public enum MyoIcon {
 
     BUG_REPORT(0, 0),
-    MYOTUS_CONFIG(16,0);
+    MYOTUS_CONFIG(16,0),
+    AE2TB_CONFIG(32,0);
     private static final ResourceLocation TEXTURE = Myotus.makeId("textures/gui/myoicons.png");
 
     private final int x;
