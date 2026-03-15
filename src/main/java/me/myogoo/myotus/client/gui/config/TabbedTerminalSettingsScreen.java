@@ -6,7 +6,7 @@ import appeng.client.gui.me.common.TerminalSettingsScreen;
 import appeng.menu.me.common.MEStorageMenu;
 import appeng.client.gui.widgets.TabButton;
 
-import me.myogoo.myotus.api.config.AE2TerminalConfigTab;
+import me.myogoo.myotus.api.config.MyotusConfigTabRegister;
 import me.myogoo.myotus.api.config.TerminalConfigTab;
 import me.myogoo.myotus.client.TranslateKey;
 import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
@@ -26,7 +26,7 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
     public TabbedTerminalSettingsScreen(MEStorageScreen<C> parent) {
         super(parent);
         this.parentScreen = parent;
-        this.customTabs = AE2TerminalConfigTab.getTabs();
+        this.customTabs = MyotusConfigTabRegister.getTabs();
         this.addToLeftToolbar(new MyoReportButton());
     }
 

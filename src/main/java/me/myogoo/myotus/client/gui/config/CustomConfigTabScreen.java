@@ -6,7 +6,7 @@ import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.widgets.TabButton;
 import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
-import me.myogoo.myotus.api.config.AE2TerminalConfigTab;
+import me.myogoo.myotus.api.config.MyotusConfigTabRegister;
 import me.myogoo.myotus.api.config.TerminalConfigTab;
 import me.myogoo.myotus.client.TranslateKey;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
@@ -32,10 +32,10 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
 
     public CustomConfigTabScreen(MEStorageScreen<C> parent, int tabIndex) {
         super(parent,
-                String.format("/screens/config/%s", AE2TerminalConfigTab.getTabs().get(tabIndex - 1).stylePath()));
+                String.format("/screens/config/%s", MyotusConfigTabRegister.getTabs().get(tabIndex - 1).stylePath()));
         this.parentScreen = parent;
         this.selectedTab = tabIndex;
-        this.customTabs = AE2TerminalConfigTab.getTabs();
+        this.customTabs = MyotusConfigTabRegister.getTabs();
 
         this.addToLeftToolbar(new MyoReportButton());
         addBackButton();
