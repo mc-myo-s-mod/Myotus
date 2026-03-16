@@ -4,7 +4,9 @@
   "package": "me.myogoo.myotus.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "GuideMeAddonMixin"
+    "GuideMeAddonMixin",
+    "MEStorageMenuMixin",
+    "ScreenStyleAccessor"
   ],
   "client": [
     "MEStorageScreenMixin"

@@ -10,6 +10,7 @@ import me.myogoo.myotus.api.annotation.myomods.AE2TB;
 import me.myogoo.myotus.api.annotation.wt.AE2WTLib;
 import me.myogoo.myotus.init.MyoConfig;
 import me.myogoo.myotus.init.MyotusConfigTab;
+import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
@@ -30,7 +31,7 @@ public class Myotus {
         ModIntegrationManager.put(REI.class, "roughlyenoughitems");
         ModIntegrationManager.put(AE2WTLib.class, "ae2wtlib");
         ModIntegrationManager.put(AE2FCT.class, "ae2fct");
-        ModIntegrationManager.put(AE2TB.class,  "ae2tb");
+        ModIntegrationManager.put(AE2TB.class, "ae2tb");
         modEventBus.addListener(this::commonSetup);
     }
 
