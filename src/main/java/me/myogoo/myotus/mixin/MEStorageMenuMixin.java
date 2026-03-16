@@ -3,6 +3,7 @@ package me.myogoo.myotus.mixin;
 import java.util.List;
 
 import me.myogoo.myotus.menu.MyoSlotSemantics;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -68,7 +69,13 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         GenericStackInv stackInv = new GenericStackInv(null, GenericStackInv.Mode.CONFIG_TYPES, 5);
         ConfigMenuInventory menuInv = new ConfigMenuInventory(stackInv);
         for (int i = 0; i < 5; i++) {
-            var slot = new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.UPGRADES, menuInv, i);
+            var slot = new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.UPGRADES, menuInv, i) {
+                @Override
+                public boolean mayPlace(ItemStack stack) {
+                    return false;
+                }
+            };
+            slot.setStackLimit(1);
             this.addSlot(slot, MyoSlotSemantics.MYO_UPGRADE_SLOT);
         }
     }
