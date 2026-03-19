@@ -24,7 +24,7 @@ public final class ModIntegrationManager {
 
     public static Class<? extends Annotation> getClass(String modId) {
         for (var entry : activeIntegrations.entrySet()) {
-            if (entry.getKey().getModId().equalsIgnoreCase(modId)) {
+            if (entry.getKey().getModName().equalsIgnoreCase(modId)) {
                 return entry.getValue();
             }
         }
@@ -47,8 +47,7 @@ public final class ModIntegrationManager {
     }
 
     public static SupportedMod get(String modDisplayName) {
-        return activeIntegrations.keySet().stream().filter(mod -> mod.getDisplayModName().equals(modDisplayName))
-                .findFirst().orElse(null);
+        return supportIntegrations.values().stream().filter(mod -> mod.getModName().equals(modDisplayName)).findFirst().orElse(null);
     }
 
     public static void put(Class<? extends Annotation> annotationClass, String modId) {

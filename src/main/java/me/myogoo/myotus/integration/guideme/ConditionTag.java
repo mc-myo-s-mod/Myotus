@@ -32,7 +32,7 @@ public class ConditionTag implements TagCompiler {
                     frontText.setText("This content is hidden because the mod ");
                     var boldText = new LytFlowText();
                     boldText.setStyle(TextStyle.builder().bold(true).build());
-                    boldText.setText(mod.getDisplayModName());
+                    boldText.setText(mod.getModName());
                     var endText = new LytFlowText();
                     endText.setText(" is not loaded.");
                     heading.setDepth(2);

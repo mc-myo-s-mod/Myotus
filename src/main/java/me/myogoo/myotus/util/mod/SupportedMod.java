@@ -10,24 +10,26 @@ import java.util.function.Predicate;
 public class SupportedMod {
 
     private final String modId;
+    private final String modName;
     private final String versionRange;
     private final Class<? extends Annotation> annotationClass;
     private final Predicate<IModInfo> customLoadCondition;
 
     SupportedMod(String modId, Class<? extends Annotation> annotationClass, String versionRange) {
-        this(modId, annotationClass, versionRange, modInfo -> true);
+        this(modId, annotationClass, versionRange,modId, modInfo -> true);
     }
 
     SupportedMod(String modId, Class<? extends Annotation> annotationClass, String versionRange,
             String displayModName) {
-        this(modId, annotationClass, versionRange, modInfo -> displayModName.equals(modInfo.getDisplayName()));
+        this(modId, annotationClass, versionRange,displayModName, modInfo -> displayModName.equals(modInfo.getDisplayName()));
     }
 
-    SupportedMod(String modId, Class<? extends Annotation> annotationClass, String versionRange,
+    SupportedMod(String modId, Class<? extends Annotation> annotationClass, String versionRange, String modName,
             Predicate<IModInfo> customLoadCondition) {
         this.modId = modId;
         this.annotationClass = annotationClass;
         this.versionRange = versionRange;
+        this.modName = modName;
         this.customLoadCondition = customLoadCondition;
     }
 
@@ -44,6 +46,10 @@ public class SupportedMod {
                 .getModContainerById(modId)
                 .map(container -> container.getModInfo().getDisplayName())
                 .orElse(modId);
+    }
+
+    public String getModName() {
+        return modName;
     }
 
     public ArtifactVersion getModVersion() {
