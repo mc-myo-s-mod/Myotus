@@ -1,8 +1,9 @@
 package me.myogoo.myotus.util.mod;
 
+import me.myogoo.myotus.api.MyotusAPI;
 import net.neoforged.fml.ModLoadingException;
 import net.neoforged.fml.ModLoadingIssue;
-import org.apache.maven.artifact.versioning.ArtifactVersion;
+import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,43 +17,23 @@ public final class ModIntegrationManager {
     private static final Map<Class<? extends Annotation>, SupportedMod> supportIntegrations = new HashMap<>();
     private static final Map<SupportedMod, Class<? extends Annotation>> activeIntegrations = new HashMap<>();
 
-    public static void initialize() {
-        LOGGER.info("Checking for mod integrations...");
-        activeIntegrations.clear();
-
-        for (var mod : supportIntegrations.values()) {
-            if (!mod.isModLoaded()) {
-                continue;
-            }
-            if (!mod.test()) {
-                throw new ModLoadingException(
-                        ModLoadingIssue.error(
-                                "error.myotus.mod.loading.version.mismatch",
-                                mod.getDisplayModName(),
-                                mod.getModVersion(),
-                                mod.getMiniumVersion()));
-            }
-
-            activeIntegrations.put(mod, mod.getAnnotationClass());
-            LOGGER.info("Integration enabled for: {} (version: {})", mod.getDisplayModName(), mod.getModVersion());
-        }
-    }
 
     public static Class<? extends Annotation> getClass(SupportedMod mod) {
         return activeIntegrations.get(mod);
     }
 
     public static Class<? extends Annotation> getClass(String modId) {
-        for (var value : activeIntegrations.values()) {
-            if (value.getSimpleName().equals(modId)) {
-                return value;
+        for (var entry : activeIntegrations.entrySet()) {
+            if (entry.getKey().getModId().equalsIgnoreCase(modId)) {
+                return entry.getValue();
             }
         }
         return null;
     }
 
     public static boolean isLoaded(Class<? extends Annotation> annotationClass) {
-        return activeIntegrations.containsValue(annotationClass);
+        SupportedMod mod = supportIntegrations.get(annotationClass);
+        return isLoaded(mod);
     }
 
     public static boolean isLoaded(SupportedMod mod) {
@@ -71,15 +52,33 @@ public final class ModIntegrationManager {
     }
 
     public static void put(Class<? extends Annotation> annotationClass, String modId) {
-        supportIntegrations.put(annotationClass, new SupportedMod(modId, annotationClass, "*"));
+        put(annotationClass, new SupportedMod(modId, annotationClass, "*"));
     }
 
     public static void put(Class<? extends Annotation> annotationClass, String modId, String versionRange) {
-        supportIntegrations.put(annotationClass, new SupportedMod(modId, annotationClass, versionRange));
+        put(annotationClass, new SupportedMod(modId, annotationClass, versionRange));
     }
 
-    public static void put(Class<? extends Annotation> annotationClass, String modId, String displayModName, String versionRange) {
-        supportIntegrations.put(annotationClass, new SupportedMod(modId, annotationClass, versionRange, displayModName));
+    public static void put(Class<? extends Annotation> annotationClass, String modId, String displayModName,
+            String versionRange) {
+        put(annotationClass,new SupportedMod(modId, annotationClass, versionRange, displayModName));
+
+    }
+
+    static void put(Class<? extends Annotation> annotationClass, SupportedMod mod) {
+        supportIntegrations.put(annotationClass,mod);
+        if(mod.isModLoaded()) {
+            if (!mod.test()) {
+                throw new ModLoadingException(
+                        ModLoadingIssue.error(
+                                "error.myotus.mod.loading.version.mismatch",
+                                mod.getDisplayModName(),
+                                mod.getModVersion(),
+                                mod.getMiniumVersion()));
+            }
+            activeIntegrations.put(mod, mod.getAnnotationClass());
+            LOGGER.info("Integration enabled for: {} (version: {})", mod.getDisplayModName(), mod.getModVersion());
+        }
     }
 
     private ModIntegrationManager() {

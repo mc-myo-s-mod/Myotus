@@ -1,20 +1,19 @@
 package me.myogoo.myotus.util.reflect;
 
-import me.myogoo.myotus.Myotus;
 import org.objectweb.asm.Type;
 
-//maybe unsafe?
+/**
+ * @deprecated Use {@link me.myogoo.myotus.api.util.SafeClass} instead.
+ *             This class is kept for backward compatibility and delegates to
+ *             the API version.
+ */
+@Deprecated
 public class SafeClass {
     public static Class<?> forName(String name) {
-        try {
-            return Class.forName(name);
-        } catch (ClassNotFoundException e) {
-            Myotus.LOGGER.error("Can't find Class for : {}", String.valueOf(e));
-            return null;
-        }
+        return me.myogoo.myotus.api.util.SafeClass.forName(name);
     }
 
     public static Class<?> forType(Type type) {
-        return forName(type.getClassName());
+        return me.myogoo.myotus.api.util.SafeClass.forType(type);
     }
 }

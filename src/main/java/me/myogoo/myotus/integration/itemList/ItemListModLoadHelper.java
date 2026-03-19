@@ -4,7 +4,7 @@ import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.annotation.MyotusSubscriber;
 import me.myogoo.myotus.util.AnnotationScanner;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
-import me.myogoo.myotus.util.reflect.SafeClass;
+import me.myogoo.myotus.api.util.SafeClass;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.InvocationTargetException;

@@ -6,13 +6,13 @@ import appeng.client.gui.me.common.TerminalSettingsScreen;
 import appeng.menu.me.common.MEStorageMenu;
 import appeng.client.gui.widgets.TabButton;
 
-import me.myogoo.myotus.api.config.MyotusConfigTabRegister;
-import me.myogoo.myotus.api.config.TerminalConfigTab;
+import me.myogoo.myotus.api.config.MyoConfigTab;
+import me.myogoo.myotus.impl.ConfigManager;
 import me.myogoo.myotus.client.TranslateKey;
 import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
 import me.myogoo.myotus.client.gui.widgets.button.MyoReportButton;
 import net.minecraft.client.Minecraft;
- import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.client.renderer.Rect2i;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,12 +21,15 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
 
     private final List<TabButton> tabButtons = new ArrayList<>();
     private final MEStorageScreen<C> parentScreen;
-    private final List<TerminalConfigTab> customTabs;
+    private final List<MyoConfigTab> customTabs;
 
     public TabbedTerminalSettingsScreen(MEStorageScreen<C> parent) {
         super(parent);
         this.parentScreen = parent;
-        this.customTabs = MyotusConfigTabRegister.getTabs();
+        this.customTabs = new ArrayList<>(); // Initialize customTabs as an empty list
+        for (MyoConfigTab tab : ConfigManager.INSTANCE.getTabs()) {
+            this.customTabs.add(tab); // Add tabs to customTabs
+        }
         this.addToLeftToolbar(new MyoReportButton());
     }
 
@@ -39,7 +42,8 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
     }
 
     private void buildTabBar() {
-        TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(), btn -> selectTab(0));
+        TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(),
+                btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(true);
         this.addRenderableWidget(ae2Tab);

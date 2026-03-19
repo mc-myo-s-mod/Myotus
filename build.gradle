@@ -105,7 +105,6 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
     implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
-    implementation "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
 
     compileOnly "org.appliedenergistics:guideme:${Guideme_version}:api"
     runtimeOnly "org.appliedenergistics:guideme:${Guideme_version}"
@@ -137,6 +136,13 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 // To avoid having to run "generateModMetadata" manually, make it run on every project reload
 neoForge.ideSyncTask generateModMetadata
+
+task apiJar(type: Jar) {
+    archiveClassifier = 'api' // 빌드 시 파일명이 my-project-1.0.0-api.jar 가 됨
+    from sourceSets.main.output
+    include 'me/myogoo/myotus/api/**' // API 패키지만 포함
+}
+
 
 // Example configuration to allow publishing using the maven-publish plugin
 publishing {

@@ -3,11 +3,12 @@ package me.myogoo.myotus.client.gui.config;
 import appeng.client.gui.AESubScreen;
 import appeng.client.gui.Icon;
 import appeng.client.gui.me.common.MEStorageScreen;
+import me.myogoo.myotus.api.config.MyoConfigTabScreen;
 import appeng.client.gui.widgets.TabButton;
 import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
-import me.myogoo.myotus.api.config.MyotusConfigTabRegister;
-import me.myogoo.myotus.api.config.TerminalConfigTab;
+import me.myogoo.myotus.api.config.MyoConfigTab;
+import me.myogoo.myotus.impl.ConfigManager;
 import me.myogoo.myotus.client.TranslateKey;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
 import me.myogoo.myotus.client.gui.widgets.button.CustomTabButton;
@@ -23,19 +24,19 @@ import java.util.List;
  * 커스텀 설정 탭을 그리는 화면. AE2의 기본 설정 컴포넌트는 포함하지 않습니다.
  */
 public class CustomConfigTabScreen<C extends MEStorageMenu>
-        extends AESubScreen<C, MEStorageScreen<C>> {
+        extends AESubScreen<C, MEStorageScreen<C>> implements MyoConfigTabScreen {
 
     private final List<TabButton> tabButtons = new ArrayList<>();
     private final int selectedTab;
     private final MEStorageScreen<C> parentScreen;
-    private final List<TerminalConfigTab> customTabs;
+    private final List<MyoConfigTab> customTabs;
 
     public CustomConfigTabScreen(MEStorageScreen<C> parent, int tabIndex) {
         super(parent,
-                String.format("/screens/config/%s", MyotusConfigTabRegister.getTabs().get(tabIndex - 1).stylePath()));
+                String.format("/screens/config/%s", ConfigManager.INSTANCE.getTabs().get(tabIndex - 1).stylePath()));
         this.parentScreen = parent;
         this.selectedTab = tabIndex;
-        this.customTabs = MyotusConfigTabRegister.getTabs();
+        this.customTabs = ConfigManager.INSTANCE.getTabs();
 
         this.addToLeftToolbar(new MyoReportButton());
         addBackButton();
@@ -131,6 +132,11 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
                 Minecraft.getInstance().setScreen(new CustomConfigTabScreen<>(this.parentScreen, index));
             }
         }
+    }
+
+    @Override
+    public void buildTab(appeng.client.gui.WidgetContainer widgets, appeng.client.gui.AEBaseScreen<?> screen) {
+        // This is the parent container for other widgets
     }
 
     private void addBackButton() {

@@ -14,17 +14,17 @@ import java.util.Objects;
  * A record containing tab information for the Terminal Config screen.
  */
 
-public record TerminalConfigTab(Component title, Blitter blitter, ItemStack stack, String stylePath,
-                                BaseConfigTabScreen configTabScreen) {
-    public TerminalConfigTab(Component title, Icon icon, String stylePath, BaseConfigTabScreen configTabScreen) {
+public record MyoConfigTab(Component title, Blitter blitter, ItemStack stack, String stylePath,
+                           MyoConfigTabScreen configTabScreen) {
+    public MyoConfigTab(Component title, Icon icon, String stylePath, MyoConfigTabScreen configTabScreen) {
         this(title, icon.getBlitter(), null, stylePath, configTabScreen);
     }
 
-    public TerminalConfigTab(Component title, MyoIcon icon, String stylePath, BaseConfigTabScreen configTabScreen) {
+    public MyoConfigTab(Component title, MyoIcon icon, String stylePath, MyoConfigTabScreen configTabScreen) {
         this(title, icon.getBlitter(), null, stylePath, configTabScreen);
     }
 
-    public TerminalConfigTab(Component title, ItemStack stack, String stylePath, BaseConfigTabScreen configTabScreen) {
+    public MyoConfigTab(Component title, ItemStack stack, String stylePath, MyoConfigTabScreen configTabScreen) {
         this(title, null, stack, stylePath, configTabScreen);
     }
 
