@@ -13,4 +13,12 @@ public class KeyBindings {
             GLFW.GLFW_KEY_COMMA,
             TranslateKey.KEY_CATEGORY.key()
     );
+
+    public static final KeyMapping TOGGLE_SUB_SIDE_PANEL = new KeyMapping(
+            TranslateKey.TOGGLE_SUB_SIDE_PANEL_KEY.key(),
+            MyoKeyConflictContext.TERMINAL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_PERIOD,
+            TranslateKey.KEY_CATEGORY.key()
+    );
 }

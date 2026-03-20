@@ -1,4 +1,4 @@
-package me.myogoo.myotus.mixin;
+package me.myogoo.myotus.mixin.ae2;
 
 import appeng.client.Point;
 import appeng.client.gui.AEBaseScreen;
@@ -23,6 +23,7 @@ import net.minecraft.world.entity.player.Inventory;
 import appeng.client.gui.style.WidgetStyle;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
@@ -53,24 +54,17 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
 
         if (this.menu instanceof MEStorageMenu storageMenu) {
             myocertus$floatingSubScreen = new SidePanelSubScreen(storageMenu);
-            // 초기 위치 설정 (메인 스크린 오른쪽에 이음새 없이 연결)
             myocertus$floatingSubScreen.setPosition(new Point(this.imageWidth, 0));
 
-            // 토글 버튼 생성 (FloatingSubScreen을 받는 방향으로 수정 필요할 수 있으나 일단 유지)
             myocertus$toggleButton = new SidePanelToggleButton(myocertus$floatingSubScreen);
             this.addToLeftToolbar(myocertus$toggleButton);
 
             if (myocertus$floatingSubScreen != null) {
-                // config 값으로 가시성 설정
-                myocertus$floatingSubScreen.setVisible(MyotusClientConfig.INSTANCE.openSidePanel.get());
-                // 스크린 원점 정보 전달 및 초기화
+                myocertus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
                 Rect2i screenBounds = new Rect2i(this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
                 myocertus$floatingSubScreen.populateScreen(this::addRenderableWidget, screenBounds, this);
 
-                // WidgetContainer에 등록하여 update, render, mouseEvent 처리를 전부 위임합니다.
                 this.widgets.add("myocertus_floating_sub_screen", myocertus$floatingSubScreen);
-
-                // 툴바 버튼 등록
                 this.addRenderableWidget(myocertus$toggleButton);
             }
         }
@@ -103,5 +97,31 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
                 cir.setReturnValue(true);
             }
         }
+        if (KeyBindings.TOGGLE_SUB_SIDE_PANEL.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+            if (Minecraft.getInstance().screen instanceof MEStorageScreen<?> storageScreen) {
+                this.myocertus$toggleButton.run();
+                cir.setReturnValue(true);
+            }
+        }
+    }
+
+    @Inject(method = "init", at = @At("HEAD"))
+    protected void repositionSubSidePanel(CallbackInfo ci) {
+        if(myocertus$floatingSubScreen != null) {
+            myocertus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
+
+        }
+        WidgetStyle sidePanelStyle = ((ScreenStyleAccessor) (Object) style).getWidgets().get("myocertus_floating_sub_screen");
+        WidgetContainerAccessor widget = (WidgetContainerAccessor) this.widgets;
+        sidePanelStyle.setRight(-3);
+
+        if(widget.getCompositeWidgets().containsKey("scrollingUpgrades")) {
+            sidePanelStyle.setRight(-32); //default value: -20
+        }
+        //wtf?
+        if(widget.getCompositeWidgets().containsKey("upgradeScrollbar") && widget.getCompositeWidgets().get("upgradeScrollbar").isVisible()) {
+            sidePanelStyle.setRight(-32);
+        }
+        ((ScreenStyleAccessor) (Object) style).getWidgets().put("myocertus_floating_sub_screen", sidePanelStyle);
     }
 }

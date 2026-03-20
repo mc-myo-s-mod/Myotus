@@ -1,5 +1,7 @@
 package me.myogoo.myotus.client.gui.config;
 
+import appeng.client.gui.AEBaseScreen;
+import appeng.client.gui.widgets.AECheckbox;
 import me.myogoo.myotus.api.config.MyoConfigTabScreen;
 import me.myogoo.myotus.client.TranslateKey;
 
@@ -8,32 +10,22 @@ import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
 import me.myogoo.myotus.config.MyotusClientConfig;
 
 public class MyotusConfigScreen implements MyoConfigTabScreen {
-
-    // private AECheckbox configTabSorting;
-    private KeyBindingButton keyBindingButton;
-
     @Override
-    public void buildTab(WidgetContainer widgets, appeng.client.gui.AEBaseScreen<?> screen) {
-        // configTabSorting = widgets.addCheckbox("sort",
-        // TranslateKey.CONFIG_TAB_SORTING.getTranslate(),
-        // this::updateConfigTabSorting);
-        keyBindingButton = new KeyBindingButton(
+    public void buildTab(WidgetContainer widgets, AEBaseScreen<?> screen) {
+        widgets.add("key:open_terminal_setting", new KeyBindingButton(
                 TranslateKey.OPEN_TERMINAL_SETTING_KEY.getTranslate(), keys -> {
-                });
-        widgets.add("key_binding", keyBindingButton);
+        }));
+        widgets.add("key:toggle_subsidepanel", new KeyBindingButton(
+                TranslateKey.TOGGLE_SUB_SIDE_PANEL_KEY.getTranslate(), keys -> {
+        }));
     }
 
     protected void updateState() {
-        // configTabSorting.setSelected(MyotusClientConfig.INSTANCE.activeTabSorting.get());
     }
 
     protected void save() {
-        MyotusClientConfig.INSTANCE.spec.save();
+        MyotusClientConfig.CLIENT.get().save();
         updateState();
     }
 
-    private void updateConfigTabSorting() {
-        MyotusClientConfig.INSTANCE.activeTabSorting.set(!MyotusClientConfig.INSTANCE.activeTabSorting.get());
-        save();
-    }
 }

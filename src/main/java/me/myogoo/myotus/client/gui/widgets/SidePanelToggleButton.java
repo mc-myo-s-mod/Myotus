@@ -20,7 +20,7 @@ public class SidePanelToggleButton extends IconButton {
     public SidePanelToggleButton(SidePanelSubScreen sidePanel) {
         super(btn -> {
             if (btn instanceof SidePanelToggleButton t) {
-                t.run(btn);
+                t.run();
             }
         });
         this.sidePanel = sidePanel;
@@ -28,7 +28,7 @@ public class SidePanelToggleButton extends IconButton {
     }
 
     private void updateTooltip() {
-        boolean isOpen = MyotusClientConfig.INSTANCE.openSidePanel.get();
+        boolean isOpen = MyotusClientConfig.CLIENT.openSidePanel.get();
         setMessage(Component.literal("Side Panel: " + (isOpen ? "ON" : "OFF")));
     }
 
@@ -38,9 +38,9 @@ public class SidePanelToggleButton extends IconButton {
         return isOpen ? Icon.ARROW_LEFT : Icon.ARROW_RIGHT;
     }
 
-    private void run(Button button) {
-        boolean newValue = !MyotusClientConfig.INSTANCE.openSidePanel.get();
-        MyotusClientConfig.INSTANCE.openSidePanel.set(newValue);
+    public void run() {
+        boolean newValue = !MyotusClientConfig.CLIENT.openSidePanel.get();
+        MyotusClientConfig.CLIENT.openSidePanel.set(newValue);
         this.sidePanel.setVisible(newValue);
         this.updateTooltip();
     }

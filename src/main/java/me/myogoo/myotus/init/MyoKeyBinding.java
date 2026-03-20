@@ -12,5 +12,6 @@ public class MyoKeyBinding {
     @SubscribeEvent
     public static void register(RegisterKeyMappingsEvent event) {
         event.register(KeyBindings.OPEN_TERMINAL_SETTING);
+        event.register(KeyBindings.TOGGLE_SUB_SIDE_PANEL);
     }
 }

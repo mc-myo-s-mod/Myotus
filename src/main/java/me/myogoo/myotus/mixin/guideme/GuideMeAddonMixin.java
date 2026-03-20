@@ -1,4 +1,4 @@
-package me.myogoo.myotus.mixin;
+package me.myogoo.myotus.mixin.guideme;
 
 import appeng.core.AppEngClient;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;

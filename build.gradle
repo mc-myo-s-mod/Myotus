@@ -109,6 +109,9 @@ dependencies {
     compileOnly "org.appliedenergistics:guideme:${Guideme_version}:api"
     runtimeOnly "org.appliedenergistics:guideme:${Guideme_version}"
 
+    implementation "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
+    runtimeOnly "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"
+
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

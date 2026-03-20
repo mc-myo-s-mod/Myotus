@@ -15,9 +15,14 @@
     }
   },
   "widgets": {
-    "key_binding": {
+    "key:open_terminal_setting": {
       "left": 10,
       "top": 20,
+      "width": 180
+    },
+    "key:toggle_subsidepanel": {
+      "left": 10,
+      "top": 50,
       "width": 180
     }
   }

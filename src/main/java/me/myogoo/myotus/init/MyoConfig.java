@@ -6,6 +6,6 @@ import net.neoforged.fml.config.ModConfig;
 
 public class MyoConfig {
     public static void initialize(ModContainer container) {
-        container.registerConfig(ModConfig.Type.CLIENT, MyotusClientConfig.INSTANCE.spec, "myotus-client.toml");
+        container.registerConfig(ModConfig.Type.CLIENT, MyotusClientConfig.CLIENT.get(), "myotus-client.toml");
     }
 }

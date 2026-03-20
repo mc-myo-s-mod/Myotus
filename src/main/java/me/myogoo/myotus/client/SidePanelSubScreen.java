@@ -142,8 +142,7 @@ public class SidePanelSubScreen implements ICompositeWidget {
         }
 
         guiGraphics.pose().pushPose();
-        // 배경 레이어 렌더링 시 추가적인 Z-index 이동을 제거하여 슬롯 하이라이트를 가리지 않도록 함.
-        // guiGraphics.pose().translate(0, 0, 200);
+        //guiGraphics.pose().translate(0, 0, 1);
 
         // extra_panels.png를 이용하여 바탕화면과 본 스크린이 자연스럽게 이어지도록 그립니다.
         // 드래그 핸들이나 Icon.SLOT_BACKGROUND는 그리지 않아서 슬롯 내장 배경(아이콘)이 보이게 합니다.

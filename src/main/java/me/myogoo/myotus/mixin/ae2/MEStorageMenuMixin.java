@@ -1,4 +1,4 @@
-package me.myogoo.myotus.mixin;
+package me.myogoo.myotus.mixin.ae2;
 
 import java.util.List;
 

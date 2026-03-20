@@ -7,6 +7,7 @@ public enum TranslateKey {
     TITLE_TERMINAL_SETTING("gui.myotus.config.title"),
     OPEN_TERMINAL_SETTING("gui.myotus.open_terminal_setting"),
     OPEN_TERMINAL_SETTING_KEY("key.myotus.open.terminal_setting"),
+    TOGGLE_SUB_SIDE_PANEL_KEY("key.myotus.toggle.subsidepanel"),
     KEY_CATEGORY("key.categories.myotus"),
 
     CONFIG_TAB_SORTING("gui.myotus.checkbox.tab.sorting"),
@@ -14,6 +15,7 @@ public enum TranslateKey {
     TOOLTIP_REPORT_BUG("gui.myotus.button.bug_report.tooltip"),
 
     ERROR_VERSION_MISMATCH("error.myotus.mod.loading.version.mismatch");
+
     private final String key;
 
     TranslateKey(String key){

@@ -6,5 +6,7 @@
   "gui.myotus.checkbox.tab.sorting": "Sort tabs by active",
   "gui.myotus.keybinding.listening":  "Listening for keybinding... Press ESC to cancel.",
   "key.myotus.open.terminal_setting": "Open Terminal Setting Screen",
+  "key.myotus.toggle.subsidepanel": "Toggle Sub Side Panel",
+  "gui.myotus.config.toggle_side_panel": "Toggle Sub Side Panel",
   "key.categories.myotus": "myotus"
 }

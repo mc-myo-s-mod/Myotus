@@ -4,12 +4,13 @@
   "package": "me.myogoo.myotus.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "GuideMeAddonMixin",
-    "MEStorageMenuMixin",
-    "ScreenStyleAccessor"
+    "ae2.MEStorageMenuMixin",
+    "ae2.ScreenStyleAccessor",
+    "ae2.WidgetContainerAccessor",
+    "guideme.GuideMeAddonMixin"
   ],
   "client": [
-    "MEStorageScreenMixin"
+    "ae2.MEStorageScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
