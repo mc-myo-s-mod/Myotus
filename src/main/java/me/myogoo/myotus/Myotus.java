@@ -11,6 +11,7 @@ import me.myogoo.myotus.api.annotation.wt.AE2WTLib;
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.impl.MyotusAPIImpl;
 import me.myogoo.myotus.init.MyoCondition;
+import me.myogoo.myotus.init.MyoItems;
 import me.myogoo.myotus.init.MyoConfig;
 import me.myogoo.myotus.init.MyotusConfigTab;
 import net.minecraft.resources.ResourceLocation;
@@ -31,15 +32,16 @@ public class Myotus {
         this.modEventBus = modEventBus;
         MyotusAPI._setInstance(MyotusAPIImpl.INSTANCE);
 
-        var register = MyotusAPI.get().modRegistrar();
-        register.loadableMod(JEI.class, "jei");
-        register.loadableMod(EMI.class, "emi");
-        register.loadableMod(REI.class, "roughlyenoughitems");
-        register.loadableMod(AE2WTLib.class, "ae2wtlib");
-        register.loadableMod(AE2FCT.class, "ae2fct");
-        register.loadableMod(AE2TB.class, "ae2tb");
+        MyotusAPI.modRegistrar()
+                .registerLoadableMod(JEI.class, "jei")
+                .registerLoadableMod(EMI.class, "emi")
+                .registerLoadableMod(REI.class, "roughlyenoughitems")
+                .registerLoadableMod(AE2WTLib.class, "ae2wtlib")
+                .registerLoadableMod(AE2FCT.class, "ae2fct")
+                .registerLoadableMod(AE2TB.class, "ae2tb");
         modEventBus.addListener(this::commonSetup);
         MyoCondition.REGISTER.register(modEventBus);
+        MyoItems.ITEMS.register(modEventBus);
         MyoConfig.initialize(modContainer);
     }
 

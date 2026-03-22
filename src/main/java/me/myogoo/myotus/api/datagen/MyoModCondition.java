@@ -6,26 +6,40 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import me.myogoo.myotus.api.MyotusAPI;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.lang.annotation.Annotation;
-
-public class MyoModCondition implements ICondition{
+/**
+ * Condition that evaluates to {@code true} when a Myotus-registered mod
+ * integration is active.
+ *
+ * <p>This condition is serialized with the {@code active_mod} field.</p>
+ *
+ * <p>Example JSON:</p>
+ * <pre>{@code
+ * {
+ *   "type": "myotus:myo_mod",
+ *   "active_mod": "ae2wtlib"
+ * }
+ * }</pre>
+ */
+public class MyoModCondition implements ICondition {
     public static final MapCodec<MyoModCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Codec.STRING.fieldOf("active_mod").forGetter(MyoModCondition::getModId)).apply(instance, MyoModCondition::new));
+            Codec.STRING.fieldOf("active_mod").forGetter(MyoModCondition::getModId))
+            .apply(instance, MyoModCondition::new));
 
-    @Nullable
-    private Class<? extends Annotation> modId = null;
+    private final String modId;
 
+    /**
+     * Creates a condition that targets a registered mod ID.
+     *
+     * @param modId registered Myotus integration ID
+     */
     public MyoModCondition(String modId) {
-        this.modId = MyotusAPI.get().modIntegrationManager().getAnnotationClass(modId);
+        this.modId = modId;
     }
 
     @Override
     public boolean test(ICondition.IContext context) {
-        if (this.modId == null)
-            return false;
-        return MyotusAPI.get().modIntegrationManager().isLoaded(this.modId);
+        return MyotusAPI.modIntegrationManager().isLoaded(modId);
     }
 
     @Override
@@ -33,10 +47,12 @@ public class MyoModCondition implements ICondition{
         return CODEC;
     }
 
+    /**
+     * Returns the mod ID serialized by this condition.
+     *
+     * @return registered integration ID
+     */
     public String getModId() {
-        if (this.modId == null)
-            return "null";
-        return this.modId.getSimpleName();
+        return modId;
     }
-
 }

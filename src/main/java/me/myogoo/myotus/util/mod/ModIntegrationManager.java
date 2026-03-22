@@ -1,13 +1,12 @@
 package me.myogoo.myotus.util.mod;
 
-import me.myogoo.myotus.api.MyotusAPI;
 import net.neoforged.fml.ModLoadingException;
 import net.neoforged.fml.ModLoadingIssue;
-import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,12 +22,11 @@ public final class ModIntegrationManager {
     }
 
     public static Class<? extends Annotation> getClass(String modId) {
-        for (var entry : activeIntegrations.entrySet()) {
-            if (entry.getKey().getModName().equalsIgnoreCase(modId)) {
-                return entry.getValue();
-            }
+        var mod = get(modId);
+        if (mod == null) {
+            return null;
         }
-        return null;
+        return mod.getAnnotationClass();
     }
 
     public static boolean isLoaded(Class<? extends Annotation> annotationClass) {
@@ -43,11 +41,15 @@ public final class ModIntegrationManager {
     }
 
     public static Map<SupportedMod, Class<? extends Annotation>> getActiveIntegrations() {
-        return activeIntegrations;
+        return Collections.unmodifiableMap(activeIntegrations);
     }
 
-    public static SupportedMod get(String modDisplayName) {
-        return supportIntegrations.values().stream().filter(mod -> mod.getModName().equals(modDisplayName)).findFirst().orElse(null);
+    public static SupportedMod get(String modIdOrName) {
+        return supportIntegrations.values().stream()
+                .filter(mod -> mod.getModId().equalsIgnoreCase(modIdOrName)
+                        || mod.getModName().equalsIgnoreCase(modIdOrName))
+                .findFirst()
+                .orElse(null);
     }
 
     public static void put(Class<? extends Annotation> annotationClass, String modId) {
@@ -60,13 +62,13 @@ public final class ModIntegrationManager {
 
     public static void put(Class<? extends Annotation> annotationClass, String modId, String displayModName,
             String versionRange) {
-        put(annotationClass,new SupportedMod(modId, annotationClass, versionRange, displayModName));
+        put(annotationClass, new SupportedMod(modId, annotationClass, versionRange, displayModName));
 
     }
 
     static void put(Class<? extends Annotation> annotationClass, SupportedMod mod) {
-        supportIntegrations.put(annotationClass,mod);
-        if(mod.isModLoaded()) {
+        supportIntegrations.put(annotationClass, mod);
+        if (mod.isModLoaded()) {
             if (!mod.test()) {
                 throw new ModLoadingException(
                         ModLoadingIssue.error(

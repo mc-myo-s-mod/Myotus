@@ -19,7 +19,7 @@ import appeng.menu.me.common.MEStorageMenu;
 /**
  * MEStorageScreen 위에 떠 있는(floating) 드래그 가능한 서브스크린 패널.
  * Mekanism의 GuiWindow 패턴을 참고하여 구현.
- * ViewCell 5개(왼쪽)와 UpgradeSlot 5개(오른쪽)를 세로로 나란히 표시합니다.
+ * ViewCell 5개를 세로로 표시합니다.
  */
 public class SidePanelSubScreen implements ICompositeWidget {
 
@@ -27,7 +27,6 @@ public class SidePanelSubScreen implements ICompositeWidget {
     private static final int PADDING = 5;
     private static final int SLOT_COUNT = 5;
 
-    // 2열 (ViewCell + UpgradeSlot) + 패딩 (끊김 없는 디자인을 위해 열 사이 간격 제거)
     private static final int PANEL_WIDTH = PADDING + (SLOT_SIZE * 2) + PADDING;
     private static final int PANEL_HEIGHT = PADDING + (SLOT_SIZE * SLOT_COUNT) + PADDING;
 
@@ -43,7 +42,6 @@ public class SidePanelSubScreen implements ICompositeWidget {
     // 가시성
     private boolean visible = false;
 
-    // 실제 메뉴 슬롯 참조
     private final List<Slot> viewCellSlots;
     private final List<Slot> upgradeSlots;
 
@@ -108,6 +106,7 @@ public class SidePanelSubScreen implements ICompositeWidget {
     public void updateBeforeRender() {
         if (!visible) {
             hideSlots();
+            return;
         }
 
         // 패널 내 첫 번째 슬롯 좌표 (screen-relative: guiLeft/top 기준)

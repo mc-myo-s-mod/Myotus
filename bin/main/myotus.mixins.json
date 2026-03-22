@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.myogoo.myotus.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ae2.MEStorageMenuMixin",
+    "ae2.ScreenStyleAccessor",
+    "ae2.WidgetContainerAccessor",
+    "guideme.GuideMeAddonMixin"
+  ],
+  "client": [
+    "ae2.MEStorageScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
