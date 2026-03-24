@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'idea'
+    id 'com.vanniktech.maven.publish' version '0.34.0'
     id 'net.neoforged.moddev' version '2.0.140'
 }
 
@@ -24,7 +25,9 @@ base {
     archivesName = "Myotus-${minecraft_version}"
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
 
 neoForge {
     // Specify the version of NeoForge to use.
@@ -109,9 +112,17 @@ dependencies {
     compileOnly "org.appliedenergistics:guideme:${Guideme_version}:api"
     runtimeOnly "org.appliedenergistics:guideme:${Guideme_version}"
 
-    implementation "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
-    runtimeOnly "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"
+    compileOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
+    if(project.enable_ae2wt == "true") {
+        runtimeOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
+        runtimeOnly "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"
+    }
 
+}
+
+def publishedDescription = project.mod_description.toString().trim()
+if (publishedDescription.isEmpty()) {
+    publishedDescription = 'Terminal extension hooks and utilities for Applied Energistics 2 on NeoForge.'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -146,19 +157,51 @@ task apiJar(type: Jar) {
     include 'me/myogoo/myotus/api/**' // API 패키지만 포함
 }
 
+mavenPublishing {
+    coordinates(project.mod_group_id,project.mod_id, project.mod_version)
 
-// Example configuration to allow publishing using the maven-publish plugin
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            from components.java
+    pom {
+        name = project.mod_id
+        description = "Myotus is a terminal extension mod for Applied Energistics 2. This library provides hooks and utilities for other mods to extend Myotus' functionality."
+        url = "https://github.com/mc-myo-s-mod/w"
+
+        licenses {
+            license {
+                name = "GNU Lesser General Public License v3.0"
+                url = "https://www.gnu.org/licenses/lgpl-3.0.html"
+            }
         }
+
+        developers {
+            developer {
+                name = "myogoo"
+                url = "https://github.com/myogoo"
+            }
+        }
+
+        scm {
+            connection = "scm:git:git://github.com/mc-myo-s-mod/SSECLib.git"
+            developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/SSECLib.git"
+            url = "https://github.com/mc-myo-s-mod/SSECLib"
+        }
+
     }
+    publishToMavenCentral()
+    signAllPublications()
+}
+publishing {
     repositories {
         maven {
-            url "file://${project.projectDir}/repo"
+            name = 'projectLocal'
+            url = layout.projectDirectory.dir('repo').asFile.toURI()
         }
     }
+}
+
+tasks.withType(Javadoc).configureEach {
+    failOnError = false
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

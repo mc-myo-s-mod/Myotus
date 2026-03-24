@@ -15,7 +15,6 @@ import me.myogoo.myotus.menu.TerminalUpgradeSlotFilter;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -45,7 +44,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
 
     // 업그레이드 슬롯의 이전 아이템 상태 추적 (삽입/제거 이벤트 감지용)
     @Unique
-    private final Map<Slot, Item> myocertus$prevUpgradeItems = new IdentityHashMap<>();
+    private final Map<Slot, ItemStack> myocertus$prevUpgradeItems = new IdentityHashMap<>();
 
     private MEStorageMenuMixin(MenuType<?> menuType, int id, Inventory playerInventory, Object host) {
         super(menuType, id, playerInventory, host);
@@ -66,7 +65,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         // 이전 슬롯 상태 초기화 (삽입/제거 감지용, broadcastChanges에서 비교)
         if (!this.getPlayer().level().isClientSide()) {
             for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
-                myocertus$prevUpgradeItems.put(slot, slot.getItem().getItem());
+                myocertus$prevUpgradeItems.put(slot, slot.getItem().copy());
             }
             myocertus$dispatchUpgradeOpen();
         }
@@ -91,22 +90,23 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
     private void myocertus$checkUpgradeSlotChanges() {
         MEStorageMenu menu = (MEStorageMenu) (Object) this;
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
-            Item prevItem = myocertus$prevUpgradeItems.get(slot);
+            ItemStack prevStack = myocertus$prevUpgradeItems.getOrDefault(slot, ItemStack.EMPTY);
             ItemStack nowStack = slot.getItem();
-            Item nowItem = nowStack.getItem();
 
-            if (prevItem == nowItem) continue;
+            if (ItemStack.isSameItemSameComponents(prevStack, nowStack)) {
+                continue;
+            }
 
             // 이전 카드 제거 → close 이벤트
-            if (prevItem instanceof ITerminalUpgradeCard oldCard) {
-                oldCard.onTerminalClose(menu, new ItemStack(prevItem));
+            if (!prevStack.isEmpty() && prevStack.getItem() instanceof ITerminalUpgradeCard oldCard) {
+                oldCard.onTerminalClose(menu, prevStack.copy());
             }
             // 새 카드 삽입 → open 이벤트
-            if (!nowStack.isEmpty() && nowItem instanceof ITerminalUpgradeCard newCard) {
-                newCard.onTerminalOpen(menu, nowStack);
+            if (!nowStack.isEmpty() && nowStack.getItem() instanceof ITerminalUpgradeCard newCard) {
+                newCard.onTerminalOpen(menu, nowStack.copy());
             }
 
-            myocertus$prevUpgradeItems.put(slot, nowItem);
+            myocertus$prevUpgradeItems.put(slot, nowStack.copy());
         }
     }
 
@@ -125,7 +125,8 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         // 서버 측: 플레이어 persistentData에 저장되는 컨테이너 사용 (GUI 닫아도 유지)
         // 클라이언트 측: 서버에서 슬롯 내용이 자동 동기화되므로 빈 컨테이너로 충분
         AppEngInternalInventory upgradeInv = (this.getPlayer() instanceof ServerPlayer serverPlayer)
-                ? new PlayerUpgradeContainer(serverPlayer, TerminalUpgradeStorageKey.of(host))
+                ? new PlayerUpgradeContainer(serverPlayer, TerminalUpgradeStorageKey.of(host),
+                        TerminalUpgradeStorageKey.legacyKeysOf(host))
                 : new AppEngInternalInventory(null, PlayerUpgradeContainer.SIZE, 1, TerminalUpgradeSlotFilter.INSTANCE);
 
         for (int i = 0; i < PlayerUpgradeContainer.SIZE; i++) {

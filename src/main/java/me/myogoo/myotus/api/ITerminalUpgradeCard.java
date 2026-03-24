@@ -10,6 +10,10 @@ import net.minecraft.world.item.ItemStack;
  * slot filter. Every callback has a default no-op implementation, so card items
  * only need to override the hooks they actually use.</p>
  *
+ * <p>Terminal upgrade cards are expected to be non-stackable. Item-backed
+ * terminal storage is keyed per {@link ItemStack}, so upgrade cards should use
+ * a max stack size of 1.</p>
+ *
  * <p>Example:</p>
  * <pre>{@code
  * public class MyUpgradeCardItem extends Item implements ITerminalUpgradeCard {
@@ -31,7 +35,8 @@ public interface ITerminalUpgradeCard {
     /**
      * Called when a terminal containing this card is opened.
      *
-     * <p>This callback runs on both the client and the server.</p>
+     * <p>This callback runs on the server when the menu is opened or when the
+     * card is inserted into an already open terminal.</p>
      *
      * @param menu currently open terminal menu
      * @param stack the card stack installed in the slot
@@ -41,7 +46,8 @@ public interface ITerminalUpgradeCard {
     /**
      * Called when a terminal containing this card is closed.
      *
-     * <p>This callback runs on both the client and the server.</p>
+     * <p>This callback runs on the server when the menu is closed or when the
+     * card is removed from an open terminal.</p>
      *
      * @param menu terminal menu being closed
      * @param stack the card stack installed in the slot
