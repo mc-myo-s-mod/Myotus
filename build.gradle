@@ -122,7 +122,7 @@ dependencies {
 
 def publishedDescription = project.mod_description.toString().trim()
 if (publishedDescription.isEmpty()) {
-    publishedDescription = 'Terminal extension hooks and utilities for Applied Energistics 2 on NeoForge.'
+    publishedDescription = 'Terminal extension hooks and utilities for Applied Energistics 2 '
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -163,7 +163,7 @@ mavenPublishing {
     pom {
         name = project.mod_id
         description = "Myotus is a terminal extension mod for Applied Energistics 2. This library provides hooks and utilities for other mods to extend Myotus' functionality."
-        url = "https://github.com/mc-myo-s-mod/w"
+        url = "https://github.com/mc-myo-s-mod/Myotus"
 
         licenses {
             license {
@@ -182,7 +182,7 @@ mavenPublishing {
         scm {
             connection = "scm:git:git://github.com/mc-myo-s-mod/SSECLib.git"
             developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/SSECLib.git"
-            url = "https://github.com/mc-myo-s-mod/SSECLib"
+            url = "https://github.com/mc-myo-s-mod/Myotus"
         }
 
     }

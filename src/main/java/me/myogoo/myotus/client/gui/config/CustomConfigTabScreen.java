@@ -27,23 +27,22 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
         extends AESubScreen<C, MEStorageScreen<C>> implements MyoConfigTabScreen {
 
     private final List<TabButton> tabButtons = new ArrayList<>();
-    private final int selectedTab;
+    private final MyoConfigTab selectedTab;
     private final MEStorageScreen<C> parentScreen;
     private final List<MyoConfigTab> customTabs;
 
-    public CustomConfigTabScreen(MEStorageScreen<C> parent, int tabIndex) {
+    public CustomConfigTabScreen(MEStorageScreen<C> parent, MyoConfigTab selectedTab) {
         super(parent,
-                String.format("/screens/config/%s", ConfigManager.INSTANCE.getTabs().get(tabIndex - 1).stylePath()));
+                String.format("/screens/config/%s", selectedTab.stylePath()));
         this.parentScreen = parent;
-        this.selectedTab = tabIndex;
-        this.customTabs = ConfigManager.INSTANCE.getTabs();
+        this.selectedTab = selectedTab;
+        this.customTabs = ConfigManager.INSTANCE.getVisibleTabs(this.menu);
 
         this.addToLeftToolbar(new MyoReportButton());
         addBackButton();
 
-        int customTabIndex = this.selectedTab - 1;
-        if (customTabIndex >= 0 && customTabIndex < this.customTabs.size()) {
-            this.customTabs.get(customTabIndex).configTabScreen().buildTab(this.widgets, this);
+        if (this.selectedTab.isVisible(this.menu)) {
+            this.selectedTab.configTabScreen().buildTab(this.widgets, this);
         }
     }
 
@@ -74,17 +73,15 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
         TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(),
                 btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
-        ae2Tab.setSelected(selectedTab == 0);
+        ae2Tab.setSelected(false);
         this.addRenderableWidget(ae2Tab);
         tabButtons.add(ae2Tab);
 
         // 커스텀 탭들
-        for (int i = 0; i < customTabs.size(); i++) {
-            var tab = customTabs.get(i);
-            final int tabIndex = i + 1;
-            CustomTabButton tabBtn = tab.getTabButton(btn -> selectTab(tabIndex));
+        for (var tab : customTabs) {
+            CustomTabButton tabBtn = tab.getTabButton(btn -> selectTab(tab));
             tabBtn.setStyle(TabButton.Style.HORIZONTAL);
-            tabBtn.setSelected(selectedTab == tabIndex);
+            tabBtn.setSelected(selectedTab.equals(tab));
             this.addRenderableWidget(tabBtn);
             tabButtons.add(tabBtn);
         }
@@ -125,12 +122,14 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
     }
 
     private void selectTab(int index) {
-        if (this.selectedTab != index) {
-            if (index == 0) {
-                Minecraft.getInstance().setScreen(new TabbedTerminalSettingsScreen<>(this.parentScreen));
-            } else {
-                Minecraft.getInstance().setScreen(new CustomConfigTabScreen<>(this.parentScreen, index));
-            }
+        if (index == 0) {
+            Minecraft.getInstance().setScreen(new TabbedTerminalSettingsScreen<>(this.parentScreen));
+        }
+    }
+
+    private void selectTab(MyoConfigTab tab) {
+        if (!this.selectedTab.equals(tab)) {
+            Minecraft.getInstance().setScreen(new CustomConfigTabScreen<>(this.parentScreen, tab));
         }
     }
 

@@ -1,6 +1,7 @@
 package me.myogoo.myotus.impl;
 
 import me.myogoo.myotus.api.config.MyoConfigTab;
+import appeng.menu.me.common.MEStorageMenu;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,5 +18,11 @@ public enum ConfigManager {
 
     public List<MyoConfigTab> getTabs() {
         return Collections.unmodifiableList(tabs);
+    }
+
+    public List<MyoConfigTab> getVisibleTabs(MEStorageMenu menu) {
+        return tabs.stream()
+                .filter(tab -> tab.isVisible(menu))
+                .toList();
     }
 }

@@ -26,10 +26,7 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
     public TabbedTerminalSettingsScreen(MEStorageScreen<C> parent) {
         super(parent);
         this.parentScreen = parent;
-        this.customTabs = new ArrayList<>(); // Initialize customTabs as an empty list
-        for (MyoConfigTab tab : ConfigManager.INSTANCE.getTabs()) {
-            this.customTabs.add(tab); // Add tabs to customTabs
-        }
+        this.customTabs = new ArrayList<>(ConfigManager.INSTANCE.getVisibleTabs(this.menu));
         this.addToLeftToolbar(new MyoReportButton());
     }
 
@@ -43,16 +40,15 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
 
     private void buildTabBar() {
         TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(),
-                btn -> selectTab(0));
+                btn -> {
+                });
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(true);
         this.addRenderableWidget(ae2Tab);
         tabButtons.add(ae2Tab);
 
-        for (int i = 0; i < customTabs.size(); i++) {
-            var tab = customTabs.get(i);
-            final int tabIndex = i + 1;
-            CustomTabButton tabBtn = tab.getTabButton(button -> selectTab(tabIndex));
+        for (var tab : customTabs) {
+            CustomTabButton tabBtn = tab.getTabButton(button -> selectTab(tab));
             tabBtn.setStyle(TabButton.Style.HORIZONTAL);
             tabBtn.setSelected(false);
             this.addRenderableWidget(tabBtn);
@@ -81,10 +77,8 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
         return list;
     }
 
-    private void selectTab(int index) {
-        if (index != 0) {
-            Minecraft.getInstance().setScreen(new CustomConfigTabScreen<>(this.parentScreen, index));
-        }
+    private void selectTab(MyoConfigTab tab) {
+        Minecraft.getInstance().setScreen(new CustomConfigTabScreen<>(this.parentScreen, tab));
     }
 
 }
