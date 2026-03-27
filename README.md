@@ -10,7 +10,7 @@
 
 <p align="center">
   Myotus exposes a small public API for optional integrations, terminal config tabs,
-  and item-based terminal upgrade cards.
+  a shared creative tab, and item-based terminal upgrade cards.
 </p>
 
 ## Summary
@@ -22,6 +22,7 @@ The library currently focuses on four areas:
 
 - registration of optional integrations behind marker annotations
 - registration of custom terminal configuration tabs
+- registration of shared Myotus creative tab entries
 - runtime checks for which integrations are active
 - item-backed terminal upgrade cards with lifecycle callbacks
 
@@ -39,6 +40,7 @@ See [SUMMARY.md](SUMMARY.md) if you need a short project blurb.
 - Public API entry point via `MyotusAPI`
 - Annotation-driven optional integration registration
 - Custom AE2 terminal config tabs through `MyoConfigTab`
+- Shared Myotus creative tab contributions through `ICreativeTabRegistrar`
 - Per-terminal tab visibility rules through `MyoConfigTabVisibility`
 - Terminal upgrade card hooks with `onTerminalOpen`, `onTerminalClose`, and `onTerminalTick`
 - Runtime integration state queries through `IModIntegrationManager`
@@ -138,6 +140,22 @@ MyotusAPI.configRegistrar()
                 "portable_terminal.json",
                 new PortableConfigScreen())
                 .visibleWhen(context -> context.isItemHost()));
+```
+
+### Register an Item in the Myotus Creative Tab
+
+Add-on mods can place their items into the shared `Myotus` creative tab:
+
+```java
+MyotusAPI.creativeTabRegistrar()
+        .registerCreativeTabItem(MY_ITEM);
+```
+
+If you need a preconfigured stack instead of the default item form:
+
+```java
+MyotusAPI.creativeTabRegistrar()
+        .registerCreativeTabStack(() -> new ItemStack(MY_ITEM.get(), 1));
 ```
 
 ### Implement a Terminal Upgrade Card

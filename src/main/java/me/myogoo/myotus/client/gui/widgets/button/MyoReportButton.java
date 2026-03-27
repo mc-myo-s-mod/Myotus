@@ -2,13 +2,19 @@ package me.myogoo.myotus.client.gui.widgets.button;
 
 import me.myogoo.myotus.client.TranslateKey;
 import me.myogoo.myotus.client.gui.MyoIcon;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
 public class MyoReportButton extends CustomImageButton {
+    private static final URI ISSUE_URI = URI.create("https://github.com/mc-myo-s-mod/Myotus/issues");
+
     public MyoReportButton() {
         super(MyoIcon.BUG_REPORT, button -> openBugReport());
     }
@@ -19,11 +25,13 @@ public class MyoReportButton extends CustomImageButton {
     }
 
     private static void openBugReport() {
-        Minecraft.getInstance().keyboardHandler
-                .setClipboard("https://github.com/myogoo/MyoCertus/issues");
-        if (Minecraft.getInstance().player != null) {
-            Minecraft.getInstance().player.displayClientMessage(
-                    Component.literal("Bug report URL copied to clipboard!"), false);
+        Minecraft minecraft = Minecraft.getInstance();
+        Screen currentScreen = minecraft.screen;
+
+        if (currentScreen != null) {
+            ConfirmLinkScreen.confirmLinkNow(currentScreen, ISSUE_URI, true);
+        } else {
+            Util.getPlatform().openUri(ISSUE_URI);
         }
     }
 }

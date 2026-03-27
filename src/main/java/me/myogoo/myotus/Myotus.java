@@ -11,6 +11,7 @@ import me.myogoo.myotus.api.annotation.wt.AE2WTLib;
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.impl.MyotusAPIImpl;
 import me.myogoo.myotus.init.MyoCondition;
+import me.myogoo.myotus.init.MyoCreativeModeTabs;
 import me.myogoo.myotus.init.MyoItems;
 import me.myogoo.myotus.init.MyoConfig;
 import me.myogoo.myotus.init.MyotusConfigTab;
@@ -41,6 +42,7 @@ public class Myotus {
                 .registerLoadableMod(AE2TB.class, "ae2tb");
         modEventBus.addListener(this::commonSetup);
         MyoCondition.REGISTER.register(modEventBus);
+        MyoCreativeModeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         MyoItems.ITEMS.register(modEventBus);
         MyoConfig.initialize(modContainer);
     }
