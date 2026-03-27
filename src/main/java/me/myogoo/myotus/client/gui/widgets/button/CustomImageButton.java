@@ -23,6 +23,12 @@ public class CustomImageButton extends Button implements ITooltip {
     private boolean disableBackground = false;
     private final Blitter blitter;
 
+    public CustomImageButton(OnPress onPress) {
+        super(0, 0, 16, 16, Component.empty(), onPress, Button.DEFAULT_NARRATION);
+        this.blitter = null;
+    }
+
+
     public CustomImageButton(Blitter blitter, OnPress onPress) {
         super(0, 0, 16, 16, Component.empty(), onPress, Button.DEFAULT_NARRATION);
         this.blitter = blitter;
@@ -63,7 +69,7 @@ public class CustomImageButton extends Button implements ITooltip {
     public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partial) {
         if (this.visible) {
             var item = this.getItemOverlay();
-
+            var blitter = getIcon();
             if (this.halfSize) {
                 this.width = 8;
                 this.height = 8;
@@ -77,11 +83,11 @@ public class CustomImageButton extends Button implements ITooltip {
                 }
                 if (item != null) {
                     guiGraphics.renderItem(new ItemStack(item), getX(), getY(), 0, 20);
-                } else if(this.blitter != null) {
+                } else if(blitter != null) {
                     if (!this.active) {
-                        this.blitter.opacity(0.5f);
+                        blitter.opacity(0.5f);
                     }
-                    this.blitter.dest(getX(), getY()).zOffset(20).blit(guiGraphics);
+                    blitter.dest(getX(), getY()).zOffset(20).blit(guiGraphics);
                 }
             } else {
                 if (!disableBackground) {
@@ -95,13 +101,16 @@ public class CustomImageButton extends Button implements ITooltip {
                 }
                 if (item != null) {
                     guiGraphics.renderItem(new ItemStack(item), getX(), getY() + 1 + yOffset, 0, 3);
-                } else if(this.blitter != null)  {
+                } else if(blitter != null)  {
                     blitter.dest(getX(), getY() + 1 + yOffset).zOffset(3).blit(guiGraphics);
                 }
             }
         }
     }
 
+    protected Blitter getIcon() {
+        return this.blitter;
+    }
 
     @Nullable
     protected Item getItemOverlay() {

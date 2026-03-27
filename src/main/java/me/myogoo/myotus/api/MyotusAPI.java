@@ -2,6 +2,7 @@ package me.myogoo.myotus.api;
 
 import me.myogoo.myotus.api.integration.IModIntegrationManager;
 import me.myogoo.myotus.api.registrar.IConfigRegistrar;
+import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
 import me.myogoo.myotus.api.registrar.IModRegistrar;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -67,6 +68,15 @@ public final class MyotusAPI {
      */
     public static IConfigRegistrar configRegistrar() {
         return get().configRegistrar();
+    }
+
+    /**
+     * Returns the registrar used to contribute entries to the shared Myotus creative tab.
+     *
+     * @return the creative tab registrar
+     */
+    public static ICreativeTabRegistrar creativeTabRegistrar() {
+        return get().creativeTabRegistrar();
     }
 
     /**
