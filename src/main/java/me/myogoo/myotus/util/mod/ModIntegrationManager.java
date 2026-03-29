@@ -12,6 +12,8 @@ import java.util.Map;
 
 public final class ModIntegrationManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ModIntegrationManager.class);
+    private static final String VERSION_MISMATCH_LOADING_ERROR =
+            "The %s must be version %s or higher. Current version: %s";
 
     private static final Map<Class<? extends Annotation>, SupportedMod> supportIntegrations = new HashMap<>();
     private static final Map<SupportedMod, Class<? extends Annotation>> activeIntegrations = new HashMap<>();
@@ -70,12 +72,13 @@ public final class ModIntegrationManager {
         supportIntegrations.put(annotationClass, mod);
         if (mod.isModLoaded()) {
             if (!mod.test()) {
+                // Mod loading issues are rendered through FML's own translation table, not the mod's lang files.
                 throw new ModLoadingException(
                         ModLoadingIssue.error(
-                                "error.myotus.mod.loading.version.mismatch",
+                                VERSION_MISMATCH_LOADING_ERROR,
                                 mod.getDisplayModName(),
-                                mod.getModVersion(),
-                                mod.getMiniumVersion()));
+                                mod.getMiniumVersion(),
+                                mod.getModVersion()));
             }
             activeIntegrations.put(mod, mod.getAnnotationClass());
             LOGGER.info("Integration enabled for: {} (version: {})", mod.getDisplayModName(), mod.getModVersion());
