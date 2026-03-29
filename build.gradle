@@ -49,6 +49,10 @@ neoForge {
 
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+
+            systemProperty("guideme.ae2.guide.sources", "${file("src/main/resources").absolutePath}/assets/${mod_id}/ae2guide")
+            systemProperty("guideme.ae2.guide.sourcesNamespace", mod_id)
+
         }
 
         server {
