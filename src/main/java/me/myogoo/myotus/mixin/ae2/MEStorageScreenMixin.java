@@ -2,13 +2,13 @@ package me.myogoo.myotus.mixin.ae2;
 
 import appeng.client.Point;
 import appeng.client.gui.AEBaseScreen;
+import appeng.client.gui.Icon;
 import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.me.common.TerminalSettingsScreen;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.menu.AEBaseMenu;
-import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
-import appeng.client.gui.widgets.UpgradesPanel;
+import appeng.menu.slot.AppEngSlot;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -56,6 +56,12 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
         ((ScreenStyleAccessor) (Object) style).getWidgets().put("myocertus_floating_sub_screen", customStyle);
 
         if (this.menu instanceof MEStorageMenu storageMenu) {
+            for (var slot : storageMenu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
+                if (slot instanceof AppEngSlot appEngSlot) {
+                    appEngSlot.setIcon(Icon.BACKGROUND_UPGRADE);
+                }
+            }
+
             myocertus$floatingSubScreen = new SidePanelSubScreen(storageMenu);
             myocertus$floatingSubScreen.setPosition(new Point(this.imageWidth, 0));
 

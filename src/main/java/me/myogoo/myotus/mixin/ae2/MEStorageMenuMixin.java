@@ -4,7 +4,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import appeng.client.gui.Icon;
 import appeng.menu.slot.AppEngSlot;
 import appeng.util.inv.AppEngInternalInventory;
 import me.myogoo.myotus.api.ITerminalUpgradeCard;
@@ -131,7 +130,6 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
 
         for (int i = 0; i < PlayerUpgradeContainer.SIZE; i++) {
             var slot = new AppEngSlot(upgradeInv, i);
-            slot.setIcon(Icon.BACKGROUND_UPGRADE);
             this.addSlot(slot, MyoSlotSemantics.MYO_UPGRADE_SLOT);
         }
     }
