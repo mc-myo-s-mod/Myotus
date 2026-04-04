@@ -11,5 +11,7 @@
   "gui.myotus.config.toggle_side_panel": "Toggle Sub Side Panel",
   "key.categories.myotus": "myotus",
   "gui.myotus.config.toggle_side_panel.show": "Show Upgrade Panel",
-  "gui.myotus.config.toggle_side_panel.hide": "Hide Upgrade Panel"
+  "gui.myotus.config.toggle_side_panel.hide": "Hide Upgrade Panel",
+  "gui.myotus.upgrade_slot.empty_tooltip.header": "Installable terminal upgrades:",
+  "gui.myotus.upgrade_slot.empty_tooltip.none": "All terminal upgrades are already installed."
 }

@@ -18,6 +18,7 @@ import me.myogoo.myotus.client.SidePanelSubScreen;
 import me.myogoo.myotus.client.gui.widgets.SidePanelToggleButton;
 import me.myogoo.myotus.config.MyotusClientConfig;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
+import me.myogoo.myotus.menu.TerminalUpgradeHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
@@ -59,6 +60,7 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
             for (var slot : storageMenu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
                 if (slot instanceof AppEngSlot appEngSlot) {
                     appEngSlot.setIcon(Icon.BACKGROUND_UPGRADE);
+                    appEngSlot.setEmptyTooltip(() -> TerminalUpgradeHelper.getAvailableUpgradeTooltip(storageMenu));
                 }
             }
 
