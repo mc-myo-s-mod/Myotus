@@ -1,0 +1,48 @@
+package me.myogoo.myotus.impl;
+
+import me.myogoo.myotus.api.IMyotusAPI;
+import me.myogoo.myotus.api.integration.IModIntegrationManager;
+import me.myogoo.myotus.api.network.IMyotusNetwork;
+import me.myogoo.myotus.api.registrar.IConfigRegistrar;
+import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
+import me.myogoo.myotus.api.registrar.IModRegistrar;
+import me.myogoo.myotus.impl.integration.ModIntegrationManagerImpl;
+import me.myogoo.myotus.impl.network.MyotusNetwork;
+import me.myogoo.myotus.impl.registrar.ConfigRegistrarImpl;
+import me.myogoo.myotus.impl.registrar.CreativeTabRegistrarImpl;
+import me.myogoo.myotus.impl.registrar.ModRegistrarImpl;
+
+public enum MyotusAPIImpl implements IMyotusAPI {
+    INSTANCE;
+
+    private final IModRegistrar modRegistrar = new ModRegistrarImpl();
+    private final IConfigRegistrar configRegistrar = new ConfigRegistrarImpl();
+    private final ICreativeTabRegistrar creativeTabRegistrar = new CreativeTabRegistrarImpl();
+    private final IMyotusNetwork network = MyotusNetwork.INSTANCE;
+    private final IModIntegrationManager modIntegrationManager = new ModIntegrationManagerImpl();
+
+    @Override
+    public IModRegistrar modRegistrar() {
+        return modRegistrar;
+    }
+
+    @Override
+    public IConfigRegistrar configRegistrar() {
+        return configRegistrar;
+    }
+
+    @Override
+    public ICreativeTabRegistrar creativeTabRegistrar() {
+        return creativeTabRegistrar;
+    }
+
+    @Override
+    public IMyotusNetwork network() {
+        return network;
+    }
+
+    @Override
+    public IModIntegrationManager modIntegrationManager() {
+        return modIntegrationManager;
+    }
+}
