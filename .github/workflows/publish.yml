@@ -1,0 +1,162 @@
+name: Publish Mod
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - '1.20.1'
+      - '1.21.1'
+    paths:
+      - 'CHANGELOG.md'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: publish-build
+    runs-on: ubuntu-latest
+    outputs:
+      java_version: ${{ steps.vars.outputs.java_version }}
+      mc_version: ${{ steps.vars.outputs.mc_version }}
+      mod_version: ${{ steps.vars.outputs.mod_version }}
+      mod_loader: ${{ steps.vars.outputs.mod_loader }}
+      version_type: ${{ steps.vars.outputs.version_type }}
+      artifact_name: ${{ steps.vars.outputs.artifact_name }}
+      artifact_path: ${{ steps.vars.outputs.artifact_path }}
+      publish_version: ${{ steps.vars.outputs.publish_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read variables from gradle.properties
+        id: vars
+        shell: bash
+        run: |
+          java_version=$(grep '^java_version=' gradle.properties | cut -d'=' -f2 | tr -d ' \r')
+          mc_version=$(grep '^minecraft_version=' gradle.properties | cut -d'=' -f2 | tr -d ' \r')
+          mod_version=$(grep '^mod_version=' gradle.properties | cut -d'=' -f2 | tr -d ' \r')
+          mod_loader=$(grep '^mod_loader=' gradle.properties | cut -d'=' -f2 | tr -d ' \r')
+          version_type=$(grep '^mod_version_type=' gradle.properties | cut -d'=' -f2 | tr -d ' \r')
+
+          echo "java_version=$java_version" >> "$GITHUB_OUTPUT"
+          echo "mc_version=$mc_version" >> "$GITHUB_OUTPUT"
+          echo "mod_version=$mod_version" >> "$GITHUB_OUTPUT"
+          echo "mod_loader=$mod_loader" >> "$GITHUB_OUTPUT"
+          echo "version_type=$version_type" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=Myotus-$mc_version-$mod_version" >> "$GITHUB_OUTPUT"
+          echo "artifact_path=build/libs/Myotus-$mc_version-$mod_version.jar" >> "$GITHUB_OUTPUT"
+          echo "publish_version=$mc_version-$mod_version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: ${{ steps.vars.outputs.java_version }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.vars.outputs.artifact_name }}
+          path: |
+            ${{ steps.vars.outputs.artifact_path }}
+            CHANGELOG.md
+          if-no-files-found: error
+
+  publish-to-curseforge:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+
+      - name: Publish to CurseForge
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          changelog-file: CHANGELOG.md
+          game-versions: ${{ needs.build.outputs.mc_version }}
+          loaders: ${{ needs.build.outputs.mod_loader }}
+          version-type: ${{ needs.build.outputs.version_type }}
+
+          files: build/libs/*.jar
+          name: ${{ needs.build.outputs.artifact_name }}
+          version: ${{ needs.build.outputs.publish_version }}
+
+          dependencies: |
+            ae2(required){modrinth:XxWD5pD3}{curseforge:223794}
+            ae2wtlib(optional){modrinth:pNabrMMw}{curseforge:459929}
+
+  publish-to-modrinth:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+
+      - name: Publish to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          changelog-file: CHANGELOG.md
+          game-versions: ${{ needs.build.outputs.mc_version }}
+          loaders: ${{ needs.build.outputs.mod_loader }}
+          version-type: ${{ needs.build.outputs.version_type }}
+
+          files: build/libs/*.jar
+          name: ${{ needs.build.outputs.artifact_name }}
+          version: ${{ needs.build.outputs.publish_version }}
+
+          dependencies: |
+            ae2(required){modrinth:XxWD5pD3}{curseforge:223794}
+            ae2wtlib(optional){modrinth:pNabrMMw}{curseforge:459929}
+
+  publish-to-maven-central:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: ${{ needs.build.outputs.java_version }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Publish to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_ID }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PW }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSWORD }}
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache

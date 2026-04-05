@@ -1,5 +1,3 @@
-import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
-import org.gradle.api.publish.tasks.GenerateModuleMetadata
 buildscript {
     repositories {
         // These repositories are only for Gradle plugins, put any other repositories in the repository block further below
@@ -15,6 +13,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
+    id 'com.vanniktech.maven.publish' version '0.34.0'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
 }
 
@@ -207,6 +206,39 @@ tasks.named('jar', Jar).configure {
 
     // This is the preferred method to reobfuscate your jar file
     finalizedBy 'reobfJar'
+}
+
+mavenPublishing {
+    coordinates(project.mod_group_id,project.mod_id, project.mod_version)
+
+    pom {
+        name = project.mod_id
+        description = "Myotus is a terminal extension mod for Applied Energistics 2. This library provides hooks and utilities for other mods to extend Myotus' functionality."
+        url = "https://github.com/mc-myo-s-mod/Myotus"
+
+        licenses {
+            license {
+                name = "GNU Lesser General Public License v3.0"
+                url = "https://www.gnu.org/licenses/lgpl-3.0.html"
+            }
+        }
+
+        developers {
+            developer {
+                name = "myogoo"
+                url = "https://github.com/myogoo"
+            }
+        }
+
+        scm {
+            connection = "scm:git:git://github.com/mc-myo-s-mod/SSECLib.git"
+            developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/SSECLib.git"
+            url = "https://github.com/mc-myo-s-mod/Myotus"
+        }
+
+    }
+    publishToMavenCentral()
+    signAllPublications()
 }
 
 publishing {
