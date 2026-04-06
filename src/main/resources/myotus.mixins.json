@@ -7,7 +7,6 @@
     "ae2.MEStorageMenuMixin"
   ],
   "client": [
-    "SlotAccessor",
     "ae2.MEStorageScreenMixin",
     "ae2.ScreenStyleAccessor",
     "ae2.WidgetContainerAccessor",
