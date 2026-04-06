@@ -3,9 +3,6 @@ package me.myogoo.myotus.client;
 import java.util.List;
 import java.util.function.Consumer;
 
-import appeng.client.gui.Icon;
-import appeng.menu.slot.AppEngSlot;
-import me.myogoo.myotus.mixin.SlotAccessor;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;

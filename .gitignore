@@ -117,3 +117,9 @@ runs/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
+
+.claude/
+.vscode/
+.idea/
+.codex
+AGENTS.md

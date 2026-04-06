@@ -1,3 +1,3 @@
 # Changelog
-## Feature
-- ported to 1.20.1
+## Bug Fixes
+- Fix crash when acccess slotAccessor
