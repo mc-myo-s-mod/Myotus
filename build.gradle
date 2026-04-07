@@ -242,16 +242,10 @@ mavenPublishing {
 }
 
 publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            artifact tasks.named('jar')
-
-            pom.withXml {
-                def root = asNode()
-                root.children().removeAll { child ->
-                    child instanceof Node && child.name() == 'dependencies'
-                }
-            }
+    repositories {
+        maven {
+            name = 'projectLocal'
+            url = layout.projectDirectory.dir('repo').asFile.toURI()
         }
     }
 }
@@ -284,6 +278,14 @@ tasks.register('publishToLocalMaven') {
     group = 'publishing'
     description = 'Publishes the reobfuscated mod jar to the local Maven repository.'
     dependsOn tasks.named('publishToMavenLocal')
+}
+
+tasks.withType(Javadoc).configureEach {
+    failOnError = false
+    options.encoding = 'UTF-8'
+    options.addStringOption('charSet', 'UTF-8')
+    options.addStringOption('docEncoding', 'UTF-8')
+    options.addStringOption('Xdoclint:none', '-quiet')
 }
 
 tasks.withType(JavaCompile).configureEach {
