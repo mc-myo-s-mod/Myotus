@@ -1,3 +1,3 @@
 # Changelog
 ## Bug Fixes
-- Fix crash when acccess slotAccessor
+- Fix crash when mixin inject failure

@@ -7,9 +7,7 @@ import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.me.common.TerminalSettingsScreen;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.menu.AEBaseMenu;
-import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
-import appeng.client.gui.widgets.UpgradesPanel;
 import appeng.menu.slot.AppEngSlot;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -39,20 +37,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = MEStorageScreen.class, remap = false)
-public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
+public abstract class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
 
     @Unique
-    private SidePanelSubScreen myocertus$floatingSubScreen;
+    private SidePanelSubScreen myotus$floatingSubScreen;
 
     @Unique
-    private SidePanelToggleButton myocertus$toggleButton;
+    private SidePanelToggleButton myotus$toggleButton;
 
     public MEStorageScreenMixin(AEBaseMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
     }
 
+
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void myocertus$addFloatingSubScreen(CallbackInfo ci) {
+    private void myotus$addFloatingSubScreen(CallbackInfo ci) {
         WidgetStyle customStyle = new WidgetStyle();
         ((ScreenStyleAccessor) (Object) style).getWidgets().put("myocertus_floating_sub_screen", customStyle);
 
@@ -64,26 +63,24 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
                 }
             }
 
-            myocertus$floatingSubScreen = new SidePanelSubScreen(storageMenu);
-            myocertus$floatingSubScreen.setPosition(new Point(this.imageWidth, 0));
+            myotus$floatingSubScreen = new SidePanelSubScreen(storageMenu);
+            myotus$floatingSubScreen.setPosition(new Point(this.imageWidth, 0));
 
-            myocertus$toggleButton = new SidePanelToggleButton(myocertus$floatingSubScreen);
-            this.addToLeftToolbar(myocertus$toggleButton);
+            myotus$toggleButton = new SidePanelToggleButton(myotus$floatingSubScreen);
+            this.addToLeftToolbar(myotus$toggleButton);
 
-            if (myocertus$floatingSubScreen != null) {
-                myocertus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
-                Rect2i screenBounds = new Rect2i(this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
-                myocertus$floatingSubScreen.populateScreen(this::addRenderableWidget, screenBounds, this);
+            myotus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
+            Rect2i screenBounds = new Rect2i(this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+            myotus$floatingSubScreen.populateScreen(this::addRenderableWidget, screenBounds, this);
 
-                this.widgets.add("myocertus_floating_sub_screen", myocertus$floatingSubScreen);
-            }
+            this.widgets.add("myocertus_floating_sub_screen", myotus$floatingSubScreen);
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @WrapOperation(method = "showSettings", at = @At(value = "INVOKE", target = "Lappeng/client/gui/me/common/MEStorageScreen;switchToScreen(Lappeng/client/gui/AEBaseScreen;)V"), remap = false)
-    private void myocertus$redirectToTabbedSettings(MEStorageScreen instance, AEBaseScreen screen,
-            Operation<Void> original) {
+    private void myotus$redirectToTabbedSettings(MEStorageScreen instance, AEBaseScreen screen,
+                                                 Operation<Void> original) {
         if (screen instanceof TerminalSettingsScreen) {
             original.call(instance, new TabbedTerminalSettingsScreen(instance));
         } else {
@@ -92,15 +89,15 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
     }
 
     @WrapOperation(method = "onReturnFromSubScreen", constant = @Constant(classValue = TerminalSettingsScreen.class), remap = false)
-    private boolean myocertus$extendInstanceCheck(Object obj, Operation<Boolean> original) {
+    private boolean myotus$extendInstanceCheck(Object obj, Operation<Boolean> original) {
         if (obj instanceof TabbedTerminalSettingsScreen) {
             return true;
         }
         return original.call(obj);
     }
 
-    @Inject(method = "keyPressed", at = @At(value = "HEAD"), cancellable = true)
-    public void registerKeyHandler(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, remap = true)
+    private void myotus$onKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         if (KeyBindings.OPEN_TERMINAL_SETTING.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             if (Minecraft.getInstance().screen instanceof MEStorageScreen<?> storageScreen) {
                 this.switchToScreen(new TabbedTerminalSettingsScreen<>(storageScreen));
@@ -109,20 +106,22 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
         }
         if (KeyBindings.TOGGLE_SUB_SIDE_PANEL.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             if (Minecraft.getInstance().screen instanceof MEStorageScreen<?> storageScreen) {
-                this.myocertus$toggleButton.run();
+                this.myotus$toggleButton.run();
                 cir.setReturnValue(true);
             }
         }
     }
 
-    @Inject(method = "init", at = @At("HEAD"))
-    protected void repositionSubSidePanel(CallbackInfo ci) {
-        if(myocertus$floatingSubScreen != null) {
-            myocertus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
+    @Inject(method = "init", at = @At("TAIL"), remap = true)
+    public void myotus$init(CallbackInfo ci) {
+        if (myotus$floatingSubScreen != null) {
+            myotus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
         }
         WidgetStyle sidePanelStyle = ((ScreenStyleAccessor) (Object) style).getWidgets().get("myocertus_floating_sub_screen");
         sidePanelStyle.setRight(-37);
 
         ((ScreenStyleAccessor) (Object) style).getWidgets().put("myocertus_floating_sub_screen", sidePanelStyle);
+
+        super.init();
     }
 }
