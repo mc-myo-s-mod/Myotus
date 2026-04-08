@@ -231,8 +231,8 @@ mavenPublishing {
         }
 
         scm {
-            connection = "scm:git:git://github.com/mc-myo-s-mod/SSECLib.git"
-            developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/SSECLib.git"
+            connection = "scm:git:git://github.com/mc-myo-s-mod/Myotus.git"
+            developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/Myotus.git"
             url = "https://github.com/mc-myo-s-mod/Myotus"
         }
 
@@ -241,7 +241,23 @@ mavenPublishing {
     signAllPublications()
 }
 
+def mappedVersionSuffixPattern = java.util.regex.Pattern.compile(
+        "_mapped_${java.util.regex.Pattern.quote(mapping_channel)}_${java.util.regex.Pattern.quote(mapping_version)}(?:_at_[A-Za-z0-9]+)?\$"
+)
+
 publishing {
+    publications.withType(org.gradle.api.publish.maven.MavenPublication).configureEach {
+        pom.withXml {
+            def dependenciesNode = asNode().get('dependencies')?.getAt(0)
+            dependenciesNode?.get('dependency')?.each { dependencyNode ->
+                def versionNode = dependencyNode.get('version')?.getAt(0)
+                if (versionNode != null) {
+                    versionNode.setValue(versionNode.text().replaceFirst(mappedVersionSuffixPattern, ''))
+                }
+            }
+        }
+    }
+
     repositories {
         maven {
             name = 'projectLocal'
