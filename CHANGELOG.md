@@ -1,5 +1,4 @@
 # Changelog
-
 ## Dev
 ### Bug Fixes
 - Fixed published Maven POM metadata so ForgeGradle remapped dependency suffixes like `_mapped_...` and `_at_...` are stripped before publication.
