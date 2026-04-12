@@ -27,7 +27,7 @@ public class SidePanelSubScreen implements ICompositeWidget {
     private static final int PADDING = 7;
     private static final int SLOT_COUNT = 5;
 
-    private static final int PANEL_WIDTH = PADDING + (SLOT_SIZE * 2) + PADDING;
+    private static final int PANEL_WIDTH = PADDING + SLOT_SIZE + PADDING;
     private static final int PANEL_HEIGHT = PADDING + (SLOT_SIZE * SLOT_COUNT) + PADDING;
 
     private static final Blitter BACKGROUND = Blitter.texture("guis/extra_panels.png", 128, 128);
