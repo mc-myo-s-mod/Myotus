@@ -1,7 +1,9 @@
 package me.myogoo.myotus.menu;
 
 import appeng.menu.me.common.MEStorageMenu;
+import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.ITerminalUpgradeCard;
+import me.myogoo.myotus.item.DiamondUpgradeCardItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -62,7 +64,7 @@ public class TerminalUpgradeHelper {
         Set<Item> installedItems = getInstalledUpgradeItems(menu);
 
         return BuiltInRegistries.ITEM.stream()
-                .filter(item -> item instanceof ITerminalUpgradeCard)
+                .filter(TerminalUpgradeHelper::isVisibleUpgradeCard)
                 .filter(item -> !installedItems.contains(item))
                 .map(ItemStack::new)
                 .sorted(UPGRADE_NAME_ORDER)
@@ -90,6 +92,10 @@ public class TerminalUpgradeHelper {
      * 특정 아이템이 업그레이드 슬롯에 설치되어 있는지 확인합니다.
      */
     public static boolean hasUpgrade(MEStorageMenu menu, Item upgradeItem) {
+        if (!isVisibleUpgradeCard(upgradeItem)) {
+            return false;
+        }
+
         return menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).stream()
                 .anyMatch(slot -> slot.getItem().is(upgradeItem));
     }
@@ -108,6 +114,10 @@ public class TerminalUpgradeHelper {
      * 특정 업그레이드의 설치 개수를 반환합니다.
      */
     public static int countUpgrade(MEStorageMenu menu, Item upgradeItem) {
+        if (!isVisibleUpgradeCard(upgradeItem)) {
+            return 0;
+        }
+
         return (int) menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).stream()
                 .filter(slot -> slot.getItem().is(upgradeItem))
                 .count();
@@ -124,7 +134,7 @@ public class TerminalUpgradeHelper {
     }
 
     public static boolean canInsertUpgrade(Iterable<ItemStack> installedStacks, int slot, ItemStack stack) {
-        if (!(stack.getItem() instanceof ITerminalUpgradeCard)) {
+        if (!isVisibleUpgradeCard(stack.getItem())) {
             return false;
         }
 
@@ -137,5 +147,13 @@ public class TerminalUpgradeHelper {
         }
 
         return true;
+    }
+
+    private static boolean isVisibleUpgradeCard(Item item) {
+        if (!(item instanceof ITerminalUpgradeCard)) {
+            return false;
+        }
+
+        return Myotus.DEV_MODE || !(item instanceof DiamondUpgradeCardItem);
     }
 }

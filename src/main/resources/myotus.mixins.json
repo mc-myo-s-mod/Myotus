@@ -4,7 +4,8 @@
   "package": "me.myogoo.myotus.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ae2.MEStorageMenuMixin"
+    "ae2.MEStorageMenuMixin",
+    "minecraft.AbstractContainerMenuMixin"
   ],
   "client": [
     "ae2.MEStorageScreenMixin",

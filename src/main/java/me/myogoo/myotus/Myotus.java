@@ -18,11 +18,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLLoader;
 import org.slf4j.Logger;
 
 @Mod(Myotus.MODID)
 public class Myotus {
     public static final String MODID = "myotus";
+    public static final boolean DEV_MODE = !FMLLoader.isProduction();
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public Myotus(IEventBus modEventBus, ModContainer modContainer) {
