@@ -96,14 +96,6 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         }
     }
 
-    @Override
-    public void removed(Player player) {
-        if (!player.level().isClientSide()) {
-            myotus$dispatchUpgradeClose();
-        }
-        super.removed(player);
-    }
-
     @Unique
     private void myotus$addCustomViewCellSlots(ITerminalHost host) {
         GenericStackInv stackInv = new GenericStackInv(null, GenericStackInv.Mode.CONFIG_TYPES, 5);
@@ -152,14 +144,4 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         }
     }
 
-    @Unique
-    private void myotus$dispatchUpgradeClose() {
-        MEStorageMenu menu = (MEStorageMenu) (Object) this;
-        for (Slot slot : menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
-            ItemStack stack = slot.getItem();
-            if (!stack.isEmpty() && stack.getItem() instanceof ITerminalUpgradeCard card) {
-                card.onTerminalClose(menu, stack);
-            }
-        }
-    }
 }

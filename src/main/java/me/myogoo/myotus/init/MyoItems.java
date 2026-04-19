@@ -14,12 +14,14 @@ public class MyoItems {
 
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Myotus.MODID);
 
-    public static final RegistryObject<DiamondUpgradeCardItem> DIAMOND_UPGRADE_CARD = registerItem(
+    public static final RegistryObject<DiamondUpgradeCardItem> DIAMOND_UPGRADE_CARD = registerDevItem(
             "diamond_upgrade_card", () -> new DiamondUpgradeCardItem(new Item.Properties().stacksTo(1)));
 
-    private static <T extends Item> RegistryObject<T> registerItem(String name, Supplier<T> item) {
+    private static <T extends Item> RegistryObject<T> registerDevItem(String name, Supplier<T> item) {
         RegistryObject<T> registeredItem = ITEMS.register(name, item);
-        MyotusAPI.creativeTabRegistrar().creativeTabItem(registeredItem);
+        if (Myotus.DEV_MODE) {
+            MyotusAPI.creativeTabRegistrar().creativeTabItem(registeredItem);
+        }
         return registeredItem;
     }
 }
