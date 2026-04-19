@@ -43,53 +43,45 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
 
     // 업그레이드 슬롯의 이전 아이템 상태 추적 (삽입/제거 이벤트 감지용)
     @Unique
-    private final Map<Slot, ItemStack> myocertus$prevUpgradeItems = new IdentityHashMap<>();
+    private final Map<Slot, ItemStack> myotus$prevUpgradeItems = new IdentityHashMap<>();
 
     private MEStorageMenuMixin(MenuType<?> menuType, int id, Inventory playerInventory, Object host) {
         super(menuType, id, playerInventory, host);
     }
 
     @Inject(method = "<init>(Lnet/minecraft/world/inventory/MenuType;ILnet/minecraft/world/entity/player/Inventory;Lappeng/api/storage/ITerminalHost;Z)V", at = @At("TAIL"))
-    private void myocertus$ensureSidePanelSlots(MenuType<?> menuType, int id, Inventory ip, ITerminalHost host,
+    private void myotus$ensureSidePanelSlots(MenuType<?> menuType, int id, Inventory ip, ITerminalHost host,
             boolean bindInventory, CallbackInfo ci) {
 
         if (this.viewCellSlots == null || this.viewCellSlots.isEmpty()) {
-            myocertus$addCustomViewCellSlots(host);
+            myotus$addCustomViewCellSlots(host);
         }
 
         if (this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).isEmpty()) {
-            myocertus$addCustomUpgradeSlots(host);
+            myotus$addCustomUpgradeSlots(host);
         }
 
         // 이전 슬롯 상태 초기화 (삽입/제거 감지용, broadcastChanges에서 비교)
         if (!this.getPlayer().level().isClientSide()) {
             for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
-                myocertus$prevUpgradeItems.put(slot, slot.getItem().copy());
+                myotus$prevUpgradeItems.put(slot, slot.getItem().copy());
             }
-            myocertus$dispatchUpgradeOpen();
+            myotus$dispatchUpgradeOpen();
         }
-    }
-
-    @Override
-    public void removed(Player player) {
-        if (!player.level().isClientSide()) {
-            myocertus$dispatchUpgradeClose();
-        }
-        super.removed(player);
     }
 
     @Inject(method = "broadcastChanges", at = @At("HEAD"))
-    private void myocertus$onBroadcastChanges(CallbackInfo ci) {
+    private void myotus$onBroadcastChanges(CallbackInfo ci) {
         if (this.getPlayer().level().isClientSide()) return;
-        myocertus$checkUpgradeSlotChanges();
-        myocertus$dispatchUpgradeTick();
+        myotus$checkUpgradeSlotChanges();
+        myotus$dispatchUpgradeTick();
     }
 
     @Unique
-    private void myocertus$checkUpgradeSlotChanges() {
+    private void myotus$checkUpgradeSlotChanges() {
         MEStorageMenu menu = (MEStorageMenu) (Object) this;
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
-            ItemStack prevStack = myocertus$prevUpgradeItems.getOrDefault(slot, ItemStack.EMPTY);
+            ItemStack prevStack = myotus$prevUpgradeItems.getOrDefault(slot, ItemStack.EMPTY);
             ItemStack nowStack = slot.getItem();
 
             if (ItemStack.isSameItemSameComponents(prevStack, nowStack)) {
@@ -105,12 +97,12 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
                 newCard.onTerminalOpen(menu, nowStack.copy());
             }
 
-            myocertus$prevUpgradeItems.put(slot, nowStack.copy());
+            myotus$prevUpgradeItems.put(slot, nowStack.copy());
         }
     }
 
     @Unique
-    private void myocertus$addCustomViewCellSlots(ITerminalHost host) {
+    private void myotus$addCustomViewCellSlots(ITerminalHost host) {
         GenericStackInv stackInv = new GenericStackInv(null, GenericStackInv.Mode.CONFIG_TYPES, 5);
         ConfigMenuInventory menuInv = new ConfigMenuInventory(stackInv);
         for (int i = 0; i < 5; i++) {
@@ -120,7 +112,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
     }
 
     @Unique
-    private void myocertus$addCustomUpgradeSlots(ITerminalHost host) {
+    private void myotus$addCustomUpgradeSlots(ITerminalHost host) {
         // 서버 측: 플레이어 persistentData에 저장되는 컨테이너 사용 (GUI 닫아도 유지)
         // 클라이언트 측: 서버에서 슬롯 내용이 자동 동기화되므로 빈 컨테이너로 충분
         AppEngInternalInventory upgradeInv = (this.getPlayer() instanceof ServerPlayer serverPlayer)
@@ -135,7 +127,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
     }
 
     @Unique
-    private void myocertus$dispatchUpgradeOpen() {
+    private void myotus$dispatchUpgradeOpen() {
         MEStorageMenu menu = (MEStorageMenu) (Object) this;
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
             ItemStack stack = slot.getItem();
@@ -146,18 +138,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
     }
 
     @Unique
-    private void myocertus$dispatchUpgradeClose() {
-        MEStorageMenu menu = (MEStorageMenu) (Object) this;
-        for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
-            ItemStack stack = slot.getItem();
-            if (!stack.isEmpty() && stack.getItem() instanceof ITerminalUpgradeCard card) {
-                card.onTerminalClose(menu, stack);
-            }
-        }
-    }
-
-    @Unique
-    private void myocertus$dispatchUpgradeTick() {
+    private void myotus$dispatchUpgradeTick() {
         MEStorageMenu menu = (MEStorageMenu) (Object) this;
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
             ItemStack stack = slot.getItem();

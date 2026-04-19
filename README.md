@@ -171,6 +171,10 @@ public class MyUpgradeCardItem extends Item implements ITerminalUpgradeCard {
 }
 ```
 
+Items implementing this interface are automatically listed in empty terminal
+upgrade-slot tooltips. A terminal can only install one copy of each upgrade
+item type at a time.
+
 Upgrade cards should use a max stack size of `1`, because terminal storage is tracked per installed item stack.
 
 ## Building

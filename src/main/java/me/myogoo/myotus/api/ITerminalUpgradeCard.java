@@ -10,6 +10,10 @@ import net.minecraft.world.item.ItemStack;
  * slot filter. Every callback has a default no-op implementation, so card items
  * only need to override the hooks they actually use.</p>
  *
+ * <p>Items implementing this interface are also discovered automatically for the
+ * empty upgrade-slot tooltip. Each terminal can only install one copy of a
+ * given item type at a time.</p>
+ *
  * <p>Terminal upgrade cards are expected to be non-stackable. Item-backed
  * terminal storage is keyed per {@link ItemStack}, so upgrade cards should use
  * a max stack size of 1.</p>

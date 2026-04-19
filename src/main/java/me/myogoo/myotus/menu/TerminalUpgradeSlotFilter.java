@@ -2,7 +2,6 @@ package me.myogoo.myotus.menu;
 
 import appeng.api.inventories.InternalInventory;
 import appeng.util.inv.filter.IAEItemFilter;
-import me.myogoo.myotus.api.ITerminalUpgradeCard;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -17,7 +16,7 @@ public class TerminalUpgradeSlotFilter implements IAEItemFilter {
 
     @Override
     public boolean allowInsert(InternalInventory inv, int slot, ItemStack stack) {
-        return stack.getItem() instanceof ITerminalUpgradeCard;
+        return TerminalUpgradeHelper.canInsertUpgrade(inv, slot, stack);
     }
 
 }

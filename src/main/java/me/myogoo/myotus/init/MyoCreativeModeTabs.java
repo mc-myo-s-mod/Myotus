@@ -19,7 +19,7 @@ public class MyoCreativeModeTabs {
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MYOTUS =
             CREATIVE_MODE_TABS.register("myotus", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.myotus"))
-                    .icon(AEItems.ADVANCED_CARD::stack)
+                    .icon(MyoItems.DIAMOND_UPGRADE_CARD.get()::getDefaultInstance)
                     .displayItems((parameters, output) -> {
                         CreativeTabManager.INSTANCE.populate(output);
                     })
