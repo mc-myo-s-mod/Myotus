@@ -46,8 +46,8 @@ public final class ModIntegrationManager {
 
     public static SupportedMod get(String modIdOrName) {
         return supportIntegrations.values().stream()
-                .filter(mod -> mod.getModId().equalsIgnoreCase(modIdOrName)
-                        || mod.getModName().equalsIgnoreCase(modIdOrName))
+                .filter(mod -> mod.getModId().equals(modIdOrName)
+                        || mod.getModName().equals(modIdOrName))
                 .findFirst()
                 .orElse(null);
     }

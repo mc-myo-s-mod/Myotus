@@ -123,3 +123,4 @@ runs/
 .idea/
 .codex
 AGENTS.md
+logs/
