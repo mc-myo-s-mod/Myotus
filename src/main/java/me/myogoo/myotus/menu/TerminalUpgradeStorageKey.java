@@ -10,9 +10,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -48,21 +45,6 @@ public final class TerminalUpgradeStorageKey {
         return "host:" + host.getClass().getName();
     }
 
-    public static List<String> legacyKeysOf(ITerminalHost host) {
-        if (host instanceof ItemMenuHost itemMenuHost) {
-            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(itemMenuHost.getItemStack().getItem());
-            List<String> legacyKeys = new ArrayList<>();
-            Integer slot = itemMenuHost.getSlot();
-            if (slot != null) {
-                legacyKeys.add("item:" + host.getClass().getName() + ":" + itemId + ":" + slot);
-            }
-            legacyKeys.add("item:" + host.getClass().getName() + ":" + itemId + ":"
-                    + describeLegacyItemStack(itemMenuHost.getItemStack()));
-            return legacyKeys;
-        }
-        return List.of();
-    }
-
     private static UUID getOrCreateStackUuid(ItemStack stack) {
         CompoundTag tag = stack.getOrCreateTag();
         if (tag.hasUUID(STACK_UUID_TAG)) {
@@ -72,9 +54,5 @@ public final class TerminalUpgradeStorageKey {
         UUID uuid = UUID.randomUUID();
         tag.putUUID(STACK_UUID_TAG, uuid);
         return uuid;
-    }
-
-    private static UUID describeLegacyItemStack(ItemStack stack) {
-        return UUID.nameUUIDFromBytes(stack.save(new CompoundTag()).toString().getBytes(StandardCharsets.UTF_8));
     }
 }

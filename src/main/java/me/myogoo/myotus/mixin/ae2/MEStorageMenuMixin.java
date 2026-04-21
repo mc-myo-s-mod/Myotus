@@ -9,6 +9,7 @@ import appeng.util.inv.AppEngInternalInventory;
 import me.myogoo.myotus.api.ITerminalUpgradeCard;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
+import me.myogoo.myotus.menu.TerminalUpgradeHost;
 import me.myogoo.myotus.menu.TerminalUpgradeStorageKey;
 import me.myogoo.myotus.menu.TerminalUpgradeSlotFilter;
 import net.minecraft.server.level.ServerPlayer;
@@ -108,12 +109,16 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
 
     @Unique
     private void myotus$addCustomUpgradeSlots(ITerminalHost host) {
-        // 서버 측: 플레이어 persistentData에 저장되는 컨테이너 사용 (GUI 닫아도 유지)
-        // 클라이언트 측: 서버에서 슬롯 내용이 자동 동기화되므로 빈 컨테이너로 충분
-        AppEngInternalInventory upgradeInv = (this.getPlayer() instanceof ServerPlayer serverPlayer)
-                ? new PlayerUpgradeContainer(serverPlayer, TerminalUpgradeStorageKey.of(host),
-                TerminalUpgradeStorageKey.legacyKeysOf(host))
-                : new AppEngInternalInventory(null, PlayerUpgradeContainer.SIZE, 1, TerminalUpgradeSlotFilter.INSTANCE);
+        // Placed terminal parts keep upgrades in the part NBT so AE2 can drop them when removed.
+        // Item-backed terminals keep the previous per-player storage.
+        AppEngInternalInventory upgradeInv;
+        if (host instanceof TerminalUpgradeHost upgradeHost) {
+            upgradeInv = upgradeHost.myotus$getUpgradeInventory();
+        } else {
+            upgradeInv = (this.getPlayer() instanceof ServerPlayer serverPlayer)
+                    ? new PlayerUpgradeContainer(serverPlayer, TerminalUpgradeStorageKey.of(host))
+                    : new AppEngInternalInventory(null, PlayerUpgradeContainer.SIZE, 1, TerminalUpgradeSlotFilter.INSTANCE);
+        }
 
         for (int i = 0; i < PlayerUpgradeContainer.SIZE; i++) {
             var slot = new AppEngSlot(upgradeInv, i);
