@@ -1,8 +1,5 @@
 # Changelog
 ## Bug Fixes
-- fix `removed` method override conflict issue
-- resize `terminal upgrade panel` excludezones
-- hide `diamond upgrade card` in panel tooltip and creativeTab
-
-## Dev
-- ModIntegrationManager does not use ignoreCase for modid and displayname.
+- placed terminals now keep their own `Terminal Upgrade Panel` upgrades
+- breaking or wrenching a placed terminal now drops its installed `Terminal Upgrade Panel` upgrades
+- old player-stored `Terminal Upgrade Panel` upgrade data is no longer restored after this update
