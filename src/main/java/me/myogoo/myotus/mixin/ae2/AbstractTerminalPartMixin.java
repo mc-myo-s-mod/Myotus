@@ -56,7 +56,7 @@ public abstract class AbstractTerminalPartMixin implements TerminalUpgradeHost {
         }
     }
 
-    @Inject(method = "clearContent", at = @At("TAIL"))
+    @Inject(method = "clearContent", at = @At("TAIL"),remap = true)
     private void myotus$clearUpgradeInventory(CallbackInfo ci) {
         myotus$getUpgradeInventory().clear();
     }
