@@ -41,6 +41,7 @@ public class Myotus {
                 .registerLoadableMod(AE2FCT.class, "ae2fct")
                 .registerLoadableMod(AE2TB.class, "ae2tb");
         MyoCreativeModeTabs.CREATIVE_MODE_TABS.register(this.modEventBus);
+        this.modEventBus.addListener(MyoCreativeModeTabs::addAE2WTLibTerminals);
         MyoItems.ITEMS.register(this.modEventBus);
         MyoCondition.register();
         MyoConfig.initialize();
