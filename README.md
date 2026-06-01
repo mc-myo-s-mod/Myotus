@@ -11,7 +11,7 @@ stable bridge that other AE2-related mods can depend on.
 
 ## Supported Minecraft Lines
 
-| Module | Loader | Minecraft | Java | AE2 | API artifact version |
+| Module | Loader | Minecraft | Java | AE2 | Artifact version |
 | --- | --- | --- | --- | --- | --- |
 | `forge-1-20-1` | Forge `47.x` | `1.20.1` | `17` | `15.4.x` | `15.1.0` |
 | `neoforge-1-21-1` | NeoForge `21.1.x` | `1.21.1` | `21` | `19.2.x` | `19.1.0` |
@@ -30,7 +30,7 @@ than forcing artificial parity.
 - Terminal upgrade query helpers.
 - Client widget helpers.
 - Pure experience math helpers for Applied Experienced / `fluid:xp` style integrations.
-- A small API-only Maven artifact for addon development.
+- A normal loader-discoverable Myotus mod artifact for addon development and runtime use.
 
 ## For Players and Modpacks
 
@@ -44,7 +44,7 @@ is exposed to other mods through API hooks.
 
 ### Dependency Coordinates
 
-Use the API artifact when compiling an addon against Myotus:
+Use the `myotus` artifact when compiling an addon against Myotus:
 
 ```gradle
 repositories {
@@ -69,12 +69,14 @@ dependencies {
 }
 ```
 
-The published `myotus` jar is intentionally API-only. It contains classes under
-`me/myogoo/myotus/api/**` and avoids bundling Myotus runtime/implementation classes into
-consumer compile dependencies.
+The published `myotus` jar is the normal loader-discoverable Myotus mod artifact. It is
+not an API-only jar: it includes loader metadata, Myotus runtime classes, assets, and data
+resources. Addons should still prefer the public `me.myogoo.myotus.api.*` packages and
+avoid depending on implementation packages unless a class is explicitly promoted into the
+public API.
 
-Your addon should still declare/load the actual Myotus mod at runtime when it uses runtime
-features such as terminal tabs or upgrade slots.
+When using Myotus features at runtime, also declare the matching Myotus mod dependency in
+your loader metadata so the mod is present before your addon initializes.
 
 ### Local Publishing
 
@@ -199,6 +201,53 @@ long total = MyotusAPI.experience().totalExperience(appliedExperience, fluidXp);
 int level = MyotusAPI.experience().levelForTotalExperience(total);
 long progress = MyotusAPI.experience().experienceIntoLevel(total);
 long next = MyotusAPI.experience().experienceToNextLevel(level);
+```
+
+For anvil-like flows that can spend XP from multiple pools, use `consumeExperience(...)`.
+The default priority is:
+
+```text
+player XP -> fluid:xp -> appex:experience_amount
+```
+
+```java
+long requiredXp = 75;
+long playerXp = 30;
+long fluidXp = 40;
+long appliedExperienceAmount = 50;
+
+var plan = MyotusAPI.experience().consumeExperience(
+        requiredXp,
+        playerXp,
+        fluidXp,
+        appliedExperienceAmount
+);
+
+if (plan.canPay()) {
+    long playerUsed = plan.playerExperienceUsed();
+    long fluidUsed = plan.fluidXpUsed();
+    long appliedUsed = plan.appliedExperiencedAmountUsed();
+
+    // Spend each source using the amounts reported by the plan.
+}
+```
+
+Custom source ordering is also supported:
+
+```java
+import me.myogoo.myotus.api.experience.ExperienceMath;
+
+var plan = MyotusAPI.experience().consumeExperience(
+        requiredXp,
+        playerXp,
+        fluidXp,
+        appliedExperienceAmount,
+        List.of(
+                ExperienceMath.ExperienceSource.FLUID_XP,
+                ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT,
+                ExperienceMath.ExperienceSource.PLAYER
+        )
+);
 ```
 
 Stable IDs are exposed for integrations that need to compare external keys:
