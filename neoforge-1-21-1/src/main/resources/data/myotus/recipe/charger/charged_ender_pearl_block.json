@@ -1,0 +1,10 @@
+{
+  "type": "ae2:charger",
+  "ingredient": {
+    "tag": "c:storage_blocks/ender_pearl"
+  },
+  "result": {
+    "count": 1,
+    "id": "myotus:charged_ender_pearl_block"
+  }
+}
