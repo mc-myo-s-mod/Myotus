@@ -1,0 +1,39 @@
+{
+  "$schema": "../schema.json",
+  "includes": [
+    "config.json"
+  ],
+  "text": {
+    "title": {
+      "position": {
+        "left": 8,
+        "top": 7
+      },
+      "text": {
+        "translate": "gui.myotus.config.title"
+      }
+    }
+  },
+  "widgets": {
+    "show_upgrade_panel_button": {
+      "left": 10,
+      "top": 20,
+      "width": 180
+    },
+    "show_view_cell_button": {
+      "left": 10,
+      "top": 40,
+      "width": 180
+    },
+    "key:open_terminal_setting": {
+      "left": 10,
+      "top": 60,
+      "width": 180
+    },
+    "key:toggle_subsidepanel": {
+      "left": 10,
+      "top": 90,
+      "width": 180
+    }
+  }
+}

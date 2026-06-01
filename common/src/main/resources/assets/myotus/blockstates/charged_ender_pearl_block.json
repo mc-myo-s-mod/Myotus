@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "myotus:block/charged_ender_pearl_block"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "myotus:block/charged_ender_pearl_block"
+  }
+}
