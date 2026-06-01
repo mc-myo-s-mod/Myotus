@@ -1,0 +1,54 @@
+package me.myogoo.myotus.util.mod;
+
+import me.myogoo.myotus.dto.MyoModInfoDto;
+import org.apache.maven.artifact.versioning.ArtifactVersion;
+
+import java.util.Objects;
+
+public final class MyoModVersionMismatchException extends RuntimeException {
+    private final String modId;
+    private final String displayModName;
+    private final ArtifactVersion minimumVersion;
+    private final ArtifactVersion modVersion;
+    private final String versionRange;
+
+    public MyoModVersionMismatchException(MyoModInfoDto modInfo, String versionRange) {
+        super("MyoMod version mismatch for %s: required %s, found %s".formatted(
+                Objects.requireNonNull(modInfo, "modInfo").displayName(),
+                ModVersionHelper.getMinimumVersion(versionRange),
+                modInfo.version()));
+        this.modId = modInfo.modId();
+        this.displayModName = modInfo.displayName();
+        this.minimumVersion = ModVersionHelper.getMinimumVersion(versionRange);
+        this.modVersion = modInfo.version();
+        this.versionRange = versionRange == null || versionRange.isBlank() ? "*" : versionRange;
+    }
+
+    public String getModId() {
+        return modId;
+    }
+
+    public String getDisplayModName() {
+        return displayModName;
+    }
+
+    public ArtifactVersion getMinimumVersion() {
+        return minimumVersion;
+    }
+
+    /**
+     * @deprecated Use {@link #getMinimumVersion()}.
+     */
+    @Deprecated(forRemoval = false)
+    public ArtifactVersion getMiniumVersion() {
+        return getMinimumVersion();
+    }
+
+    public ArtifactVersion getModVersion() {
+        return modVersion;
+    }
+
+    public String getVersionRange() {
+        return versionRange;
+    }
+}
