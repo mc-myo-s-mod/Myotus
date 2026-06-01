@@ -1,0 +1,25 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ],
+  "type": "expatternprovider:circuit_cutter",
+  "fluid_input": {
+    "amount": 100,
+    "ingredient": {
+      "fluid": "minecraft:water"
+    }
+  },
+  "item_input": {
+    "amount": 1,
+    "ingredient": {
+      "item": "myotus:charged_ender_pearl_block"
+    }
+  },
+  "output": {
+    "count": 9,
+    "item": "myotus:printed_compat_processor"
+  }
+}

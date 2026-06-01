@@ -1,0 +1,29 @@
+{
+  "type": "advanced_ae:reaction",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "energy": 1300000,
+  "fluid": {
+    "fluidStack": {
+      "Amount": 1000,
+      "FluidName": "minecraft:water"
+    }
+  },
+  "input_items": [
+    {
+      "amount": 64,
+      "ingredient": {
+        "tag": "forge:ender_pearls"
+      }
+    }
+  ],
+  "output": {
+    "#": 64,
+    "#c": "ae2:i",
+    "id": "myotus:charged_ender_pearl"
+  }
+}

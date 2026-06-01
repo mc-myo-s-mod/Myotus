@@ -1,0 +1,41 @@
+{
+  "type": "advanced_ae:reaction",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "energy": 20000,
+  "fluid": {
+    "fluidStack": {
+      "Amount": 100,
+      "FluidName": "minecraft:water"
+    }
+  },
+  "input_items": [
+    {
+      "amount": 4,
+      "ingredient": {
+        "item": "myotus:printed_compat_processor"
+      }
+    },
+    {
+      "amount": 4,
+      "ingredient": {
+        "item": "ae2:printed_silicon"
+      }
+    },
+    {
+      "amount": 4,
+      "ingredient": {
+        "tag": "forge:dusts/redstone"
+      }
+    }
+  ],
+  "output": {
+    "#": 4,
+    "#c": "ae2:i",
+    "id": "myotus:compat_processor"
+  }
+}
