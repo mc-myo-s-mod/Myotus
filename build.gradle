@@ -1,0 +1,315 @@
+plugins {
+    id 'base'
+    id 'idea'
+    id 'com.vanniktech.maven.publish' version '0.34.0' apply false
+}
+
+def loadProjectProperties = { Project target ->
+    def propertiesFile = target.file('gradle.properties')
+    if (!propertiesFile.isFile()) {
+        return
+    }
+
+    def properties = new Properties()
+    propertiesFile.withInputStream { properties.load(it) }
+    properties.each { key, value ->
+        target.extensions.extraProperties.set(key.toString(), value)
+    }
+}
+
+allprojects {
+    loadProjectProperties(project)
+
+    group = findProperty('mod_group_id') ?: 'me.myogoo'
+    version = findProperty('mod_version') ?: 'unspecified'
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            name = 'ModMaven'
+            url = "https://modmaven.dev"
+            content {
+                includeGroup "appeng"
+                includeGroup "de.mari_023"
+            }
+        }
+        maven {
+            name = 'CurseMaven'
+            url = "https://cursemaven.com"
+        }
+        maven {
+            name = 'Modrinth'
+            url = "https://api.modrinth.com/maven"
+        }
+        maven {
+            name = 'projectLocal'
+            url = rootProject.layout.projectDirectory.dir('repo').asFile.toURI()
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'idea'
+    apply plugin: 'maven-publish'
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
+    tasks.withType(Javadoc).configureEach {
+        failOnError = false
+        options.encoding = 'UTF-8'
+        options.addStringOption('charSet', 'UTF-8')
+        options.addStringOption('docEncoding', 'UTF-8')
+        options.addStringOption('Xdoclint:none', '-quiet')
+    }
+
+    tasks.withType(org.gradle.api.publish.tasks.GenerateModuleMetadata).configureEach {
+        enabled = false
+    }
+
+    idea {
+        module {
+            downloadSources = true
+            downloadJavadoc = true
+        }
+    }
+
+    plugins.withId('com.vanniktech.maven.publish') {
+        mavenPublishing {
+            coordinates(project.mod_group_id, project.mod_id, project.mod_version)
+
+            pom {
+                name = project.mod_id
+                description = "Myotus is a terminal extension mod for Applied Energistics 2. This library provides hooks and utilities for other mods to extend Myotus' functionality."
+                url = "https://github.com/mc-myo-s-mod/Myotus"
+
+                licenses {
+                    license {
+                        name = "GNU Lesser General Public License v3.0"
+                        url = "https://www.gnu.org/licenses/lgpl-3.0.html"
+                    }
+                }
+
+                developers {
+                    developer {
+                        name = "myogoo"
+                        url = "https://github.com/myogoo"
+                    }
+                }
+
+                scm {
+                    connection = "scm:git:git://github.com/mc-myo-s-mod/Myotus.git"
+                    developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/Myotus.git"
+                    url = "https://github.com/mc-myo-s-mod/Myotus"
+                }
+            }
+
+            publishToMavenCentral()
+            signAllPublications()
+        }
+    }
+
+    publishing {
+        repositories {
+            maven {
+                name = 'projectLocal'
+                url = rootProject.layout.projectDirectory.dir('repo').asFile.toURI()
+            }
+        }
+    }
+
+    tasks.register('publishToLocalMaven') {
+        group = 'publishing'
+        description = 'Publishes the mod jar to the local Maven repository.'
+        dependsOn tasks.named('publishToMavenLocal')
+    }
+}
+
+def modProjects = [
+        project(':forge-1-20-1'),
+        project(':neoforge-1-21-1')
+]
+
+configure(project(':common')) {
+    dependencies {
+        compileOnly 'org.slf4j:slf4j-api:2.0.1'
+        compileOnly 'org.ow2.asm:asm:9.9.1'
+        compileOnly 'org.apache.maven:maven-artifact:3.8.5'
+
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.3'
+        testImplementation 'org.mockito:mockito-junit-jupiter:5.12.0'
+        testImplementation 'org.ow2.asm:asm:9.9.1'
+        testImplementation 'org.apache.maven:maven-artifact:3.8.5'
+        testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.1'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+}
+
+configure(modProjects) {
+    def commonJavaSourceDir = rootProject.layout.projectDirectory.dir('common/src/main/java').asFile
+    def commonResourcesSourceDir = rootProject.layout.projectDirectory.dir('common/src/main/resources').asFile
+    def generatedCommonJavaDir = layout.buildDirectory.dir('generated/sources/myotusCommon/java')
+    def generatedCommonResourcesDir = layout.buildDirectory.dir('generated/resources/myotusCommon')
+
+    def syncMyotusCommonJava = tasks.register('syncMyotusCommonJava', Sync) {
+        from commonJavaSourceDir
+        into generatedCommonJavaDir
+        exclude 'me/myogoo/myotus/api/recipes/**'
+    }
+
+    def syncMyotusCommonResources = tasks.register('syncMyotusCommonResources', Sync) {
+        from commonResourcesSourceDir
+        into generatedCommonResourcesDir
+    }
+
+    def generatedCommonJavaSources = files(generatedCommonJavaDir).builtBy(syncMyotusCommonJava)
+    def generatedCommonResources = files(generatedCommonResourcesDir).builtBy(syncMyotusCommonResources)
+
+    base {
+        archivesName = "${project.mod_name}-${project.minecraft_version}"
+    }
+
+    sourceSets {
+        main {
+            java.srcDir generatedCommonJavaSources
+            resources.srcDir generatedCommonResources
+            resources.srcDir 'src/generated/resources'
+        }
+    }
+
+    tasks.named('compileJava').configure {
+        dependsOn syncMyotusCommonJava
+    }
+
+    tasks.named('processResources').configure {
+        dependsOn syncMyotusCommonResources
+    }
+
+    tasks.matching { it.name in ['genIntellijRuns', 'neoForgeIdeSync', 'idea', 'ideaModule'] }.configureEach {
+        dependsOn syncMyotusCommonJava
+        dependsOn syncMyotusCommonResources
+    }
+
+    idea {
+        module {
+            sourceDirs += generatedCommonJavaDir.get().asFile
+            generatedSourceDirs += generatedCommonJavaDir.get().asFile
+            resourceDirs += generatedCommonResourcesDir.get().asFile
+        }
+    }
+
+    tasks.named('jar', Jar).configure {
+        manifest {
+            attributes(["Specification-Title"     : mod_id,
+                        "Specification-Vendor"    : mod_authors,
+                        "Specification-Version"   : "1",
+                        "Implementation-Title"    : project.name,
+                        "Implementation-Version"  : project.version.toString(),
+                        "Implementation-Vendor"   : mod_authors,
+                        "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")])
+        }
+    }
+
+    tasks.register('apiJar', Jar) {
+        archiveClassifier = 'api'
+        from sourceSets.main.output
+        include 'me/myogoo/myotus/api/**'
+        // Public API signatures expose these supporting value/icon types.
+        include 'me/myogoo/myotus/dto/MyoModDto.class'
+        include 'me/myogoo/myotus/client/gui/MyoIcon.class'
+    }
+
+    plugins.withId('com.vanniktech.maven.publish') {
+        afterEvaluate {
+            publishing.publications.withType(org.gradle.api.publish.maven.MavenPublication).configureEach {
+                artifactId = project.mod_id
+                artifacts.clear()
+                if (project.name == 'forge-1-20-1') {
+                    artifact(tasks.named('jarJar')) {
+                        classifier = null
+                    }
+                } else {
+                    artifact(tasks.named('jar')) {
+                        classifier = null
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.register('syncIntellij') {
+    group = 'ide'
+    description = 'Prepares IntelliJ metadata and run configurations for all Myotus mod modules.'
+    dependsOn ':forge-1-20-1:genIntellijRuns'
+    dependsOn ':neoforge-1-21-1:neoForgeIdeSync'
+}
+
+def registerVersionMismatchStartupFailureTask = { String taskName, String modulePath, String logPath ->
+    tasks.register(taskName) {
+        group = 'verification'
+        description = "Runs ${modulePath}:runGameTestServer with a forced MyoMod version mismatch and asserts startup fails."
+
+        doLast {
+            def logFile = file(logPath)
+            delete logFile
+
+            def outputDir = layout.buildDirectory.dir('startup-version-mismatch').get().asFile
+            outputDir.mkdirs()
+            def outputFile = new File(outputDir, "${taskName}.log")
+
+            def stdout = new ByteArrayOutputStream()
+            def stderr = new ByteArrayOutputStream()
+            def isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows()
+            def command = isWindows
+                    ? ['cmd', '/c', 'gradlew.bat', "${modulePath}:runGameTestServer", '-PmyotusStartupVersionMismatchTest=true', '--console=plain', '--no-daemon']
+                    : ['./gradlew', "${modulePath}:runGameTestServer", '-PmyotusStartupVersionMismatchTest=true', '--console=plain', '--no-daemon']
+
+            def result = exec {
+                commandLine command
+                standardOutput = stdout
+                errorOutput = stderr
+                ignoreExitValue = true
+            }
+
+            def combinedOutput = stdout.toString('UTF-8') + System.lineSeparator() + stderr.toString('UTF-8')
+            def logOutput = logFile.isFile() ? logFile.getText('UTF-8') : ''
+            outputFile.setText(combinedOutput + System.lineSeparator() + logOutput, 'UTF-8')
+
+            def evidence = combinedOutput + System.lineSeparator() + logOutput
+            def hasMyotusMismatch = evidence.contains('MyoModVersionMismatchException')
+                    || evidence.contains('error.myotus.mod.loading.version.mismatch')
+            def hasStartupFailure = evidence.contains('Failed to start the minecraft server')
+                    || evidence.contains('Loading errors encountered')
+                    || evidence.contains('Failed to complete lifecycle event')
+            if (!hasMyotusMismatch || !hasStartupFailure) {
+                throw new GradleException("${modulePath}:runGameTestServer did not report the expected Myotus version mismatch startup failure. Exit code: ${result.exitValue}. See ${outputFile}.")
+            }
+
+            logger.lifecycle("Verified ${modulePath} reports a Myotus version mismatch startup failure. Exit code: ${result.exitValue}. Evidence saved to ${outputFile}.")
+        }
+    }
+}
+
+registerVersionMismatchStartupFailureTask(
+        'verifyForgeVersionMismatchStartupFailure',
+        ':forge-1-20-1',
+        'forge-1-20-1/run/logs/latest.log')
+
+registerVersionMismatchStartupFailureTask(
+        'verifyNeoForgeVersionMismatchStartupFailure',
+        ':neoforge-1-21-1',
+        'neoforge-1-21-1/run-gametestserver/logs/latest.log')
+
+tasks.register('verifyVersionMismatchStartupFailures') {
+    group = 'verification'
+    description = 'Verifies Forge and NeoForge both fail startup with a MyoMod version mismatch loading error.'
+    dependsOn 'verifyForgeVersionMismatchStartupFailure', 'verifyNeoForgeVersionMismatchStartupFailure'
+}

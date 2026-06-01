@@ -1,0 +1,134 @@
+buildscript {
+    repositories {
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+    }
+}
+
+plugins {
+    id 'com.vanniktech.maven.publish'
+    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+}
+
+apply plugin: 'org.spongepowered.mixin'
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version.toString()))
+}
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+
+    copyIdeResources = true
+
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+
+            property 'forge.logging.markers', 'REGISTRIES'
+
+            property 'forge.logging.console.level', 'debug'
+            property 'myotus.startupVersionMismatchTest', (findProperty('myotusStartupVersionMismatchTest') ?: 'false').toString()
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+        }
+
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            workingDirectory project.file('run-data')
+
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+
+    config "${mod_id}.mixins.json"
+}
+
+dependencies {
+    implementation fg.deobf("appeng:appliedenergistics2-forge:${AE2_version}")
+
+    compileOnly fg.deobf("org.appliedenergistics:guideme:${Guideme_version}:api")
+    runtimeOnly fg.deobf("org.appliedenergistics:guideme:${Guideme_version}")
+    compileOnly fg.deobf("maven.modrinth:applied-energistics-2-wireless-terminals:${AE2WTLib_version}")
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.6"))
+    implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.3.6")) {
+        jarJar.ranged(it, "[0.3.6,)")
+    }
+
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    def replaceProperties = [minecraft_version   : minecraft_version, minecraft_version_range: minecraft_version_range,
+                             forge_version       : forge_version, forge_version_range: forge_version_range,
+                             loader_version_range: loader_version_range,
+                             mod_id              : mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+                             mod_authors         : mod_authors, mod_description: mod_description]
+
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    archiveClassifier = 'dev'
+    finalizedBy 'reobfJar'
+}
+
+tasks.named('jarJar', Jar).configure {
+    archiveClassifier = ''
+}
+
+tasks.named('build').configure {
+    dependsOn tasks.named('reobfJarJar')
+}
+
+def mappedVersionSuffixPattern = java.util.regex.Pattern.compile(
+        "_mapped_${java.util.regex.Pattern.quote(mapping_channel)}_${java.util.regex.Pattern.quote(mapping_version)}(?:_at_[A-Za-z0-9]+)?\$"
+)
+
+publishing {
+    publications.withType(org.gradle.api.publish.maven.MavenPublication).configureEach {
+        pom.withXml {
+            def dependenciesNode = asNode().get('dependencies')?.getAt(0)
+            dependenciesNode?.get('dependency')?.each { dependencyNode ->
+                def versionNode = dependencyNode.get('version')?.getAt(0)
+                if (versionNode != null) {
+                    versionNode.setValue(versionNode.text().replaceFirst(mappedVersionSuffixPattern, ''))
+                }
+            }
+        }
+    }
+}
+
+tasks.withType(org.gradle.api.publish.maven.tasks.AbstractPublishToMaven).configureEach {
+    dependsOn tasks.named('reobfJar')
+}

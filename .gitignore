@@ -1,0 +1,12 @@
+.codex
+.idea
+.vscode
+.claude
+*.iml
+/.gradle/
+/build/
+**/.gradle/
+**/build/
+**/out/
+**/run/
+**/run-*/

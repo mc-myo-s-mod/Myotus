@@ -1,0 +1,169 @@
+name: Publish Mod
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish ${{ github.event.release.tag_name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Resolve release target
+        id: vars
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+        run: |
+          set -euo pipefail
+
+          case "$RELEASE_TAG" in
+            *1.20.1*)
+              module="forge-1-20-1"
+              ;;
+            *1.21.1*)
+              module="neoforge-1-21-1"
+              ;;
+            *)
+              echo "::error::Release tag must contain a supported Minecraft version, for example mc1.20.1-v15.0.7 or mc1.21.1-v19.0.9."
+              exit 1
+              ;;
+          esac
+
+          properties_file="$module/gradle.properties"
+          java_version=$(grep '^java_version=' "$properties_file" | cut -d'=' -f2 | tr -d ' \r')
+          mc_version=$(grep '^minecraft_version=' "$properties_file" | cut -d'=' -f2 | tr -d ' \r')
+          mod_version=$(grep '^mod_version=' "$properties_file" | cut -d'=' -f2 | tr -d ' \r')
+          mod_loader=$(grep '^mod_loader=' "$properties_file" | cut -d'=' -f2 | tr -d ' \r')
+          version_type=$(grep '^mod_version_type=' "$properties_file" | cut -d'=' -f2 | tr -d ' \r')
+
+          if [[ "$mod_version" == *SNAPSHOT* ]]; then
+            echo "::error::$properties_file still has a SNAPSHOT mod_version ($mod_version). Bump it before publishing a public release."
+            exit 1
+          fi
+
+          if [[ "$RELEASE_TAG" != *"$mc_version"* || "$RELEASE_TAG" != *"$mod_version"* ]]; then
+            echo "::error::Release tag '$RELEASE_TAG' must include minecraft_version '$mc_version' and mod_version '$mod_version'."
+            exit 1
+          fi
+
+          artifact_name="Myotus-$mc_version-$mod_version"
+          publish_name="${RELEASE_NAME:-$artifact_name}"
+          artifact_path="$module/build/libs/$artifact_name.jar"
+
+          {
+            echo "module=$module"
+            echo "java_version=$java_version"
+            echo "mc_version=$mc_version"
+            echo "mod_version=$mod_version"
+            echo "mod_loader=$mod_loader"
+            echo "version_type=$version_type"
+            echo "artifact_name=$artifact_name"
+            echo "publish_name=$publish_name"
+            echo "artifact_path=$artifact_path"
+            echo "publish_version=$mc_version-$mod_version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java toolchains
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Validate publishing credentials
+        shell: bash
+        env:
+          CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_IN_MEMORY_KEY: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          SIGNING_IN_MEMORY_KEY_PASSWORD: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in \
+            CURSEFORGE_PROJECT_ID \
+            CURSEFORGE_TOKEN \
+            MODRINTH_PROJECT_ID \
+            MODRINTH_TOKEN \
+            MAVEN_CENTRAL_USERNAME \
+            MAVEN_CENTRAL_PASSWORD \
+            SIGNING_IN_MEMORY_KEY \
+            SIGNING_IN_MEMORY_KEY_PASSWORD
+          do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::$name is not configured."
+              missing=1
+            fi
+          done
+
+          exit "$missing"
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build release jar
+        run: ./gradlew :${{ steps.vars.outputs.module }}:build --no-daemon --stacktrace
+
+      - name: Verify release jar
+        shell: bash
+        run: test -f "${{ steps.vars.outputs.artifact_path }}"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.vars.outputs.artifact_name }}
+          path: ${{ steps.vars.outputs.artifact_path }}
+          if-no-files-found: error
+
+      - name: Upload jar to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.vars.outputs.artifact_path }}" --clobber
+
+      - name: Publish to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+        run: ./gradlew :${{ steps.vars.outputs.module }}:publishAndReleaseToMavenCentral --no-daemon --stacktrace
+
+      - name: Publish to CurseForge and Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          files: ${{ steps.vars.outputs.artifact_path }}
+          name: ${{ steps.vars.outputs.publish_name }}
+          version: ${{ steps.vars.outputs.publish_version }}
+          version-type: ${{ steps.vars.outputs.version_type }}
+          changelog: ${{ github.event.release.body }}
+          game-versions: ${{ steps.vars.outputs.mc_version }}
+          loaders: ${{ steps.vars.outputs.mod_loader }}
+
+          dependencies: |
+            ae2(required){modrinth:XxWD5pD3}{curseforge:223794}
+            ae2wtlib(optional){modrinth:pNabrMMw}{curseforge:459929}
