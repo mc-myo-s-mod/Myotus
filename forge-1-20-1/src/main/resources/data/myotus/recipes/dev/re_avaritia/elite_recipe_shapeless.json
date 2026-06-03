@@ -1,0 +1,45 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "myotus:dev"
+        },
+        {
+          "type": "forge:mod_loaded",
+          "modid": "extendedterminal"
+        },
+        {
+          "type": "myotus:mod_condition",
+          "active_mod": "Re-Avaritia"
+        }
+      ],
+      "recipe": {
+        "type": "avaritia:shapeless_table",
+        "ingredients": [
+          {
+            "item": "ae2:logic_processor"
+          },
+          {
+            "item": "ae2:quartz_fiber"
+          },
+          {
+            "item": "ae2:quartz_fiber"
+          },
+          {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          {
+            "item": "ae2:fluix_dust"
+          }
+        ],
+        "result": {
+          "item": "extendedterminal:compat_processor"
+        },
+        "category": "misc",
+        "tier": 3
+      }
+    }
+  ]
+}
