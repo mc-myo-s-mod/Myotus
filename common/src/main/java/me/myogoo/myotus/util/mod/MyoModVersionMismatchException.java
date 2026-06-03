@@ -36,14 +36,6 @@ public final class MyoModVersionMismatchException extends RuntimeException {
         return minimumVersion;
     }
 
-    /**
-     * @deprecated Use {@link #getMinimumVersion()}.
-     */
-    @Deprecated(forRemoval = false)
-    public ArtifactVersion getMiniumVersion() {
-        return getMinimumVersion();
-    }
-
     public ArtifactVersion getModVersion() {
         return modVersion;
     }
