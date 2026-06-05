@@ -274,7 +274,7 @@ class ModIntegrationManagerTest {
     }
 
     @Test
-    void aliasesAreSharedByIntegrationsThatUseTheSameModId() {
+    void customConditionIntegrationsDoNotShareAliasesForTheSameModId() {
         AnnotationScanner.setAnnotationProvider(() -> Stream.of(
                 myoModAnnotation(ReAvaritiaIntegration.class, ElementType.ANNOTATION_TYPE),
                 myoModAnnotation(AvaritiaNeoIntegration.class, ElementType.ANNOTATION_TYPE)));
@@ -285,13 +285,13 @@ class ModIntegrationManagerTest {
         assertTrue(ModIntegrationManager.isRegistered("re_avaritia"));
         assertTrue(ModIntegrationManager.isRegistered("avaritia_neo"));
         assertTrue(ModIntegrationManager.isLoaded("re_avaritia"));
-        assertTrue(ModIntegrationManager.isLoaded("avaritia_neo"));
+        assertFalse(ModIntegrationManager.isLoaded("avaritia_neo"));
         assertSame(ReAvaritiaIntegration.class, ModIntegrationManager.getClass("re_avaritia"));
-        assertSame(ReAvaritiaIntegration.class, ModIntegrationManager.getClass("avaritia_neo"));
+        assertSame(AvaritiaNeoIntegration.class, ModIntegrationManager.getClass("avaritia_neo"));
         MyoModDto activeMod = ModIntegrationManager.get("re_avaritia");
         assertNotNull(activeMod);
         assertTrue(activeMod.getAliases().contains("re_avaritia"));
-        assertTrue(activeMod.getAliases().contains("avaritia_neo"));
+        assertFalse(activeMod.getAliases().contains("avaritia_neo"));
     }
 
     @Test
@@ -374,7 +374,7 @@ class ModIntegrationManagerTest {
     }
 
     @Test
-    void aliasesFromInactiveSameModIdRegistrationsRemainActiveModLevelAliases() {
+    void aliasesFromInactiveSameModIdRegistrationsWithCustomConditionsDoNotMatchActiveIntegrations() {
         AnnotationScanner.setAnnotationProvider(() -> Stream.of(
                 myoModAnnotation(ActiveAliasIntegration.class, ElementType.ANNOTATION_TYPE),
                 myoModAnnotation(ConditionBlockedAliasIntegration.class, ElementType.ANNOTATION_TYPE)));
@@ -384,8 +384,8 @@ class ModIntegrationManagerTest {
         assertTrue(ModIntegrationManager.isLoaded(ActiveAliasIntegration.class));
         assertFalse(ModIntegrationManager.isLoaded(ConditionBlockedAliasIntegration.class));
         assertTrue(ModIntegrationManager.isLoaded("active_alias"));
-        assertTrue(ModIntegrationManager.isLoaded("condition_blocked_alias"));
-        assertSame(ActiveAliasIntegration.class, ModIntegrationManager.getClass("condition_blocked_alias"));
+        assertFalse(ModIntegrationManager.isLoaded("condition_blocked_alias"));
+        assertSame(ConditionBlockedAliasIntegration.class, ModIntegrationManager.getClass("condition_blocked_alias"));
     }
 
     @Test

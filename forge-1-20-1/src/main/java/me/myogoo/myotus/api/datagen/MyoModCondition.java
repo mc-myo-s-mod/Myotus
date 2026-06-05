@@ -2,6 +2,7 @@ package me.myogoo.myotus.api.datagen;
 
 import com.google.gson.JsonObject;
 import me.myogoo.myotus.Myotus;
+import me.myogoo.myotus.util.MyoLogger;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
@@ -45,6 +46,10 @@ public class MyoModCondition implements ICondition {
 
     @Override
     public boolean test(IContext context) {
+        if (!ModIntegrationManager.isRegistered(modId)) {
+            MyoLogger.warn("Unknown Myotus integration condition '{}'. Register it with @MyoMod or fix active_mod. Treating as false.", modId);
+            return false;
+        }
         return ModIntegrationManager.isLoaded(modId);
     }
 

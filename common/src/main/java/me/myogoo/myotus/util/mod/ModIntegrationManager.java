@@ -145,8 +145,7 @@ public final class ModIntegrationManager {
         Map<String, Set<String>> aliasesByModId = aliasesByModId();
         Map<String, List<MyoModDto>> activeByModId = new LinkedHashMap<>();
         for (MyoModRegistration registration : registeredIntegrations.values()) {
-            MyoModDto mod = finalizeRegistration(registration,
-                    aliasesByModId.getOrDefault(registration.modId(), Set.of()));
+            MyoModDto mod = finalizeRegistration(registration, aliasesForActiveRegistration(registration, aliasesByModId));
             if (mod != null) {
                 activeByModId.computeIfAbsent(mod.getModId(), ignored -> new ArrayList<>()).add(mod);
             }
@@ -202,9 +201,20 @@ public final class ModIntegrationManager {
                 registration.versionRange(), registration.mode());
     }
 
+    private static Set<String> aliasesForActiveRegistration(MyoModRegistration registration,
+            Map<String, Set<String>> aliasesByModId) {
+        if (registration.hasCustomCondition()) {
+            return registration.aliases();
+        }
+        return aliasesByModId.getOrDefault(registration.modId(), Set.of());
+    }
+
     private static Map<String, Set<String>> aliasesByModId() {
         Map<String, Set<String>> aliasesByModId = new LinkedHashMap<>();
         for (MyoModRegistration registration : registeredIntegrations.values()) {
+            if (registration.hasCustomCondition()) {
+                continue;
+            }
             aliasesByModId.computeIfAbsent(registration.modId(), ignored -> new LinkedHashSet<>())
                     .addAll(registration.aliases());
         }
@@ -294,6 +304,10 @@ public final class ModIntegrationManager {
                     myoMod.versionRange(),
                     myoMod.mode(),
                     myoMod.customCondition());
+        }
+
+        boolean hasCustomCondition() {
+            return customConditionClass != MyoCustomCondition.class;
         }
 
         boolean matches(String id) {

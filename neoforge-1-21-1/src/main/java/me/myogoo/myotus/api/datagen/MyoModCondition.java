@@ -3,6 +3,7 @@ package me.myogoo.myotus.api.datagen;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import me.myogoo.myotus.util.MyoLogger;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,10 @@ public class MyoModCondition implements ICondition {
 
     @Override
     public boolean test(ICondition.IContext context) {
+        if (!ModIntegrationManager.isRegistered(modId)) {
+            MyoLogger.warn("Unknown Myotus integration condition '{}'. Register it with @MyoMod or fix active_mod. Treating as false.", modId);
+            return false;
+        }
         return ModIntegrationManager.isLoaded(modId);
     }
 
