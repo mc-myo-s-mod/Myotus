@@ -1,6 +1,6 @@
 package me.myogoo.myotus.util.mod;
 
-import me.myogoo.myotus.dto.MyoModInfoDto;
+import me.myogoo.myotus.dto.MyoModInfo;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 
 import java.util.Objects;
@@ -12,7 +12,7 @@ public final class MyoModVersionMismatchException extends RuntimeException {
     private final ArtifactVersion modVersion;
     private final String versionRange;
 
-    public MyoModVersionMismatchException(MyoModInfoDto modInfo, String versionRange) {
+    public MyoModVersionMismatchException(MyoModInfo modInfo, String versionRange) {
         super("MyoMod version mismatch for %s: required %s, found %s".formatted(
                 Objects.requireNonNull(modInfo, "modInfo").displayName(),
                 ModVersionHelper.getMinimumVersion(versionRange),

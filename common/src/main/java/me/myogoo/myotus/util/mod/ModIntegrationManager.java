@@ -4,7 +4,7 @@ import me.myogoo.myotus.api.annotation.MyoMod;
 import me.myogoo.myotus.api.annotation.MyoMod.IntegrationMode;
 import me.myogoo.myotus.api.integration.MyoCustomCondition;
 import me.myogoo.myotus.dto.MyoModDto;
-import me.myogoo.myotus.dto.MyoModInfoDto;
+import me.myogoo.myotus.dto.MyoModInfo;
 import me.myogoo.myotus.platform.mod.IModList;
 import me.myogoo.myotus.util.MyoLogger;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
@@ -186,7 +186,7 @@ public final class ModIntegrationManager {
             return null;
         }
 
-        MyoModInfoDto modInfo = modList.getModInfoById(registration.modId());
+        MyoModInfo modInfo = modList.getModInfoById(registration.modId());
         if (modInfo == null) {
             return null;
         }
@@ -260,7 +260,7 @@ public final class ModIntegrationManager {
         }
     }
 
-    private static boolean testCustomCondition(MyoModRegistration registration, MyoModInfoDto modInfo) {
+    private static boolean testCustomCondition(MyoModRegistration registration, MyoModInfo modInfo) {
         Class<? extends MyoCustomCondition> conditionClass = registration.customConditionClass();
         if (conditionClass == MyoCustomCondition.class) {
             return true;

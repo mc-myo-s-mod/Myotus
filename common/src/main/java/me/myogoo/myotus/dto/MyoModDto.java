@@ -19,12 +19,12 @@ public final class MyoModDto {
     private final String versionRange;
     private final IntegrationMode mode;
 
-    public MyoModDto(Class<? extends Annotation> annotationClass, MyoModInfoDto modInfo,
+    public MyoModDto(Class<? extends Annotation> annotationClass, MyoModInfo modInfo,
             String versionRange, IntegrationMode mode) {
         this(annotationClass, modInfo, Set.of(), versionRange, mode);
     }
 
-    public MyoModDto(Class<? extends Annotation> annotationClass, MyoModInfoDto modInfo,
+    public MyoModDto(Class<? extends Annotation> annotationClass, MyoModInfo modInfo,
             Set<String> aliases, String versionRange, IntegrationMode mode) {
         this.annotationClass = annotationClass;
         this.modId = modInfo.modId();

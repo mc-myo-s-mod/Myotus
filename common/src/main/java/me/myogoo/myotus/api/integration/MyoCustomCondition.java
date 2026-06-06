@@ -1,8 +1,8 @@
 package me.myogoo.myotus.api.integration;
 
-import me.myogoo.myotus.dto.MyoModInfoDto;
+import me.myogoo.myotus.dto.MyoModInfo;
 
 @FunctionalInterface
 public interface MyoCustomCondition {
-    boolean test(MyoModInfoDto modInfo);
+    boolean test(MyoModInfo modInfo);
 }

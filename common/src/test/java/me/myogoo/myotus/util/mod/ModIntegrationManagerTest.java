@@ -4,7 +4,7 @@ import me.myogoo.myotus.api.annotation.MyoMod;
 import me.myogoo.myotus.api.annotation.MyoMod.IntegrationMode;
 import me.myogoo.myotus.api.integration.MyoCustomCondition;
 import me.myogoo.myotus.dto.MyoModDto;
-import me.myogoo.myotus.dto.MyoModInfoDto;
+import me.myogoo.myotus.dto.MyoModInfo;
 import me.myogoo.myotus.platform.mod.IModList;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner.ScannedAnnotation;
@@ -181,7 +181,7 @@ class ModIntegrationManagerTest {
             }
 
             @Override
-            public MyoModInfoDto getModInfoById(String modId) {
+            public MyoModInfo getModInfoById(String modId) {
                 return null;
             }
         });
@@ -417,7 +417,7 @@ class ModIntegrationManagerTest {
     private static MyoModDto activeMod(Class<? extends Annotation> annotationClass, String modId) {
         return new MyoModDto(
                 annotationClass,
-                new MyoModInfoDto(modId, modId, modId, new DefaultArtifactVersion("1.0.0")),
+                new MyoModInfo(modId, modId, modId, new DefaultArtifactVersion("1.0.0")),
                 "*",
                 IntegrationMode.ONLY);
     }
@@ -431,8 +431,8 @@ class ModIntegrationManagerTest {
         return modList(Map.of(loadedModId, modInfo(loadedModId, "1.0.0")));
     }
 
-    private static IModList modList(Map<String, MyoModInfoDto> loadedMods) {
-        Map<String, MyoModInfoDto> mods = new HashMap<>(loadedMods);
+    private static IModList modList(Map<String, MyoModInfo> loadedMods) {
+        Map<String, MyoModInfo> mods = new HashMap<>(loadedMods);
         return new IModList() {
             @Override
             public boolean isLoaded(String modId) {
@@ -440,18 +440,18 @@ class ModIntegrationManagerTest {
             }
 
             @Override
-            public MyoModInfoDto getModInfoById(String modId) {
+            public MyoModInfo getModInfoById(String modId) {
                 return mods.get(modId);
             }
         };
     }
 
-    private static MyoModInfoDto modInfo(String modId, String version) {
-        return new MyoModInfoDto(modId, modId, modId, new DefaultArtifactVersion(version));
+    private static MyoModInfo modInfo(String modId, String version) {
+        return new MyoModInfo(modId, modId, modId, new DefaultArtifactVersion(version));
     }
 
-    private static MyoModInfoDto modInfo(String modId, String namespace, String displayName, String version) {
-        return new MyoModInfoDto(modId, namespace, displayName, new DefaultArtifactVersion(version));
+    private static MyoModInfo modInfo(String modId, String namespace, String displayName, String version) {
+        return new MyoModInfo(modId, namespace, displayName, new DefaultArtifactVersion(version));
     }
 
     @SuppressWarnings("unchecked")
@@ -641,28 +641,28 @@ class ModIntegrationManagerTest {
 
     private static final class FalseCondition implements MyoCustomCondition {
         @Override
-        public boolean test(MyoModInfoDto modInfo) {
+        public boolean test(MyoModInfo modInfo) {
             return false;
         }
     }
 
     private static final class TrueCondition implements MyoCustomCondition {
         @Override
-        public boolean test(MyoModInfoDto modInfo) {
+        public boolean test(MyoModInfo modInfo) {
             return true;
         }
     }
 
     private static final class ThrowingCondition implements MyoCustomCondition {
         @Override
-        public boolean test(MyoModInfoDto modInfo) {
+        public boolean test(MyoModInfo modInfo) {
             throw new IllegalStateException("boom");
         }
     }
 
     private static final class ReAvaritiaCondition implements MyoCustomCondition {
         @Override
-        public boolean test(MyoModInfoDto modInfo) {
+        public boolean test(MyoModInfo modInfo) {
             return "Re:Avaritia".equals(modInfo.displayName())
                     || "Re-Avaritia".equals(modInfo.displayName());
         }
@@ -670,7 +670,7 @@ class ModIntegrationManagerTest {
 
     private static final class AvaritiaNeoCondition implements MyoCustomCondition {
         @Override
-        public boolean test(MyoModInfoDto modInfo) {
+        public boolean test(MyoModInfo modInfo) {
             return "Avaritia".equals(modInfo.displayName())
                     || "AvaritiaNeo".equals(modInfo.displayName());
         }

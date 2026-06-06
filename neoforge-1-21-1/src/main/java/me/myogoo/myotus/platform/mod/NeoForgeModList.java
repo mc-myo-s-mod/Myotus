@@ -1,6 +1,6 @@
 package me.myogoo.myotus.platform.mod;
 
-import me.myogoo.myotus.dto.MyoModInfoDto;
+import me.myogoo.myotus.dto.MyoModInfo;
 import net.neoforged.fml.ModList;
 
 public final class NeoForgeModList implements IModList {
@@ -15,9 +15,9 @@ public final class NeoForgeModList implements IModList {
     }
 
     @Override
-    public MyoModInfoDto getModInfoById(String modId) {
+    public MyoModInfo getModInfoById(String modId) {
         return ModList.get().getModContainerById(modId)
-                .map(container -> new MyoModInfoDto(
+                .map(container -> new MyoModInfo(
                         container.getModId(),
                         container.getNamespace(),
                         container.getModInfo().getDisplayName(),

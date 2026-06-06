@@ -1,6 +1,6 @@
 package me.myogoo.myotus.platform.mod;
 
-import me.myogoo.myotus.dto.MyoModInfoDto;
+import me.myogoo.myotus.dto.MyoModInfo;
 
 public interface IModList {
     IModList EMPTY = new IModList() {
@@ -10,12 +10,12 @@ public interface IModList {
         }
 
         @Override
-        public MyoModInfoDto getModInfoById(String modId) {
+        public MyoModInfo getModInfoById(String modId) {
             return null;
         }
     };
 
     boolean isLoaded(String modId);
 
-    MyoModInfoDto getModInfoById(String modId);
+    MyoModInfo getModInfoById(String modId);
 }
