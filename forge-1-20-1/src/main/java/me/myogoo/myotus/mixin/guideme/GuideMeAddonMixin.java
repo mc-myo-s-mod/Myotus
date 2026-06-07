@@ -7,6 +7,7 @@ import guideme.Guide;
 import guideme.GuideBuilder;
 import guideme.compiler.TagCompiler;
 import me.myogoo.myotus.integration.guideme.ConditionTag;
+import me.myogoo.myotus.integration.guideme.TranslateTag;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -15,6 +16,7 @@ public class GuideMeAddonMixin {
     @WrapOperation(method = "createGuide", at = @At(value = "INVOKE", target = "Lguideme/GuideBuilder;build()Lguideme/Guide;"), remap = false)
     private Guide et$createGuide(GuideBuilder instance, Operation<Guide> original) {
         instance.extension(TagCompiler.EXTENSION_POINT, new ConditionTag());
+        instance.extension(TagCompiler.EXTENSION_POINT, new TranslateTag());
         return original.call(instance);
     }
 }
