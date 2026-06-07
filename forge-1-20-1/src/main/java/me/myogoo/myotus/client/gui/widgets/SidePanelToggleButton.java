@@ -36,7 +36,7 @@ public class SidePanelToggleButton extends CustomImageButton {
     @Override
     protected Blitter getIcon() {
         boolean isOpen = sidePanel.isVisible();
-        return isOpen ? MyoIcon.HIDE_UPGRADE_PANEL.getBlitter() : MyoIcon.SHOW_UPGRADE_PANEL.getBlitter();
+        return isOpen ?  MyoIcon.SHOW_UPGRADE_PANEL.getBlitter() : MyoIcon.HIDE_UPGRADE_PANEL.getBlitter();
     }
 
     public void run() {
