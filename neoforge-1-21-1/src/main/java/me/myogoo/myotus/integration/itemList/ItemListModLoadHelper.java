@@ -1,12 +1,14 @@
 package me.myogoo.myotus.integration.itemList;
 
 import me.myogoo.myotus.api.annotation.MyotusSubscriber;
+import me.myogoo.myotus.api.annotation.MyoMod;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import me.myogoo.myotus.util.MyoLogger;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import me.myogoo.myotus.util.reflect.SafeClass;
 import org.objectweb.asm.Type;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -23,9 +25,23 @@ public class ItemListModLoadHelper {
                 .stream()
                 .map(a -> SafeClass.forType(a.clazz()))
                 .filter(Objects::nonNull)
-                .filter(c -> c.getDeclaredAnnotations().length == 0 || Arrays.stream(c.getDeclaredAnnotations())
-                        .anyMatch(a -> ModIntegrationManager.isLoaded(a.annotationType())))
+                .filter(ItemListModLoadHelper::hasNoIntegrationMarkerOrActiveIntegration)
                 .forEach(clazz -> invokeMethod(clazz, parameterType, parameter));
+    }
+
+    private static boolean hasNoIntegrationMarkerOrActiveIntegration(Class<?> clazz) {
+        var integrationAnnotations = Arrays.stream(clazz.getDeclaredAnnotations())
+                .filter(annotation -> isIntegrationAnnotation(annotation.annotationType()))
+                .toList();
+
+        return integrationAnnotations.isEmpty()
+                || integrationAnnotations.stream()
+                        .allMatch(annotation -> ModIntegrationManager.isLoaded(annotation.annotationType()));
+    }
+
+    private static boolean isIntegrationAnnotation(Class<? extends Annotation> annotationClass) {
+        return annotationClass.isAnnotationPresent(MyoMod.class)
+                || ModIntegrationManager.isRegistered(annotationClass);
     }
 
     public static <R> void invokeItemListMod(

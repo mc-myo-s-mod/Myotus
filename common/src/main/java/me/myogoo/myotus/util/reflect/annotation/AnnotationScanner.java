@@ -139,7 +139,7 @@ public final class AnnotationScanner {
 
         return integrationAnnotations.isEmpty()
                 || integrationAnnotations.stream()
-                        .anyMatch(candidate -> ModIntegrationManager.isLoaded(candidate.annotationType()));
+                        .allMatch(candidate -> ModIntegrationManager.isLoaded(candidate.annotationType()));
     }
 
     private static boolean isIntegrationAnnotation(Type annotationType) {

@@ -1,7 +1,12 @@
 package me.myogoo.myotus.util;
 
+import me.myogoo.myotus.api.annotation.MyoMod;
+import me.myogoo.myotus.dto.MyoModInfo;
+import me.myogoo.myotus.platform.mod.IModList;
+import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner.ScannedAnnotation;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,11 +49,13 @@ class AnnotationScannerTest {
     @BeforeEach
     void setUp() {
         AnnotationScanner.setAnnotationProvider(Stream::empty);
+        ModIntegrationManager.setModList(IModList.EMPTY);
     }
 
     @AfterEach
     void tearDown() {
         AnnotationScanner.setAnnotationProvider(Stream::empty);
+        ModIntegrationManager.setModList(IModList.EMPTY);
     }
 
     @Test
@@ -118,6 +125,48 @@ class AnnotationScannerTest {
         verifyNoMoreInteractions(annotationProvider);
     }
 
+    @Test
+    void findActiveRequiresAllIntegrationAnnotationsOnSameTargetToBeLoaded() {
+        var activeTarget = new ScannedAnnotation(
+                Type.getType(FirstAnnotation.class), ElementType.TYPE, Type.getType(ActiveTarget.class));
+        AnnotationScanner.setAnnotationProvider(() -> Stream.of(
+                myoModAnnotation(LoadedIntegration.class),
+                myoModAnnotation(MissingIntegration.class),
+                activeTarget,
+                scanned(LoadedIntegration.class, ActiveTarget.class),
+                scanned(FirstAnnotation.class, PartiallyActiveTarget.class),
+                scanned(LoadedIntegration.class, PartiallyActiveTarget.class),
+                scanned(MissingIntegration.class, PartiallyActiveTarget.class)));
+        ModIntegrationManager.setModList(modList("loaded"));
+
+        assertEquals(List.of(activeTarget), List.copyOf(AnnotationScanner.findActive(FirstAnnotation.class)));
+    }
+
+    private static ScannedAnnotation myoModAnnotation(Class<?> annotationClass) {
+        return new ScannedAnnotation(Type.getType(MyoMod.class), ElementType.ANNOTATION_TYPE, Type.getType(annotationClass));
+    }
+
+    private static ScannedAnnotation scanned(Class<?> annotationClass, Class<?> targetClass) {
+        return new ScannedAnnotation(Type.getType(annotationClass), ElementType.TYPE, Type.getType(targetClass));
+    }
+
+    private static IModList modList(String loadedModId) {
+        return new IModList() {
+            @Override
+            public boolean isLoaded(String modId) {
+                return loadedModId.equals(modId);
+            }
+
+            @Override
+            public MyoModInfo getModInfoById(String modId) {
+                if (!isLoaded(modId)) {
+                    return null;
+                }
+                return new MyoModInfo(modId, modId, modId, new DefaultArtifactVersion("1.0.0"));
+            }
+        };
+    }
+
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     private @interface FirstAnnotation {
@@ -130,5 +179,23 @@ class AnnotationScannerTest {
 
     @Retention(RetentionPolicy.RUNTIME)
     private @interface SecondAnnotation {
+    }
+
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @MyoMod("loaded")
+    private @interface LoadedIntegration {
+    }
+
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @MyoMod("missing")
+    private @interface MissingIntegration {
+    }
+
+    private static final class ActiveTarget {
+    }
+
+    private static final class PartiallyActiveTarget {
     }
 }

@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 @Mod(Myotus.MODID)
 public class Myotus {
     public static final String MODID = "myotus";
-    private static final String VERSION_MISMATCH_LOADING_ERROR = "error.myotus.mod.loading.version.mismatch";
+    private static final String VERSION_MISMATCH_LOADING_ERROR = "The {0} must be version {1} or higher. Current version: {2}";
     public static final boolean DEV_MODE = !FMLLoader.isProduction();
     public static final Logger LOGGER = LogUtils.getLogger();
 
