@@ -1,13 +1,21 @@
 ---
 navigation:
-  title: "Myotus AE2指南"
+  title: Myotus
   position: 80
 ---
 
 # Myotus
-小巧而强大的AE2模组开发库。
 
-## 游戏内特性
-- 显示元件支持
-- 按标签页显示终端配置
-- 自定义终端升级槽
+（本页由 AI 翻译。如说明有误或不够自然，欢迎提交 PR 改进。）
+
+Myotus 是一个用于扩展 Applied Energistics 2 终端的小型库。
+
+本 GuideMe 章节主要介绍对玩家有用的便利功能。
+
+## Myotus 功能
+
+<CategoryIndex category="myotus features"></CategoryIndex>
+
+## Myotus 物品
+
+<CategoryIndex category="myotus items"></CategoryIndex>
