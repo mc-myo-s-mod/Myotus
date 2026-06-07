@@ -116,6 +116,18 @@ public final class ModIntegrationManager {
         return Collections.unmodifiableMap(activeIntegrations);
     }
 
+    public static List<RegisteredIntegration> getRegisteredIntegrations() {
+        return registeredIntegrations.values().stream()
+                .map(registration -> new RegisteredIntegration(
+                        registration.modId(),
+                        registration.annotationClass(),
+                        registration.aliases(),
+                        registration.versionRange(),
+                        registration.mode(),
+                        isLoaded(registration.annotationClass())))
+                .toList();
+    }
+
     private static void registerMyoModAnnotations() {
         for (AnnotationScanner.ScannedAnnotation annotation : AnnotationScanner.getMyoModAnnotations()) {
             Class<?> annotationClass = SafeClass.forType(annotation.clazz());
@@ -279,6 +291,21 @@ public final class ModIntegrationManager {
 
     private static boolean matches(MyoModDto mod, String id) {
         return mod.matches(id);
+    }
+
+    public record RegisteredIntegration(
+            String modId,
+            Class<? extends Annotation> annotationClass,
+            Set<String> aliases,
+            String versionRange,
+            IntegrationMode mode,
+            boolean active) {
+
+        public RegisteredIntegration {
+            aliases = aliases == null ? Set.of() : Set.copyOf(aliases);
+            versionRange = versionRange == null || versionRange.isBlank() ? "*" : versionRange;
+            mode = mode == null ? IntegrationMode.ONLY : mode;
+        }
     }
 
     private record MyoModRegistration(

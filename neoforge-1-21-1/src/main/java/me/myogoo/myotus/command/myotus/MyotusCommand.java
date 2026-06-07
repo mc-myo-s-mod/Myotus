@@ -26,10 +26,9 @@ public class MyotusCommand {
         @MyoExecute
         public static int execute(CommandContext<CommandSourceStack> context) {
             context.getSource().sendSuccess(() -> Component.literal("Registered Mod Integrations:"), false);
-            ModIntegrationManager.getActiveIntegrations().keySet().forEach(x -> {
-                if(ModIntegrationManager.isLoaded(x)) {
-                    context.getSource().sendSuccess(() -> Component.literal(x.getDisplayModName()), true);
-                }
+            ModIntegrationManager.getRegisteredIntegrations().forEach(x -> {
+                String status = x.active() ? "active" : "inactive";
+                context.getSource().sendSuccess(() -> Component.literal("%s [%s]".formatted(x.modId(), status)), true);
             });
             return 1;
         }

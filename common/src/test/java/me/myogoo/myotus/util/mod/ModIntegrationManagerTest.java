@@ -126,6 +126,23 @@ class ModIntegrationManagerTest {
     }
 
     @Test
+    void registeredIntegrationsSnapshotIncludesActiveAndInactiveRegistrations() {
+        AnnotationScanner.setAnnotationProvider(() -> Stream.of(
+                myoModAnnotation(FirstIntegration.class, ElementType.ANNOTATION_TYPE),
+                myoModAnnotation(SecondIntegrationWithMyoMod.class, ElementType.ANNOTATION_TYPE)));
+
+        ModIntegrationManager.setModList(modList("first"));
+
+        var registered = ModIntegrationManager.getRegisteredIntegrations();
+        assertEquals(2, registered.size());
+        assertEquals("first", registered.get(0).modId());
+        assertTrue(registered.get(0).active());
+        assertEquals("second_registered", registered.get(1).modId());
+        assertFalse(registered.get(1).active());
+        assertThrows(UnsupportedOperationException.class, () -> registered.clear());
+    }
+
+    @Test
     void duplicateScanEntriesForSameAnnotationAreIgnored() {
         AnnotationScanner.setAnnotationProvider(() -> Stream.of(
                 myoModAnnotation(FirstIntegration.class, ElementType.ANNOTATION_TYPE),
