@@ -277,6 +277,80 @@ public final class ExperienceMath {
         return totalExperienceForLevel(level + 1) - totalExperienceForLevel(level);
     }
 
+    /**
+     * Returns raw XP consumed by vanilla anvil-like level costs from a player's current level.
+     *
+     * <p>Vanilla anvils remove levels from the player's current level, so a cost of 30 is much
+     * larger for a level-100 player than for a level-30 player.</p>
+     *
+     * @param currentLevel player's current vanilla experience level
+     * @param levelCost displayed level cost
+     * @return raw XP represented by removing {@code levelCost} levels from {@code currentLevel}
+     */
+    public static long vanillaAnvilExperienceCost(int currentLevel, int levelCost) {
+        requireNonNegative(currentLevel, "currentLevel");
+        requireNonNegative(levelCost, "levelCost");
+        int targetLevel = Math.max(0, currentLevel - levelCost);
+        return totalExperienceForLevel(currentLevel) - totalExperienceForLevel(targetLevel);
+    }
+
+    /**
+     * Returns raw XP consumed by Apothic Enchanting/Apotheosis' optimal anvil level policy.
+     *
+     * <p>Apothic charges the raw XP required to reach the displayed level cost itself, instead of
+     * subtracting that many levels from the player's current level.</p>
+     *
+     * @param levelCost displayed anvil level cost
+     * @return raw XP for Apothic's anvil cost policy
+     */
+    public static long apothicAnvilExperienceCost(int levelCost) {
+        requireNonNegative(levelCost, "levelCost");
+        return totalExperienceForLevel(levelCost);
+    }
+
+    /**
+     * Returns raw XP consumed by Apothic Enchanting's enchanting table slot policy.
+     *
+     * <p>Slot 0 charges the step XP for {@code level}, slot 1 adds {@code level - 1}, and slot 2
+     * adds {@code level - 2}; Apothic then subtracts one raw point from the summed cost.</p>
+     *
+     * @param level generated enchanting level shown by the table
+     * @param slot zero-based enchantment offer slot
+     * @return raw XP cost for the Apothic enchanting table offer
+     */
+    public static long apothicEnchantingTableExperienceCost(int level, int slot) {
+        requireNonNegative(level, "level");
+        requireNonNegative(slot, "slot");
+        long cost = 0;
+        for (int i = 0; i <= slot; i++) {
+            int stepLevel = level - i;
+            if (stepLevel > 0) {
+                cost = Math.addExact(cost, experienceToNextLevel(stepLevel - 1));
+            }
+        }
+        return Math.max(0, cost - 1);
+    }
+
+    /**
+     * Returns Apothic Enchanting Library points represented by an enchantment level.
+     *
+     * <p>These are not raw XP points. The library stores enchantment power as {@code 2^(level - 1)}
+     * points, so callers should not mix this value with {@code fluid:xp} or Applied Experienced raw XP.</p>
+     *
+     * @param level enchantment level
+     * @return Apothic library points for the supplied enchantment level
+     */
+    public static long apothicLibraryPointsForLevel(int level) {
+        requireNonNegative(level, "level");
+        if (level == 0) {
+            return 0;
+        }
+        if (level > Long.SIZE) {
+            throw new ArithmeticException("Apothic library points overflow long for level " + level);
+        }
+        return 1L << (level - 1);
+    }
+
     private static void requireNonNegative(long value, String name) {
         if (value < 0) {
             throw new IllegalArgumentException(name + " must be non-negative");

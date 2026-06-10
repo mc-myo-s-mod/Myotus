@@ -2,6 +2,7 @@ package me.myogoo.myotus;
 
 import com.mojang.logging.LogUtils;
 
+import me.myogoo.myotus.gametest.MyoExperienceGameTests;
 import me.myogoo.myotus.impl.MyotusAPIImpl;
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.init.MyoCondition;
@@ -14,6 +15,7 @@ import me.myogoo.myotus.platform.mod.ForgeModList;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import me.myogoo.myotus.util.mod.MyoModVersionMismatchException;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
+import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingException;
@@ -54,6 +56,9 @@ public class Myotus {
         MyoItems.ITEMS.register(this.modEventBus);
         MyoCondition.register();
         MyoConfig.initialize(context);
+        if (DEV_MODE) {
+            GameTestRegistry.register(MyoExperienceGameTests.class);
+        }
     }
 
     public static ResourceLocation makeId(String path) {

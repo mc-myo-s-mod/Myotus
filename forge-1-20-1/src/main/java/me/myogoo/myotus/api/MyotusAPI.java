@@ -284,6 +284,22 @@ public final class MyotusAPI {
         public long experienceToNextLevel(int level) {
             return ExperienceMath.experienceToNextLevel(level);
         }
+
+        public long vanillaAnvilExperienceCost(int currentLevel, int levelCost) {
+            return ExperienceMath.vanillaAnvilExperienceCost(currentLevel, levelCost);
+        }
+
+        public long apothicAnvilExperienceCost(int levelCost) {
+            return ExperienceMath.apothicAnvilExperienceCost(levelCost);
+        }
+
+        public long apothicEnchantingTableExperienceCost(int level, int slot) {
+            return ExperienceMath.apothicEnchantingTableExperienceCost(level, slot);
+        }
+
+        public long apothicLibraryPointsForLevel(int level) {
+            return ExperienceMath.apothicLibraryPointsForLevel(level);
+        }
     }
 
     /**

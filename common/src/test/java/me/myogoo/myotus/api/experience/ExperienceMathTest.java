@@ -126,5 +126,41 @@ class ExperienceMathTest {
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.consumeExperience(0, 0, 0, -1));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.totalExperienceForLevel(-1));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.levelForTotalExperience(-1));
+        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.vanillaAnvilExperienceCost(-1, 0));
+        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.vanillaAnvilExperienceCost(0, -1));
+        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.apothicAnvilExperienceCost(-1));
+        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.apothicEnchantingTableExperienceCost(-1, 0));
+        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.apothicEnchantingTableExperienceCost(0, -1));
+        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.apothicLibraryPointsForLevel(-1));
+    }
+
+    @Test
+    void computesVanillaAndApothicAnvilCostsSeparately() {
+        assertEquals(ExperienceMath.totalExperienceForLevel(100) - ExperienceMath.totalExperienceForLevel(70),
+                ExperienceMath.vanillaAnvilExperienceCost(100, 30));
+        assertEquals(ExperienceMath.totalExperienceForLevel(30), ExperienceMath.apothicAnvilExperienceCost(30));
+        assertTrue(ExperienceMath.vanillaAnvilExperienceCost(100, 30) > ExperienceMath.apothicAnvilExperienceCost(30));
+    }
+
+    @Test
+    void computesApothicEnchantingTableOfferCosts() {
+        assertEquals(ExperienceMath.experienceToNextLevel(29) - 1,
+                ExperienceMath.apothicEnchantingTableExperienceCost(30, 0));
+        assertEquals(ExperienceMath.experienceToNextLevel(29) + ExperienceMath.experienceToNextLevel(28) - 1,
+                ExperienceMath.apothicEnchantingTableExperienceCost(30, 1));
+        assertEquals(ExperienceMath.experienceToNextLevel(29) + ExperienceMath.experienceToNextLevel(28)
+                        + ExperienceMath.experienceToNextLevel(27) - 1,
+                ExperienceMath.apothicEnchantingTableExperienceCost(30, 2));
+        assertEquals(0, ExperienceMath.apothicEnchantingTableExperienceCost(0, 2));
+    }
+
+    @Test
+    void computesApothicLibraryPointsSeparatelyFromRawXp() {
+        assertEquals(0, ExperienceMath.apothicLibraryPointsForLevel(0));
+        assertEquals(1, ExperienceMath.apothicLibraryPointsForLevel(1));
+        assertEquals(2, ExperienceMath.apothicLibraryPointsForLevel(2));
+        assertEquals(4, ExperienceMath.apothicLibraryPointsForLevel(3));
+        assertEquals(8, ExperienceMath.apothicLibraryPointsForLevel(4));
+        assertThrows(ArithmeticException.class, () -> ExperienceMath.apothicLibraryPointsForLevel(65));
     }
 }
