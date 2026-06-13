@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "ae2.AbstractTerminalPartMixin",
+    "ae2.AEBaseMenuMixin",
     "ae2wtlib.AE2wtlibMixin",
     "ae2.MEStorageMenuMixin",
     "minecraft.AbstractContainerMenuMixin"
