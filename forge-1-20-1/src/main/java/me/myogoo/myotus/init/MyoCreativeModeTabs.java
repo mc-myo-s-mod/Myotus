@@ -22,7 +22,7 @@ public final class MyoCreativeModeTabs {
     public static final RegistryObject<CreativeModeTab> MYOTUS =
             CREATIVE_MODE_TABS.register("myotus", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.myotus"))
-                    .icon(AEItems.ADVANCED_CARD::stack)
+                    .icon(MyoItems.MYOTUS_UPGRADE_CARD.get()::getDefaultInstance)
                     .displayItems((parameters, output) -> CreativeTabManager.INSTANCE.populate(output))
                     .build());
 

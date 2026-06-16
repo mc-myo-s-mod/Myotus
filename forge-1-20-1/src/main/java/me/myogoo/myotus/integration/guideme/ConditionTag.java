@@ -48,6 +48,6 @@ public class ConditionTag implements TagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return Set.of("et:condition");
+        return Set.of("myotus:condition");
     }
 }

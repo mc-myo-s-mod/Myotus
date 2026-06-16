@@ -11,6 +11,8 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public class CustomTabButton extends TabButton {
+    private static final int ICON_X_OFFSET = -2;
+
     @Nullable
     private Blitter blitter;
     @Nullable
@@ -65,14 +67,14 @@ public class CustomTabButton extends TabButton {
             };
 
             if (blitter != null) {
-                blitter.dest(getX() + iconX, getY() + iconY - 1).blit(guiGraphics);
+                blitter.dest(getX() + iconX + ICON_X_OFFSET, getY() + iconY - 1).blit(guiGraphics);
             } else if (stack != null && !stack.isEmpty()) {
                 var pose = guiGraphics.pose();
                 pose.pushPose();
                 pose.translate(0f, -1f, 100);
-                guiGraphics.renderItem(this.stack, getX() + iconX, getY() + iconY);
+                guiGraphics.renderItem(this.stack, getX() + iconX + ICON_X_OFFSET, getY() + iconY);
                 var font = Minecraft.getInstance().font;
-                guiGraphics.renderItemDecorations(font, this.stack, getX() + iconX, getY() + iconY);
+                guiGraphics.renderItemDecorations(font, this.stack, getX() + iconX + ICON_X_OFFSET, getY() + iconY);
                 pose.popPose();
             } else {
                 super.renderWidget(guiGraphics, x, y, partial);
