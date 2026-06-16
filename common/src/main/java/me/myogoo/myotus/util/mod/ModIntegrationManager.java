@@ -202,11 +202,11 @@ public final class ModIntegrationManager {
         if (modInfo == null) {
             return null;
         }
-        if (!ModVersionHelper.isVersionInRange(registration.versionRange(), modInfo.version())) {
-            throw new MyoModVersionMismatchException(modInfo, registration.versionRange());
-        }
         if (!testCustomCondition(registration, modInfo)) {
             return null;
+        }
+        if (!ModVersionHelper.isVersionInRange(registration.versionRange(), modInfo.version())) {
+            throw new MyoModVersionMismatchException(modInfo, registration.versionRange());
         }
 
         return new MyoModDto(registration.annotationClass(), modInfo, sharedAliases,

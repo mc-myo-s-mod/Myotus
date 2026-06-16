@@ -312,6 +312,19 @@ class ModIntegrationManagerTest {
     }
 
     @Test
+    void customConditionFiltersIntegrationBeforeVersionRangeIsChecked() {
+        AnnotationScanner.setAnnotationProvider(() -> Stream.of(
+                myoModAnnotation(ReAvaritiaIntegration.class, ElementType.ANNOTATION_TYPE),
+                myoModAnnotation(AvaritiaNeoIntegration.class, ElementType.ANNOTATION_TYPE)));
+
+        ModIntegrationManager.setModList(modList(Map.of("avaritia",
+                modInfo("avaritia", "avaritia", "AvaritiaNeo", "1.3.0"))));
+
+        assertFalse(ModIntegrationManager.isLoaded("re_avaritia"));
+        assertTrue(ModIntegrationManager.isLoaded("avaritia_neo"));
+    }
+
+    @Test
     void duplicateAliasIsAllowedWhenIntegrationsUseTheSameModId() {
         AnnotationScanner.setAnnotationProvider(() -> Stream.of(
                 myoModAnnotation(FirstDuplicateAliasIntegration.class, ElementType.ANNOTATION_TYPE),
@@ -552,7 +565,8 @@ class ModIntegrationManagerTest {
 
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
-    @MyoMod(value = "avaritia", alias = "re_avaritia", customCondition = ReAvaritiaCondition.class)
+    @MyoMod(value = "avaritia", alias = "re_avaritia", versionRange = "[1.3.9.6,)",
+            customCondition = ReAvaritiaCondition.class)
     private @interface ReAvaritiaIntegration {
     }
 
