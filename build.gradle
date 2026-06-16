@@ -155,6 +155,7 @@ configure(project(':common')) {
 configure(modProjects) {
     def commonJavaSourceDir = rootProject.layout.projectDirectory.dir('common/src/main/java').asFile
     def commonResourcesSourceDir = rootProject.layout.projectDirectory.dir('common/src/main/resources').asFile
+    def loaderResourcesSourceDir = new File(project.projectDir, 'src/main/resources')
     def generatedCommonJavaDir = layout.buildDirectory.dir('generated/sources/myotusCommon/java')
     def generatedCommonResourcesDir = layout.buildDirectory.dir('generated/resources/myotusCommon')
 
@@ -167,6 +168,9 @@ configure(modProjects) {
     def syncMyotusCommonResources = tasks.register('syncMyotusCommonResources', Sync) {
         from commonResourcesSourceDir
         into generatedCommonResourcesDir
+        exclude { details ->
+            !details.directory && new File(loaderResourcesSourceDir, details.relativePath.pathString).exists()
+        }
     }
 
     def generatedCommonJavaSources = files(generatedCommonJavaDir).builtBy(syncMyotusCommonJava)

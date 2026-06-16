@@ -10,4 +10,5 @@
 **/out/
 **/run/
 **/run-*/
+**/src/generated/
 repo/
