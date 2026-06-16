@@ -9,6 +9,7 @@ import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -236,6 +237,21 @@ public final class MyotusAPI {
             return ExperienceMath.FLUID_XP_ID;
         }
 
+        public boolean hasExternalFluidXp() {
+            return BuiltInRegistries.FLUID.keySet().stream()
+                    .filter(id -> !"myotus".equals(id.getNamespace()))
+                    .anyMatch(MyotusAPI::isExperienceFluidId);
+        }
+
+        public List<ExperienceMath.ExperienceSource> availableAnvilSourcePriority() {
+            if (hasExternalFluidXp()) {
+                return ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY;
+            }
+            return List.of(
+                    ExperienceMath.ExperienceSource.PLAYER,
+                    ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT);
+        }
+
         public List<ExperienceMath.ExperienceSource> defaultAnvilSourcePriority() {
             return ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY;
         }
@@ -313,6 +329,11 @@ public final class MyotusAPI {
                 return new KeyBindingButton(label, initialKey, changeListener);
             }
         }
+    }
+
+    private static boolean isExperienceFluidId(ResourceLocation id) {
+        String path = id.getPath();
+        return path.contains("xp") || path.contains("experience");
     }
 
     /**

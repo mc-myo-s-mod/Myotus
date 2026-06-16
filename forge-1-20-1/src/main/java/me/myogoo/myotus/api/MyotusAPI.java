@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.ApiStatus;
 import org.objectweb.asm.Type;
 
@@ -246,6 +247,21 @@ public final class MyotusAPI {
             return ExperienceMath.FLUID_XP_ID;
         }
 
+        public boolean hasExternalFluidXp() {
+            return ForgeRegistries.FLUIDS.getKeys().stream()
+                    .filter(id -> !"myotus".equals(id.getNamespace()))
+                    .anyMatch(MyotusAPI::isExperienceFluidId);
+        }
+
+        public List<ExperienceMath.ExperienceSource> availableAnvilSourcePriority() {
+            if (hasExternalFluidXp()) {
+                return ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY;
+            }
+            return List.of(
+                    ExperienceMath.ExperienceSource.PLAYER,
+                    ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT);
+        }
+
         public List<ExperienceMath.ExperienceSource> defaultAnvilSourcePriority() {
             return ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY;
         }
@@ -323,6 +339,11 @@ public final class MyotusAPI {
                 return new KeyBindingButton(label, initialKey, changeListener);
             }
         }
+    }
+
+    private static boolean isExperienceFluidId(ResourceLocation id) {
+        String path = id.getPath();
+        return path.contains("xp") || path.contains("experience");
     }
 
     /**
