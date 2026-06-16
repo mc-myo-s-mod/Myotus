@@ -121,6 +121,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Generate data
+        run: ./gradlew :${{ steps.vars.outputs.module }}:runData --no-daemon --stacktrace
+
       - name: Build release jar
         run: ./gradlew :${{ steps.vars.outputs.module }}:build --no-daemon --stacktrace
 

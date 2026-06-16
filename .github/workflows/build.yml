@@ -41,6 +41,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Generate data
+        run: ./gradlew :${{ matrix.module }}:runData --no-daemon --stacktrace
+
       - name: Build with Gradle
         run: ./gradlew :${{ matrix.module }}:build --no-daemon --stacktrace
 
