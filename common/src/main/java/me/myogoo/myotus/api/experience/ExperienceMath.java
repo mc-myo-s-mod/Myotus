@@ -36,10 +36,15 @@ public final class ExperienceMath {
     /** Applied Experienced's energy adapter converts one experience point to thirty-two AE. */
     public static final int AE_PER_EXPERIENCE = 32;
 
-    /** Default consumption order for anvil-like UIs: player XP first, then fluid XP, then stored Applied Experienced amount. */
+    /** Consumption order for anvil-like UIs when fluid XP is available. */
     public static final List<ExperienceSource> DEFAULT_ANVIL_SOURCE_PRIORITY = Collections.unmodifiableList(Arrays.asList(
             ExperienceSource.PLAYER,
             ExperienceSource.FLUID_XP,
+            ExperienceSource.APPLIED_EXPERIENCED_AMOUNT));
+
+    /** Consumption order for anvil-like UIs when no fluid XP source is available. */
+    public static final List<ExperienceSource> ANVIL_SOURCE_PRIORITY_WITHOUT_FLUID_XP = Collections.unmodifiableList(Arrays.asList(
+            ExperienceSource.PLAYER,
             ExperienceSource.APPLIED_EXPERIENCED_AMOUNT));
 
     private ExperienceMath() {
@@ -152,6 +157,33 @@ public final class ExperienceMath {
         requireNonNegative(fluidXp, "fluidXp");
         requireNonNegative(appliedExperienceAmount, "appliedExperienceAmount");
         return Math.addExact(Math.addExact(playerExperience, fluidXp), appliedExperienceAmount);
+    }
+
+    /**
+     * Returns the anvil source priority for the caller's available XP pools.
+     *
+     * <p>Fluid XP is included only when the caller reports a positive raw fluid XP amount. This keeps
+     * mod/fluid detection outside the math API and avoids guessing from registry ids.</p>
+     *
+     * @param fluidXp available raw {@code fluid:xp} points
+     * @return immutable source priority for anvil-like consumption
+     */
+    public static List<ExperienceSource> anvilSourcePriority(long fluidXp) {
+        requireNonNegative(fluidXp, "fluidXp");
+        return anvilSourcePriority(fluidXp > 0);
+    }
+
+    /**
+     * Returns the anvil source priority for an explicit fluid XP availability flag.
+     *
+     * @param includeFluidXp whether {@link ExperienceSource#FLUID_XP} should be considered
+     * @return immutable source priority for anvil-like consumption
+     */
+    public static List<ExperienceSource> anvilSourcePriority(boolean includeFluidXp) {
+        if (includeFluidXp) {
+            return DEFAULT_ANVIL_SOURCE_PRIORITY;
+        }
+        return ANVIL_SOURCE_PRIORITY_WITHOUT_FLUID_XP;
     }
 
     /**

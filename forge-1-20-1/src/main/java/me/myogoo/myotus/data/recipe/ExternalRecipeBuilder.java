@@ -4,9 +4,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import me.myogoo.myotus.api.annotation.MyoMod;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.lang.annotation.Annotation;
 
@@ -101,7 +102,7 @@ public final class ExternalRecipeBuilder {
     }
 
     public static String itemId(ItemLike item) {
-        return BuiltInRegistries.ITEM.getKey(item.asItem()).toString();
+        return ForgeRegistries.ITEMS.getKey(item.asItem()).toString();
     }
 
     public static JsonObject tag(String tag) {
@@ -152,6 +153,14 @@ public final class ExternalRecipeBuilder {
         return new CountedIngredient(ingredient, amount);
     }
 
+    public static RecipeJsonBuilder shaped(String type, String result, int count) {
+        return new RecipeJsonBuilder(type, result, count);
+    }
+
+    public static RecipeJsonBuilder shapeless(String type, String result, int count) {
+        return new RecipeJsonBuilder(type, result, count).ingredients();
+    }
+
     private static JsonObject condition(String type, String key, String value) {
         JsonObject json = new JsonObject();
         json.addProperty("type", type);
@@ -165,6 +174,61 @@ public final class ExternalRecipeBuilder {
             json.addProperty("amount", amount);
             json.add("ingredient", ingredient);
             return json;
+        }
+    }
+
+    public static final class RecipeJsonBuilder {
+        private final JsonObject recipe = new JsonObject();
+
+        private RecipeJsonBuilder(String type, String result, int count) {
+            recipe.addProperty("type", type);
+            recipe.add("result", stack(result, count));
+        }
+
+        public RecipeJsonBuilder conditions(JsonArray conditions) {
+            recipe.add("conditions", conditions);
+            return this;
+        }
+
+        public RecipeJsonBuilder pattern(String row) {
+            JsonArray pattern = array("pattern");
+            pattern.add(row);
+            return this;
+        }
+
+        public RecipeJsonBuilder define(char key, JsonObject ingredient) {
+            JsonObject keyJson = object("key");
+            keyJson.add(String.valueOf(key), ingredient);
+            return this;
+        }
+
+        public RecipeJsonBuilder requires(JsonElement ingredient) {
+            JsonArray ingredients = array("ingredients");
+            ingredients.add(ingredient);
+            return this;
+        }
+
+        public void save(JsonRecipeProvider.JsonRecipeOutput output, ResourceLocation id) {
+            output.accept(id, recipe);
+        }
+
+        private RecipeJsonBuilder ingredients() {
+            array("ingredients");
+            return this;
+        }
+
+        private JsonArray array(String key) {
+            if (!recipe.has(key)) {
+                recipe.add(key, new JsonArray());
+            }
+            return recipe.getAsJsonArray(key);
+        }
+
+        private JsonObject object(String key) {
+            if (!recipe.has(key)) {
+                recipe.add(key, new JsonObject());
+            }
+            return recipe.getAsJsonObject(key);
         }
     }
 

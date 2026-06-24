@@ -26,18 +26,12 @@ final class MyoCommandPermissions {
         if (permission.customChecker() != permission.defaultChecker()) {
             return checkCustomPermission(source, permission.customChecker());
         }
-        if (permission.nodes().length > 0) {
-            return checkNamedPermissions(source, permission.nodes());
-        }
         return true;
     }
 
     static boolean validate(PermissionInfo permission, String owner) {
         int count = 0;
         if (permission.level() != null && permission.level() != MyoPermissionLevel.NONE) {
-            count++;
-        }
-        if (permission.nodes().length > 0) {
             count++;
         }
         if (permission.customChecker() != permission.defaultChecker()) {
@@ -62,35 +56,6 @@ final class MyoCommandPermissions {
             return Boolean.TRUE.equals(check.invoke(checker, source));
         } catch (Exception e) {
             MyoLogger.error("Failed to evaluate custom Myotus permission checker {}", checkerClass.getName(), e);
-            return false;
-        }
-    }
-
-    private static boolean checkNamedPermissions(CommandSourceStack source, String[] nodes) {
-        for (String node : nodes) {
-            if (checkFabricPermission(source, node, true) || checkFabricPermission(source, node, 2)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean checkFabricPermission(CommandSourceStack source, String node, Object fallback) {
-        Class<?> fallbackType = fallback instanceof Boolean ? boolean.class : int.class;
-        return invokeFabricPermission(source, node, fallback, fallbackType, CommandSourceStack.class)
-                || invokeFabricPermission(source, node, fallback, fallbackType, Object.class);
-    }
-
-    private static boolean invokeFabricPermission(CommandSourceStack source,
-                                                  String node,
-                                                  Object fallback,
-                                                  Class<?> fallbackType,
-                                                  Class<?> sourceType) {
-        try {
-            Class<?> permissionsClass = Class.forName("me.lucko.fabric.api.permissions.v0.Permissions");
-            Method check = permissionsClass.getMethod("check", sourceType, String.class, fallbackType);
-            return Boolean.TRUE.equals(check.invoke(null, source, node, fallback));
-        } catch (Exception ignored) {
             return false;
         }
     }

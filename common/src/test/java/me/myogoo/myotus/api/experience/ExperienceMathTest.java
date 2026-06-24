@@ -66,6 +66,14 @@ class ExperienceMathTest {
     }
 
     @Test
+    void choosesAnvilPriorityFromFluidAvailability() {
+        assertEquals(List.of(PLAYER, APPLIED_EXPERIENCED_AMOUNT), ExperienceMath.anvilSourcePriority(0));
+        assertEquals(List.of(PLAYER, FLUID_XP, APPLIED_EXPERIENCED_AMOUNT), ExperienceMath.anvilSourcePriority(1));
+        assertEquals(List.of(PLAYER, APPLIED_EXPERIENCED_AMOUNT), ExperienceMath.anvilSourcePriority(false));
+        assertEquals(List.of(PLAYER, FLUID_XP, APPLIED_EXPERIENCED_AMOUNT), ExperienceMath.anvilSourcePriority(true));
+    }
+
+    @Test
     void consumesExperienceUsingDefaultAnvilPriority() {
         var plan = ExperienceMath.consumeExperience(75, 30, 40, 50);
 

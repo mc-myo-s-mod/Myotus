@@ -51,8 +51,8 @@ final class MyoCommandMetadata {
     static PermissionInfo getPermissionInfo(AnnotatedElement element) {
         MyoPermission permission = element.getAnnotation(MyoPermission.class);
         if (permission != null) {
-            return new PermissionInfo(permission.value(), permission.permission(),
-                    permission.custom(), Void.class, permission.propagate());
+            return new PermissionInfo(permission.permission(), permission.custom(), Void.class,
+                    permission.propagate());
         }
         return null;
     }
@@ -70,8 +70,7 @@ final class MyoCommandMetadata {
     record AliasInfo(String[] values) {
     }
 
-    record PermissionInfo(String[] nodes,
-                          MyoPermissionLevel level,
+    record PermissionInfo(MyoPermissionLevel level,
                           Class<?> customChecker,
                           Class<?> defaultChecker,
                           boolean propagate) {

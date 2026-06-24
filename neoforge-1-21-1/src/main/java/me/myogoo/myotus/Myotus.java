@@ -3,8 +3,8 @@ package me.myogoo.myotus;
 import com.mojang.logging.LogUtils;
 
 import me.myogoo.myotus.api.MyotusAPI;
+import me.myogoo.myotus.data.MyotusDataGenerators;
 import me.myogoo.myotus.impl.MyotusAPIImpl;
-import me.myogoo.myotus.gametest.MyoExperienceGameTests;
 import me.myogoo.myotus.init.MyoBlocks;
 import me.myogoo.myotus.init.MyoCondition;
 import me.myogoo.myotus.init.MyoConfig;
@@ -15,7 +15,6 @@ import me.myogoo.myotus.platform.mod.NeoForgeModList;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import me.myogoo.myotus.util.mod.MyoModVersionMismatchException;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
-import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -52,10 +51,8 @@ public class Myotus {
         MyoCreativeModeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         MyoBlocks.BLOCKS.register(modEventBus);
         MyoItems.ITEMS.register(modEventBus);
+        modEventBus.addListener(MyotusDataGenerators::onGatherData);
         MyoConfig.initialize(modContainer);
-        if (DEV_MODE) {
-            GameTestRegistry.register(MyoExperienceGameTests.class);
-        }
     }
 
     public static ResourceLocation makeId(String path) {

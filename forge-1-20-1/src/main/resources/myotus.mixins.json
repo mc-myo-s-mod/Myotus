@@ -8,6 +8,7 @@
     "ae2.AbstractTerminalPartMixin",
     "ae2.AEBaseMenuMixin",
     "ae2wtlib.AE2wtlibMixin",
+    "curios.CuriosContainerMixin",
     "ae2.MEStorageMenuMixin",
     "minecraft.AbstractContainerMenuMixin"
   ],

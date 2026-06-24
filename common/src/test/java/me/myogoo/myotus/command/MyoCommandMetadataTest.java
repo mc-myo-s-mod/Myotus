@@ -25,7 +25,6 @@ class MyoCommandMetadataTest {
         assertEquals("root", command.value());
         assertEquals(void.class, command.parent());
         assertArrayEquals(new String[]{"r", "rootAlias"}, alias.values());
-        assertArrayEquals(new String[]{"myotus.root"}, permission.nodes());
         assertEquals(MyoPermissionLevel.ADMIN, permission.level());
         assertEquals(CustomChecker.class, permission.customChecker());
         assertEquals(Void.class, permission.defaultChecker());
@@ -43,7 +42,6 @@ class MyoCommandMetadataTest {
         assertEquals("child run", execute.path());
         assertEquals("amount", MyoCommandMetadata.getArgumentName(parameters[0]));
         assertNull(MyoCommandMetadata.getArgumentName(parameters[1]));
-        assertArrayEquals(new String[0], permission.nodes());
         assertEquals(MyoPermissionLevel.OWNER, permission.level());
         assertFalse(permission.propagate());
     }
@@ -62,8 +60,7 @@ class MyoCommandMetadataTest {
 
     @MyoDebug
     @MyoAlias({"r", "rootAlias"})
-    @MyoPermission(value = "myotus.root", permission = MyoPermissionLevel.ADMIN,
-            custom = CustomChecker.class, propagate = true)
+    @MyoPermission(permission = MyoPermissionLevel.ADMIN, custom = CustomChecker.class, propagate = true)
     @MyoCommand("root")
     private static final class CommandWithMetadata {
         @MyoExecute("child run")

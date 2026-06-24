@@ -37,11 +37,17 @@ public final class MyoCircuitEtcherRecipeBuilder {
     }
 
     public MyoCircuitEtcherRecipeBuilder input_a(ItemLike item, int count) {
-        return input_a(Ingredient.of(item), count);
+        this.json.add("input_a", countedItem(item, count));
+        return this;
     }
 
     public MyoCircuitEtcherRecipeBuilder input_a(String item, int count) {
         this.json.add("input_a", countedItem(item, count));
+        return this;
+    }
+
+    public MyoCircuitEtcherRecipeBuilder input_aTag(String tag, int count) {
+        this.json.add("input_a", countedTag(tag, count));
         return this;
     }
 
@@ -56,11 +62,17 @@ public final class MyoCircuitEtcherRecipeBuilder {
     }
 
     public MyoCircuitEtcherRecipeBuilder input_c(ItemLike item, int count) {
-        return input_c(Ingredient.of(item), count);
+        this.json.add("input_c", countedItem(item, count));
+        return this;
     }
 
     public MyoCircuitEtcherRecipeBuilder input_c(String item, int count) {
         this.json.add("input_c", countedItem(item, count));
+        return this;
+    }
+
+    public MyoCircuitEtcherRecipeBuilder input_cTag(String tag, int count) {
+        this.json.add("input_c", countedTag(tag, count));
         return this;
     }
 
@@ -78,14 +90,24 @@ public final class MyoCircuitEtcherRecipeBuilder {
     }
 
     private static JsonObject countedIngredient(Ingredient ingredient, int count) {
-        return ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(ingredient), count).toCountJson();
+        JsonObject json = ExternalRecipeBuilder.ingredient(ingredient).getAsJsonObject().deepCopy();
+        json.addProperty("count", count);
+        return json;
     }
 
     private static JsonObject countedItem(String item, int count) {
-        return ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(item), count).toCountJson();
+        JsonObject json = ExternalRecipeBuilder.item(item);
+        json.addProperty("count", count);
+        return json;
+    }
+
+    private static JsonObject countedItem(ItemLike item, int count) {
+        return countedItem(ExternalRecipeBuilder.itemId(item), count);
     }
 
     private static JsonObject countedTag(String tag, int count) {
-        return ExternalRecipeBuilder.counted(ExternalRecipeBuilder.tag(tag), count).toCountJson();
+        JsonObject json = ExternalRecipeBuilder.tag(tag);
+        json.addProperty("count", count);
+        return json;
     }
 }

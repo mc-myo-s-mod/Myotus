@@ -72,6 +72,7 @@ dependencies {
     runtimeOnly "org.appliedenergistics:guideme:${Guideme_version}"
 
     compileOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
+    compileOnly "top.theillusivec4.curios:curios-neoforge:${project.Curios_version}"
     if (project.enable_ae2wt == "true") {
         runtimeOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
         runtimeOnly "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"

@@ -10,8 +10,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MyoPermission {
-    String[] value() default {};
-
     MyoPermissionLevel permission() default MyoPermissionLevel.NONE;
 
     Class<?> custom() default Void.class;

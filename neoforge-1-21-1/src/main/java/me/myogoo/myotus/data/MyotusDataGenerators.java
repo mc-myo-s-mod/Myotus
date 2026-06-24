@@ -1,16 +1,13 @@
 package me.myogoo.myotus.data;
 
-import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.data.recipe.ae2cs.AE2CrystalScienceRecipes;
 import me.myogoo.myotus.data.recipe.ae2lt.AE2LightningTechRecipes;
 import me.myogoo.myotus.data.recipe.advancedae.AdvancedAERecipes;
 import me.myogoo.myotus.data.recipe.crafting.ExternalCraftingRecipes;
 import me.myogoo.myotus.data.recipe.extendedae.ExtendedAERecipes;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
-@EventBusSubscriber(modid = Myotus.MODID, bus = EventBusSubscriber.Bus.MOD)
 public final class MyotusDataGenerators {
     private MyotusDataGenerators() {
     }

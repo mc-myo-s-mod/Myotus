@@ -38,7 +38,7 @@ public final class AE2CrystalScienceRecipes extends JsonRecipeProvider {
                 .energy(57_600)
                 .input_a(MyoItems.CHARGED_ENDER_PEARL_BLOCK, 1)
                 .input_b("c:storage_blocks/redstone", 1)
-                .input_c("c:storage_blocks/silicon", 1)
+                .input_cTag("c:storage_blocks/silicon", 1)
                 .result(MyoItems.COMPAT_PROCESSOR, 9)
                 .save(output);
 

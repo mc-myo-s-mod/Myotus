@@ -14,7 +14,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.ApiStatus;
 import org.objectweb.asm.Type;
 
@@ -247,19 +246,12 @@ public final class MyotusAPI {
             return ExperienceMath.FLUID_XP_ID;
         }
 
-        public boolean hasExternalFluidXp() {
-            return ForgeRegistries.FLUIDS.getKeys().stream()
-                    .filter(id -> !"myotus".equals(id.getNamespace()))
-                    .anyMatch(MyotusAPI::isExperienceFluidId);
+        public List<ExperienceMath.ExperienceSource> anvilSourcePriority(long fluidXp) {
+            return ExperienceMath.anvilSourcePriority(fluidXp);
         }
 
-        public List<ExperienceMath.ExperienceSource> availableAnvilSourcePriority() {
-            if (hasExternalFluidXp()) {
-                return ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY;
-            }
-            return List.of(
-                    ExperienceMath.ExperienceSource.PLAYER,
-                    ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT);
+        public List<ExperienceMath.ExperienceSource> anvilSourcePriority(boolean includeFluidXp) {
+            return ExperienceMath.anvilSourcePriority(includeFluidXp);
         }
 
         public List<ExperienceMath.ExperienceSource> defaultAnvilSourcePriority() {
@@ -341,10 +333,6 @@ public final class MyotusAPI {
         }
     }
 
-    private static boolean isExperienceFluidId(ResourceLocation id) {
-        String path = id.getPath();
-        return path.contains("xp") || path.contains("experience");
-    }
 
     /**
      * Internal bootstrap hook used by Myotus to install the API implementation.

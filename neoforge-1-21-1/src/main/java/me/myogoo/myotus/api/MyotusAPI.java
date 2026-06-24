@@ -9,7 +9,6 @@ import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.minecraft.client.gui.components.AbstractButton;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -237,19 +236,12 @@ public final class MyotusAPI {
             return ExperienceMath.FLUID_XP_ID;
         }
 
-        public boolean hasExternalFluidXp() {
-            return BuiltInRegistries.FLUID.keySet().stream()
-                    .filter(id -> !"myotus".equals(id.getNamespace()))
-                    .anyMatch(MyotusAPI::isExperienceFluidId);
+        public List<ExperienceMath.ExperienceSource> anvilSourcePriority(long fluidXp) {
+            return ExperienceMath.anvilSourcePriority(fluidXp);
         }
 
-        public List<ExperienceMath.ExperienceSource> availableAnvilSourcePriority() {
-            if (hasExternalFluidXp()) {
-                return ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY;
-            }
-            return List.of(
-                    ExperienceMath.ExperienceSource.PLAYER,
-                    ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT);
+        public List<ExperienceMath.ExperienceSource> anvilSourcePriority(boolean includeFluidXp) {
+            return ExperienceMath.anvilSourcePriority(includeFluidXp);
         }
 
         public List<ExperienceMath.ExperienceSource> defaultAnvilSourcePriority() {
@@ -331,10 +323,6 @@ public final class MyotusAPI {
         }
     }
 
-    private static boolean isExperienceFluidId(ResourceLocation id) {
-        String path = id.getPath();
-        return path.contains("xp") || path.contains("experience");
-    }
 
     /**
      * Internal bootstrap hook used by Myotus to install the API implementation.
