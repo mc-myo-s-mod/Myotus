@@ -25,7 +25,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluid;
-import org.jetbrains.annotations.ApiStatus;
 import org.objectweb.asm.Type;
 
 import java.lang.annotation.Annotation;
@@ -414,7 +413,7 @@ public final class MyotusAPI {
                 experienceFluidTag("forge", "experience_fluid"));
 
         private static TagKey<Fluid> experienceFluidTag(String namespace, String path) {
-            return TagKey.create(Registries.FLUID, new ResourceLocation(namespace, path));
+            return TagKey.create(Registries.FLUID, ResourceLocation.fromNamespaceAndPath(namespace, path));
         }
     }
 
@@ -447,7 +446,6 @@ public final class MyotusAPI {
      *
      * @param api the API implementation
      */
-    @ApiStatus.Internal
     public static void _setInstance(IMyotusAPI api) {
         if (instance != null) {
             throw new IllegalStateException("MyotusAPI instance is already set!");
