@@ -1,5 +1,13 @@
 package me.myogoo.myotus.api;
 
+import appeng.api.config.Actionable;
+import appeng.api.networking.energy.IEnergySource;
+import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
+import appeng.api.storage.MEStorage;
+import appeng.api.storage.StorageHelper;
 import appeng.menu.me.common.MEStorageMenu;
 import com.mojang.blaze3d.platform.InputConstants;
 import me.myogoo.myotus.dto.MyoModDto;
@@ -9,10 +17,13 @@ import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluid;
 import org.jetbrains.annotations.ApiStatus;
 import org.objectweb.asm.Type;
 
@@ -297,6 +308,103 @@ public final class MyotusAPI {
 
         public long apothicLibraryPointsForLevel(int level) {
             return ExperienceMath.apothicLibraryPointsForLevel(level);
+        }
+
+        public boolean hasNetworkExperienceSource(MEStorage storage, ExperienceMath.ExperienceSource source) {
+            if (source == ExperienceMath.ExperienceSource.PLAYER) {
+                return true;
+            }
+            if (storage == null) {
+                return false;
+            }
+
+            KeyCounter availableStacks = storage.getAvailableStacks();
+            for (var entry : availableStacks) {
+                if (entry.getLongValue() > 0 && matchesExperienceSource(entry.getKey(), source)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public long availableStorageExperience(MEStorage storage, ExperienceMath.ExperienceSource source) {
+            if (storage == null) {
+                return 0;
+            }
+            long experience = 0;
+            KeyCounter availableStacks = storage.getAvailableStacks();
+            for (var entry : availableStacks) {
+                if (matchesExperienceSource(entry.getKey(), source)) {
+                    experience = Math.addExact(experience, entry.getLongValue());
+                }
+            }
+            return experience;
+        }
+
+        public boolean canExtractStorageExperience(IEnergySource energySource, MEStorage storage,
+                IActionSource actionSource, long amount, ExperienceMath.ExperienceSource source) {
+            return amount <= 0 || extractStorageExperience(energySource, storage, actionSource, amount, source,
+                    Actionable.SIMULATE) == amount;
+        }
+
+        public long extractStorageExperience(IEnergySource energySource, MEStorage storage, IActionSource actionSource,
+                long amount, ExperienceMath.ExperienceSource source, Actionable actionable) {
+            if (amount <= 0 || storage == null) {
+                return 0;
+            }
+            Objects.requireNonNull(energySource, "energySource");
+            Objects.requireNonNull(actionSource, "actionSource");
+            Objects.requireNonNull(source, "source");
+            Objects.requireNonNull(actionable, "actionable");
+
+            long extracted = 0;
+            KeyCounter availableStacks = storage.getAvailableStacks();
+            for (var entry : availableStacks) {
+                AEKey key = entry.getKey();
+                if (!matchesExperienceSource(key, source)) {
+                    continue;
+                }
+                long remaining = amount - extracted;
+                if (remaining <= 0) {
+                    break;
+                }
+                long toExtract = Math.min(remaining, entry.getLongValue());
+                extracted += StorageHelper.poweredExtraction(energySource, storage, key, toExtract, actionSource,
+                        actionable);
+            }
+            return extracted;
+        }
+
+        public boolean matchesExperienceSource(AEKey key, ExperienceMath.ExperienceSource source) {
+            Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(source, "source");
+            String keyId = key.getId().toString();
+            return switch (source) {
+                case FLUID_XP -> ExperienceMath.FLUID_XP_ID.equals(keyId) || isExperienceFluid(key);
+                case APPLIED_EXPERIENCED_AMOUNT -> ExperienceMath.APPLIED_EXPERIENCED_AE_KEY_ID.equals(keyId);
+                case PLAYER -> false;
+            };
+        }
+
+        public boolean isExperienceFluid(AEKey key) {
+            if (!(key instanceof AEFluidKey fluidKey)) {
+                return false;
+            }
+            return EXPERIENCE_FLUID_TAGS.stream().anyMatch(fluidKey::isTagged);
+        }
+
+        private static final List<TagKey<Fluid>> EXPERIENCE_FLUID_TAGS = List.of(
+                experienceFluidTag("c", "experience"),
+                experienceFluidTag("c", "fluid_xp"),
+                experienceFluidTag("c", "fluid_experience"),
+                experienceFluidTag("c", "experience_fluid"),
+                experienceFluidTag("forge", "experience"),
+                experienceFluidTag("forge", "fluid_xp"),
+                experienceFluidTag("forge", "fluid_experience"),
+                experienceFluidTag("forge", "experience_fluid"));
+
+        private static TagKey<Fluid> experienceFluidTag(String namespace, String path) {
+            return TagKey.create(Registries.FLUID, ResourceLocation.fromNamespaceAndPath(namespace, path));
         }
     }
 
