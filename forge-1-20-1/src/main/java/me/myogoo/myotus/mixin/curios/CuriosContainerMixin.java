@@ -6,6 +6,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
@@ -90,7 +91,7 @@ public abstract class CuriosContainerMixin extends AbstractContainerMenu {
 
     @Unique
     private static boolean myotus$isWirelessTerminal(ItemStack stack) {
-        ResourceLocation itemId = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+        ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(stack.getItem());
         return AE2_WIRELESS_CRAFTING_TERMINAL.equals(itemId)
                 || AE2WTLIB_WIRELESS_PATTERN_ENCODING_TERMINAL.equals(itemId)
                 || AE2WTLIB_WIRELESS_PATTERN_ACCESS_TERMINAL.equals(itemId)

@@ -10,6 +10,7 @@ import me.myogoo.myotus.util.MyoLogger;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationTypes;
 import me.myogoo.myotus.util.reflect.SafeClass;
+import org.objectweb.asm.Type;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -65,7 +66,7 @@ public final class ModIntegrationManager {
                 .anyMatch(active -> active.isSameRegistration(mod));
     }
 
-    public static boolean isLoaded(org.objectweb.asm.Type annotationType) {
+    public static boolean isLoaded(Type annotationType) {
         Class<?> annotationClass = SafeClass.forType(annotationType);
         if (annotationClass == null || !annotationClass.isAnnotation()) {
             return false;

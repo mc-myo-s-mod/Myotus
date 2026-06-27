@@ -2,6 +2,7 @@ package me.myogoo.myotus.client.gui.widgets.button;
 
 import appeng.client.gui.Icon;
 import appeng.client.gui.widgets.IconButton;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 
@@ -71,7 +72,7 @@ public class MyoCycleOverlayButton extends IconButton {
             return false;
         }
 
-        this.playDownSound(net.minecraft.client.Minecraft.getInstance().getSoundManager());
+        this.playDownSound(Minecraft.getInstance().getSoundManager());
         clickAction.run();
         return true;
     }

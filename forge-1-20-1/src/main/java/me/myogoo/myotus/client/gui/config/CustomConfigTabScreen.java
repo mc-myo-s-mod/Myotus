@@ -1,7 +1,9 @@
 package me.myogoo.myotus.client.gui.config;
 
+import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.AESubScreen;
 import appeng.client.gui.Icon;
+import appeng.client.gui.WidgetContainer;
 import appeng.client.gui.me.common.MEStorageScreen;
 import me.myogoo.myotus.api.config.MyoConfigTabScreen;
 import appeng.client.gui.widgets.TabButton;
@@ -134,7 +136,7 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
     }
 
     @Override
-    public void buildTab(appeng.client.gui.WidgetContainer widgets, appeng.client.gui.AEBaseScreen<?> screen) {
+    public void buildTab(WidgetContainer widgets, AEBaseScreen<?> screen) {
         // This is the parent container for other widgets
     }
 

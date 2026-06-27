@@ -9,10 +9,13 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.objectweb.asm.Type;
 
+import static me.myogoo.myotus.Myotus.DEV_MODE;
+import static me.myogoo.myotus.Myotus.MODID;
+
 import java.util.ArrayList;
 import java.util.List;
 
-@EventBusSubscriber(modid = me.myogoo.myotus.Myotus.MODID)
+@EventBusSubscriber(modid = MODID)
 public class MyotusCommand {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
@@ -30,6 +33,6 @@ public class MyotusCommand {
             }
         }
 
-        MyoCommandRegistrar.registerAll(event.getDispatcher(), commandClasses, me.myogoo.myotus.Myotus.DEV_MODE);
+        MyoCommandRegistrar.registerAll(event.getDispatcher(), commandClasses, DEV_MODE);
     }
 }

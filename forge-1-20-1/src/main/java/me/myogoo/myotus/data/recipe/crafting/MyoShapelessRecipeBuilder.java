@@ -6,6 +6,7 @@ import me.myogoo.myotus.data.recipe.ExternalRecipeBuilder;
 import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
@@ -14,7 +15,7 @@ import net.minecraft.world.level.ItemLike;
 import java.lang.annotation.Annotation;
 import java.util.function.Consumer;
 
-public final class MyoShapelessRecipeBuilder extends net.minecraft.data.recipes.ShapelessRecipeBuilder {
+public final class MyoShapelessRecipeBuilder extends ShapelessRecipeBuilder {
     private JsonArray conditions;
 
     private MyoShapelessRecipeBuilder(RecipeCategory category, ItemLike result, int count) {

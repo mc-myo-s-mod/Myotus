@@ -110,7 +110,7 @@ class AnnotationScannerTest {
 
     @Test
     void scannedAnnotationExposesClassNameFromAsmType() {
-        assertEquals("java.lang.String", FIRST_ON_STRING.className());
+        assertEquals(String.class.getName(), FIRST_ON_STRING.className());
     }
 
     @Test

@@ -8,8 +8,6 @@ import java.util.Set;
 import me.myogoo.myotus.util.reflect.SafeClass;
 
 public final class AnnotationTypes {
-    private static final String JAVA_ANNOTATION_PACKAGE = "java.lang.annotation.";
-
     private AnnotationTypes() {
     }
 
@@ -57,7 +55,7 @@ public final class AnnotationTypes {
 
         for (Annotation annotation : actual.getAnnotations()) {
             Class<? extends Annotation> metaType = annotation.annotationType();
-            if (metaType.getName().startsWith(JAVA_ANNOTATION_PACKAGE)) {
+            if (metaType.getPackageName().equals(Annotation.class.getPackageName())) {
                 continue;
             }
             if (matches(metaType, expected, visited)) {

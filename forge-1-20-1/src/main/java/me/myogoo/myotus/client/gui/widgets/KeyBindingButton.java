@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarratedElementType;
@@ -342,7 +343,7 @@ public class KeyBindingButton extends AbstractButton implements ITooltip {
     /**
      * 키 박스를 그리고 다음 X 위치를 반환합니다.
      */
-    private int drawKeyBox(GuiGraphics guiGraphics, net.minecraft.client.gui.Font font,
+    private int drawKeyBox(GuiGraphics guiGraphics, Font font,
             int x, int y, String keyName, int bgColor, int borderColor, int textColor) {
         int textWidth = font.width(keyName);
         int boxWidth = textWidth + KEY_BOX_PADDING * 2;

@@ -1,5 +1,6 @@
 package me.myogoo.myotus.api.datagen;
 
+import me.myogoo.myotus.api.annotation.MyoMod;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -13,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
  * Myotus mod integration is active.
  *
  * <p>This condition is serialized with the {@code active_mod} field. The value
- * may be the integration mod ID, {@link me.myogoo.myotus.api.annotation.MyoMod#alias()},
+ * may be the integration mod ID, {@link MyoMod#alias()},
  * namespace, or display name.</p>
  *
  * <p>Example JSON:</p>

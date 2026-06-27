@@ -1,5 +1,6 @@
 package me.myogoo.myotus.api.datagen;
 
+import me.myogoo.myotus.api.annotation.MyoMod;
 import com.google.gson.JsonObject;
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.util.MyoLogger;
@@ -14,7 +15,7 @@ import net.minecraftforge.common.crafting.conditions.IConditionSerializer;
  * Myotus mod integration is active.
  *
  * <p>This condition is serialized with the {@code active_mod} field. The value
- * may be the integration mod ID, {@link me.myogoo.myotus.api.annotation.MyoMod#alias()},
+ * may be the integration mod ID, {@link MyoMod#alias()},
  * namespace, or display name.</p>
  *
  * <p>Example JSON:</p>
