@@ -5,6 +5,8 @@ import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.VersionRange;
 
+import java.util.Collection;
+
 public class ModVersionHelper {
     public static boolean isVersionInRange(String versionRange, ArtifactVersion actualVersion) {
         if (versionRange == null || versionRange.equals("*") || versionRange.isEmpty()) {
@@ -42,5 +44,33 @@ public class ModVersionHelper {
         }
 
         return new DefaultArtifactVersion("0.0.0");
+    }
+
+    public static String intersectVersionRanges(Collection<String> versionRanges) {
+        if (versionRanges == null || versionRanges.isEmpty()) {
+            return "*";
+        }
+
+        VersionRange merged = null;
+        for (String versionRange : versionRanges) {
+            if (isUnbounded(versionRange)) {
+                continue;
+            }
+
+            VersionRange range;
+            try {
+                range = VersionRange.createFromVersionSpec(versionRange);
+            } catch (InvalidVersionSpecificationException e) {
+                return versionRange;
+            }
+
+            merged = merged == null ? range : merged.restrict(range);
+        }
+
+        return merged == null ? "*" : merged.toString();
+    }
+
+    private static boolean isUnbounded(String versionRange) {
+        return versionRange == null || versionRange.isBlank() || versionRange.equals("*");
     }
 }

@@ -277,7 +277,7 @@ class ModIntegrationManagerTest {
     }
 
     @Test
-    void onlyModeUsesFirstOnlyIntegrationAndKeepsExtendedIntegrations() {
+    void sameModIdUnconditionalIntegrationsAreMergedAndAllAnnotationClassesLoad() {
         AnnotationScanner.setAnnotationProvider(() -> Stream.of(
                 myoModAnnotation(FirstIntegration.class, ElementType.ANNOTATION_TYPE),
                 myoModAnnotation(SecondFirstIntegration.class, ElementType.ANNOTATION_TYPE),
@@ -286,8 +286,31 @@ class ModIntegrationManagerTest {
         ModIntegrationManager.setModList(modList("first"));
 
         assertTrue(ModIntegrationManager.isLoaded(FirstIntegration.class));
-        assertFalse(ModIntegrationManager.isLoaded(SecondFirstIntegration.class));
+        assertTrue(ModIntegrationManager.isLoaded(SecondFirstIntegration.class));
         assertTrue(ModIntegrationManager.isLoaded(FirstExtendedIntegration.class));
+    }
+
+    @Test
+    void sameModIdUnconditionalIntegrationsMergeAliasesAndIntersectVersionRanges() {
+        AnnotationScanner.setAnnotationProvider(() -> Stream.of(
+                myoModAnnotation(FirstRangeAliasIntegration.class, ElementType.ANNOTATION_TYPE),
+                myoModAnnotation(SecondRangeAliasIntegration.class, ElementType.ANNOTATION_TYPE)));
+
+        ModIntegrationManager.setModList(modList(Map.of("merged_range_mod",
+                modInfo("merged_range_mod", "1.1.0"))));
+
+        assertTrue(ModIntegrationManager.isLoaded(FirstRangeAliasIntegration.class));
+        assertTrue(ModIntegrationManager.isLoaded(SecondRangeAliasIntegration.class));
+        assertTrue(ModIntegrationManager.isLoaded("extended"));
+        assertTrue(ModIntegrationManager.isLoaded("crafting"));
+
+        MyoModDto activeMod = ModIntegrationManager.get("extended");
+        assertNotNull(activeMod);
+        assertEquals("[1.0.0,1.2.0]", activeMod.getVersionRange());
+        assertTrue(activeMod.getAliases().contains("extended"));
+        assertTrue(activeMod.getAliases().contains("crafting"));
+        assertNull(ModIntegrationManager.getClass("extended"));
+        assertNull(ModIntegrationManager.getClass("crafting"));
     }
 
     @Test
@@ -334,7 +357,9 @@ class ModIntegrationManagerTest {
 
         assertTrue(ModIntegrationManager.isRegistered("same_alias"));
         assertTrue(ModIntegrationManager.isLoaded("same_alias"));
-        assertSame(FirstDuplicateAliasIntegration.class, ModIntegrationManager.getClass("same_alias"));
+        assertTrue(ModIntegrationManager.isLoaded(FirstDuplicateAliasIntegration.class));
+        assertTrue(ModIntegrationManager.isLoaded(SecondDuplicateAliasIntegration.class));
+        assertNull(ModIntegrationManager.getClass("same_alias"));
     }
 
     @Test
@@ -376,17 +401,19 @@ class ModIntegrationManagerTest {
     }
 
     @Test
-    void firstOnlyIntegrationOwnsAliasesFromLaterOnlyIntegrationsForTheSameModId() {
+    void sameModIdDefaultIntegrationsMergeAliasesAndMakeAliasClassLookupAmbiguous() {
         AnnotationScanner.setAnnotationProvider(() -> Stream.of(
-                myoModAnnotation(FirstAliasOnlyIntegration.class, ElementType.ANNOTATION_TYPE),
-                myoModAnnotation(SecondAliasOnlyIntegration.class, ElementType.ANNOTATION_TYPE)));
+                myoModAnnotation(FirstAliasDefaultIntegration.class, ElementType.ANNOTATION_TYPE),
+                myoModAnnotation(SecondAliasDefaultIntegration.class, ElementType.ANNOTATION_TYPE)));
 
-        ModIntegrationManager.setModList(modList("only_alias_mod"));
+        ModIntegrationManager.setModList(modList("default_alias_mod"));
 
-        assertTrue(ModIntegrationManager.isLoaded("first_only_alias"));
-        assertTrue(ModIntegrationManager.isLoaded("second_only_alias"));
-        assertSame(FirstAliasOnlyIntegration.class, ModIntegrationManager.getClass("first_only_alias"));
-        assertSame(FirstAliasOnlyIntegration.class, ModIntegrationManager.getClass("second_only_alias"));
+        assertTrue(ModIntegrationManager.isLoaded("first_default_alias"));
+        assertTrue(ModIntegrationManager.isLoaded("second_default_alias"));
+        assertTrue(ModIntegrationManager.isLoaded(FirstAliasDefaultIntegration.class));
+        assertTrue(ModIntegrationManager.isLoaded(SecondAliasDefaultIntegration.class));
+        assertNull(ModIntegrationManager.getClass("first_default_alias"));
+        assertNull(ModIntegrationManager.getClass("second_default_alias"));
     }
 
     @Test
@@ -449,7 +476,7 @@ class ModIntegrationManagerTest {
                 annotationClass,
                 new MyoModInfo(modId, modId, modId, new DefaultArtifactVersion("1.0.0")),
                 "*",
-                IntegrationMode.ONLY);
+                IntegrationMode.DEFAULT);
     }
 
     private static ScannedAnnotation myoModAnnotation(Class<? extends Annotation> annotationClass,
@@ -517,7 +544,7 @@ class ModIntegrationManagerTest {
 
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
-    @MyoMod(value = "first", mode = IntegrationMode.ONLY)
+    @MyoMod(value = "first", mode = IntegrationMode.DEFAULT)
     private @interface SecondFirstIntegration {
     }
 
@@ -602,14 +629,26 @@ class ModIntegrationManagerTest {
 
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
-    @MyoMod(value = "only_alias_mod", alias = "first_only_alias", mode = IntegrationMode.ONLY)
-    private @interface FirstAliasOnlyIntegration {
+    @MyoMod(value = "default_alias_mod", alias = "first_default_alias", mode = IntegrationMode.DEFAULT)
+    private @interface FirstAliasDefaultIntegration {
     }
 
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
-    @MyoMod(value = "only_alias_mod", alias = "second_only_alias", mode = IntegrationMode.ONLY)
-    private @interface SecondAliasOnlyIntegration {
+    @MyoMod(value = "default_alias_mod", alias = "second_default_alias", mode = IntegrationMode.DEFAULT)
+    private @interface SecondAliasDefaultIntegration {
+    }
+
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @MyoMod(value = "merged_range_mod", alias = "extended", versionRange = "[1.0.0,1.3.0]")
+    private @interface FirstRangeAliasIntegration {
+    }
+
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @MyoMod(value = "merged_range_mod", alias = "crafting", versionRange = "[0.1.0,1.2.0]")
+    private @interface SecondRangeAliasIntegration {
     }
 
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})

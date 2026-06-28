@@ -156,9 +156,13 @@ public final class ModIntegrationManager {
         activeIntegrations.clear();
 
         Map<String, Set<String>> aliasesByModId = aliasesByModId();
+        Map<String, String> versionRangesByModId = versionRangesByModId();
         Map<String, List<MyoModDto>> activeByModId = new LinkedHashMap<>();
         for (MyoModRegistration registration : registeredIntegrations.values()) {
-            MyoModDto mod = finalizeRegistration(registration, aliasesForActiveRegistration(registration, aliasesByModId));
+            MyoModDto mod = finalizeRegistration(
+                    registration,
+                    aliasesForActiveRegistration(registration, aliasesByModId),
+                    versionRangeForActiveRegistration(registration, versionRangesByModId));
             if (mod != null) {
                 activeByModId.computeIfAbsent(mod.getModId(), ignored -> new ArrayList<>()).add(mod);
             }
@@ -173,20 +177,7 @@ public final class ModIntegrationManager {
                 continue;
             }
 
-            List<MyoModDto> only = mods.stream()
-                    .filter(mod -> mod.getMode() == IntegrationMode.ONLY)
-                    .toList();
-            if (only.size() > 1) {
-                MyoLogger.warn("Multiple ONLY MyoMod integrations were active for {}; using {}",
-                        only.get(0).getModId(), only.get(0).getAnnotationClass().getName());
-            }
-            if (!only.isEmpty()) {
-                activate(only.get(0));
-            }
-
-            mods.stream()
-                    .filter(mod -> mod.getMode() == IntegrationMode.EXTENDED)
-                    .forEach(ModIntegrationManager::activate);
+            mods.forEach(ModIntegrationManager::activate);
         }
     }
 
@@ -194,7 +185,8 @@ public final class ModIntegrationManager {
         activeIntegrations.put(mod, mod.getAnnotationClass());
     }
 
-    private static MyoModDto finalizeRegistration(MyoModRegistration registration, Set<String> sharedAliases) {
+    private static MyoModDto finalizeRegistration(MyoModRegistration registration, Set<String> sharedAliases,
+            String sharedVersionRange) {
         if (!modList.isLoaded(registration.modId())) {
             return null;
         }
@@ -206,12 +198,12 @@ public final class ModIntegrationManager {
         if (!testCustomCondition(registration, modInfo)) {
             return null;
         }
-        if (!ModVersionHelper.isVersionInRange(registration.versionRange(), modInfo.version())) {
-            throw new MyoModVersionMismatchException(modInfo, registration.versionRange());
+        if (!ModVersionHelper.isVersionInRange(sharedVersionRange, modInfo.version())) {
+            throw new MyoModVersionMismatchException(modInfo, sharedVersionRange);
         }
 
         return new MyoModDto(registration.annotationClass(), modInfo, sharedAliases,
-                registration.versionRange(), registration.mode());
+                sharedVersionRange, registration.mode());
     }
 
     private static Set<String> aliasesForActiveRegistration(MyoModRegistration registration,
@@ -220,6 +212,14 @@ public final class ModIntegrationManager {
             return registration.aliases();
         }
         return aliasesByModId.getOrDefault(registration.modId(), Set.of());
+    }
+
+    private static String versionRangeForActiveRegistration(MyoModRegistration registration,
+            Map<String, String> versionRangesByModId) {
+        if (registration.hasCustomCondition()) {
+            return registration.versionRange();
+        }
+        return versionRangesByModId.getOrDefault(registration.modId(), registration.versionRange());
     }
 
     private static Map<String, Set<String>> aliasesByModId() {
@@ -232,6 +232,23 @@ public final class ModIntegrationManager {
                     .addAll(registration.aliases());
         }
         return aliasesByModId;
+    }
+
+    private static Map<String, String> versionRangesByModId() {
+        Map<String, List<String>> rangesByModId = new LinkedHashMap<>();
+        for (MyoModRegistration registration : registeredIntegrations.values()) {
+            if (registration.hasCustomCondition()) {
+                continue;
+            }
+            rangesByModId.computeIfAbsent(registration.modId(), ignored -> new ArrayList<>())
+                    .add(registration.versionRange());
+        }
+
+        Map<String, String> mergedRangesByModId = new LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> entry : rangesByModId.entrySet()) {
+            mergedRangesByModId.put(entry.getKey(), ModVersionHelper.intersectVersionRanges(entry.getValue()));
+        }
+        return mergedRangesByModId;
     }
 
     private static void validateAliases() {
@@ -305,7 +322,7 @@ public final class ModIntegrationManager {
         public RegisteredIntegration {
             aliases = aliases == null ? Set.of() : Set.copyOf(aliases);
             versionRange = versionRange == null || versionRange.isBlank() ? "*" : versionRange;
-            mode = mode == null ? IntegrationMode.ONLY : mode;
+            mode = mode == null ? IntegrationMode.DEFAULT : mode;
         }
     }
 
@@ -320,7 +337,7 @@ public final class ModIntegrationManager {
         private MyoModRegistration {
             aliases = normalizeAliases(aliases);
             versionRange = versionRange == null || versionRange.isBlank() ? "*" : versionRange;
-            mode = mode == null ? IntegrationMode.ONLY : mode;
+            mode = mode == null ? IntegrationMode.DEFAULT : mode;
             customConditionClass = customConditionClass == null ? MyoCustomCondition.class : customConditionClass;
         }
 

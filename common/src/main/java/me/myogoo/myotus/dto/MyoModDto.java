@@ -33,7 +33,7 @@ public final class MyoModDto {
         this.displayModName = normalizeDisplayName(modInfo.modId(), modInfo.displayName());
         this.version = modInfo.version();
         this.versionRange = normalizeVersionRange(versionRange);
-        this.mode = mode == null ? IntegrationMode.ONLY : mode;
+        this.mode = mode == null ? IntegrationMode.DEFAULT : mode;
     }
 
     public Class<? extends Annotation> getAnnotationClass() {

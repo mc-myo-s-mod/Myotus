@@ -22,12 +22,12 @@ public @interface MyoMod {
     String alias() default "";
 
     String versionRange() default "*";
-    IntegrationMode mode() default IntegrationMode.ONLY;
+    IntegrationMode mode() default IntegrationMode.DEFAULT;
     Class<? extends MyoCustomCondition> customCondition() default MyoCustomCondition.class;
 
     enum IntegrationMode {
         OVERRIDE,
-        ONLY,
+        DEFAULT,
         EXTENDED
     }
 }
