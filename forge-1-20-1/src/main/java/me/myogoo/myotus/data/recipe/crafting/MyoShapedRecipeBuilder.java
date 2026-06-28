@@ -6,6 +6,7 @@ import me.myogoo.myotus.data.recipe.ExternalRecipeBuilder;
 import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
@@ -14,40 +15,40 @@ import net.minecraft.world.level.ItemLike;
 import java.lang.annotation.Annotation;
 import java.util.function.Consumer;
 
-public final class ShapedRecipeBuilder extends net.minecraft.data.recipes.ShapedRecipeBuilder {
+public final class MyoShapedRecipeBuilder extends ShapedRecipeBuilder {
     private JsonArray conditions;
 
-    private ShapedRecipeBuilder(RecipeCategory category, ItemLike result, int count) {
+    private MyoShapedRecipeBuilder(RecipeCategory category, ItemLike result, int count) {
         super(category, result, count);
     }
 
-    public static ShapedRecipeBuilder shaped(RecipeCategory category, ItemLike result) {
-        return new ShapedRecipeBuilder(category, result, 1);
+    public static MyoShapedRecipeBuilder shaped(RecipeCategory category, ItemLike result) {
+        return new MyoShapedRecipeBuilder(category, result, 1);
     }
 
-    public static ShapedRecipeBuilder shaped(RecipeCategory category, ItemLike result, int count) {
-        return new ShapedRecipeBuilder(category, result, count);
+    public static MyoShapedRecipeBuilder shaped(RecipeCategory category, ItemLike result, int count) {
+        return new MyoShapedRecipeBuilder(category, result, count);
     }
 
-    public ShapedRecipeBuilder dev() {
+    public MyoShapedRecipeBuilder dev() {
         this.ensureConditions();
         this.conditions.add(ExternalRecipeBuilder.devCondition());
         return this;
     }
 
-    public ShapedRecipeBuilder myoCondition(Class<? extends Annotation> annotationClass) {
+    public MyoShapedRecipeBuilder myoCondition(Class<? extends Annotation> annotationClass) {
         this.ensureConditions();
         this.conditions.add(ExternalRecipeBuilder.myoCondition(annotationClass));
         return this;
     }
 
-    public ShapedRecipeBuilder myoCondition(Annotation annotation) {
+    public MyoShapedRecipeBuilder myoCondition(Annotation annotation) {
         this.ensureConditions();
         this.conditions.add(ExternalRecipeBuilder.myoCondition(annotation));
         return this;
     }
 
-    public ShapedRecipeBuilder myoCondition(String activeMod) {
+    public MyoShapedRecipeBuilder myoCondition(String activeMod) {
         this.ensureConditions();
         this.conditions.add(ExternalRecipeBuilder.myoCondition(activeMod));
         return this;
@@ -60,25 +61,25 @@ public final class ShapedRecipeBuilder extends net.minecraft.data.recipes.Shaped
     }
 
     @Override
-    public ShapedRecipeBuilder define(Character symbol, ItemLike item) {
+    public MyoShapedRecipeBuilder define(Character symbol, ItemLike item) {
         super.define(symbol, item);
         return this;
     }
 
     @Override
-    public ShapedRecipeBuilder define(Character symbol, Ingredient ingredient) {
+    public MyoShapedRecipeBuilder define(Character symbol, Ingredient ingredient) {
         super.define(symbol, ingredient);
         return this;
     }
 
     @Override
-    public ShapedRecipeBuilder pattern(String pattern) {
+    public MyoShapedRecipeBuilder pattern(String pattern) {
         super.pattern(pattern);
         return this;
     }
 
     @Override
-    public ShapedRecipeBuilder unlockedBy(String name, CriterionTriggerInstance criterion) {
+    public MyoShapedRecipeBuilder unlockedBy(String name, CriterionTriggerInstance criterion) {
         super.unlockedBy(name, criterion);
         return this;
     }

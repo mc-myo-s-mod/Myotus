@@ -14,7 +14,7 @@ public final class CraftingRecipes {
     }
 
     public static void build(Consumer<FinishedRecipe> consumer) {
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, MyoItems.CHARGED_ENDER_PEARL_BLOCK.get())
+        MyoShapedRecipeBuilder.shaped(RecipeCategory.MISC, MyoItems.CHARGED_ENDER_PEARL_BLOCK.get())
                 .pattern("PPP")
                 .pattern("PPP")
                 .pattern("PPP")
@@ -25,7 +25,7 @@ public final class CraftingRecipes {
                 .requires(MyoItems.CHARGED_ENDER_PEARL_BLOCK.get())
                 .unlockedBy("has_charged_ender_pearl_block", RecipeJsonHas.has(MyoItems.CHARGED_ENDER_PEARL_BLOCK.get()))
                 .save(consumer, Myotus.makeId("crafting/charged_ender_pearls_from_block"));
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, MyoItems.ENDER_PEARL_BLOCK.get())
+        MyoShapedRecipeBuilder.shaped(RecipeCategory.MISC, MyoItems.ENDER_PEARL_BLOCK.get())
                 .pattern("PPP")
                 .pattern("PPP")
                 .pattern("PPP")
