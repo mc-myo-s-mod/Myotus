@@ -1,5 +1,6 @@
 package me.myogoo.myotus.client.gui.widgets;
 
+import me.myogoo.myotus.client.TranslateKey;
 import appeng.client.gui.widgets.ITooltip;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
@@ -393,7 +394,7 @@ public class KeyBindingButton extends AbstractButton implements ITooltip {
     @Override
     public List<Component> getTooltipMessage() {
         if (listening) {
-            return Collections.singletonList(Component.translatable("gui.myotus.keybinding.listening"));
+            return Collections.singletonList(Component.translatable(TranslateKey.GUI.KEYBINDING_LISTENING.key()));
         }
         return Collections.singletonList(getMessage());
     }

@@ -1,5 +1,6 @@
 package me.myogoo.myotus.client.gui.config;
 
+import net.minecraft.network.chat.Component;
 import appeng.client.gui.Icon;
 import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.me.common.TerminalSettingsScreen;
@@ -39,7 +40,7 @@ public class TabbedTerminalSettingsScreen<C extends MEStorageMenu> extends Termi
     }
 
     private void buildTabBar() {
-        TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(),
+        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable(TranslateKey.GUI.TITLE_AE2_TERMINAL_SETTING.key()),
                 btn -> {
                 });
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);

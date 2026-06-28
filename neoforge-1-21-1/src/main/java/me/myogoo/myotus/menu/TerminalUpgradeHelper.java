@@ -1,5 +1,6 @@
 package me.myogoo.myotus.menu;
 
+import me.myogoo.myotus.client.TranslateKey;
 import appeng.menu.me.common.MEStorageMenu;
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.ITerminalUpgradeCard;
@@ -85,11 +86,11 @@ public class TerminalUpgradeHelper {
     public static List<Component> getAvailableUpgradeTooltip(MEStorageMenu menu) {
         List<ItemStack> availableCards = getAvailableUpgradeCards(menu);
         if (availableCards.isEmpty()) {
-            return List.of(Component.translatable("gui.myotus.upgrade_slot.empty_tooltip.none"));
+            return List.of(Component.translatable(TranslateKey.GUI.UPGRADE_SLOT_EMPTY_TOOLTIP_NONE.key()));
         }
 
         List<Component> tooltip = new ArrayList<>(availableCards.size() + 1);
-        tooltip.add(Component.translatable("gui.myotus.upgrade_slot.empty_tooltip.header"));
+        tooltip.add(Component.translatable(TranslateKey.GUI.UPGRADE_SLOT_EMPTY_TOOLTIP_HEADER.key()));
         for (ItemStack stack : availableCards) {
             tooltip.add(Component.literal("- ").append(stack.getHoverName()).withStyle(ChatFormatting.GRAY));
         }

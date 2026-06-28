@@ -1,5 +1,6 @@
 package me.myogoo.myotus.init;
 
+import me.myogoo.myotus.client.TranslateKey;
 import appeng.core.definitions.AEItems;
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.wt.AddTerminalEvent;
@@ -21,7 +22,7 @@ public final class MyoCreativeModeTabs {
 
     public static final RegistryObject<CreativeModeTab> MYOTUS =
             CREATIVE_MODE_TABS.register("myotus", () -> CreativeModeTab.builder()
-                    .title(Component.translatable("itemGroup.myotus"))
+                    .title(Component.translatable(TranslateKey.ITEM_GROUP_MYOTUS.key()))
                     .icon(MyoItems.MYOTUS_UPGRADE_CARD.get()::getDefaultInstance)
                     .displayItems((parameters, output) -> CreativeTabManager.INSTANCE.populate(output))
                     .build());

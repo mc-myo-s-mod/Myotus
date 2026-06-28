@@ -1,5 +1,6 @@
 package me.myogoo.myotus.client.gui.config;
 
+import net.minecraft.network.chat.Component;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.widgets.AECheckbox;
 import me.myogoo.myotus.api.config.MyoConfigTabScreen;
@@ -15,15 +16,15 @@ public class MyotusConfigScreen implements MyoConfigTabScreen {
     @Override
     public void buildTab(WidgetContainer widgets, AEBaseScreen<?> screen) {
         showUpgradePanelButtonCheckbox = widgets.addCheckbox("show_upgrade_panel_button",
-                TranslateKey.SHOW_UPGRADE_PANEL_BUTTON.getTranslate(), this::save);
+                Component.translatable(TranslateKey.GUI.SHOW_UPGRADE_PANEL_BUTTON.key()), this::save);
         showViewCellSlotCheckbox = widgets.addCheckbox("show_view_cell_button",
-                TranslateKey.SHOW_VIEW_CELL_SLOT.getTranslate(), this::save);
+                Component.translatable(TranslateKey.GUI.SHOW_VIEW_CELL_SLOT.key()), this::save);
         widgets.add("key:open_terminal_setting", new KeyBindingButton(
-                TranslateKey.OPEN_TERMINAL_SETTING_KEY.getTranslate(), keys -> {
+                Component.translatable(TranslateKey.KEY.OPEN_TERMINAL_SETTING.key()), keys -> {
         }));
 
-        widgets.add("key:toggle_subsidepanel", new KeyBindingButton(
-                TranslateKey.TOGGLE_SUB_SIDE_PANEL_KEY.getTranslate(), keys -> {
+        widgets.add("key:toggle_upgrade_terminal_panel", new KeyBindingButton(
+                Component.translatable(TranslateKey.KEY.TOGGLE_UPGRADE_TERMINAL_PANEL.key()), keys -> {
         }));
         updateState();
     }

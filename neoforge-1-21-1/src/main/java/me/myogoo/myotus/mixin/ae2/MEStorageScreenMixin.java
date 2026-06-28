@@ -103,7 +103,7 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
                 cir.setReturnValue(true);
             }
         }
-        if (KeyBindings.TOGGLE_SUB_SIDE_PANEL.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (KeyBindings.TOGGLE_UPGRADE_TERMINAL_PANEL.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             if (Minecraft.getInstance().screen instanceof MEStorageScreen<?> storageScreen) {
                 if (this.myotus$toggleButton != null) {
                     this.myotus$toggleButton.run();

@@ -1,5 +1,6 @@
 package me.myogoo.myotus.client.gui.widgets;
 
+import me.myogoo.myotus.client.TranslateKey;
 import appeng.client.gui.style.Blitter;
 import me.myogoo.myotus.client.TerminalUpgradePanel;
 import me.myogoo.myotus.client.gui.MyoIcon;
@@ -10,8 +11,8 @@ import net.minecraft.network.chat.Component;
 import me.myogoo.myotus.config.MyotusClientConfig;
 
 /**
- * TerminalSidePanel의 가시성을 토글하는 버튼.
- * config 값을 업데이트하고 TerminalSidePanel의 visible 상태를 동기화합니다.
+ * TerminalUpgradePanel의 가시성을 토글하는 버튼.
+ * config 값을 업데이트하고 TerminalUpgradePanel의 visible 상태를 동기화합니다.
  */
 public class SidePanelToggleButton extends CustomImageButton {
 
@@ -29,8 +30,8 @@ public class SidePanelToggleButton extends CustomImageButton {
 
     private void updateTooltip() {
         boolean isOpen = MyotusClientConfig.CLIENT.openSidePanel.get();
-        setMessage(Component.translatable(isOpen ? "gui.myotus.config.toggle_side_panel.hide"
-                : "gui.myotus.config.toggle_side_panel.show"));
+        setMessage(Component.translatable(isOpen ? TranslateKey.GUI.UPGRADE_TERMINAL_PANEL_HIDE.key()
+                : TranslateKey.GUI.UPGRADE_TERMINAL_PANEL_SHOW.key()));
     }
 
     @Override

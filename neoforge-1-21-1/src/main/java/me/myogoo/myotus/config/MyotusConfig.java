@@ -18,7 +18,7 @@ public final class MyotusConfig {
             var builder = new ModConfigSpec.Builder();
             builder.push("tab");
             this.openSidePanel = builder
-                    .comment("Whether to open the side panel when the terminal is opened.")
+                    .comment("Whether to open the upgrade terminal panel when the terminal is opened.")
                     .define("openSidePanel", false);
             this.showUpgradePanelButton = builder
                     .comment("Whether to show the upgrade panel toggle button in the terminal left toolbar.")

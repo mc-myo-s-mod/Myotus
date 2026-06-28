@@ -10,8 +10,8 @@
   "gui.myotus.checkbox.show_view_cell_slots.only": "1.21.1 전용",
   "gui.myotus.keybinding.listening": "키 입력 대기 중... 취소하려면 ESC를 누르세요.",
   "key.myotus.open.terminal_setting": "터미널 설정 화면 열기",
-  "key.myotus.toggle.subsidepanel": "하위 패널 전환",
-  "gui.myotus.config.toggle_side_panel": "하위 패널 전환",
+  "key.myotus.toggle.upgrade_terminal_panel": "업그레이드 터미널 패널 전환",
+  "gui.myotus.config.toggle_upgrade_terminal_panel": "업그레이드 터미널 패널 전환",
   "item.myotus.compat_processor": "통합 프로세서",
   "item.myotus.printed_compat_processor": "인쇄된 통합 프로세서",
   "item.myotus.compat_press": "통합 프로세서 프레스",
@@ -20,8 +20,8 @@
   "block.myotus.charged_ender_pearl_block": "충전된 엔더 진주 블록",
   "item.myotus.myotus_upgrade_card": "Myotus 업그레이드 카드",
   "key.categories.myotus": "myotus",
-  "gui.myotus.config.toggle_side_panel.show": "업그레이드 패널 표시",
-  "gui.myotus.config.toggle_side_panel.hide": "업그레이드 패널 숨기기",
+  "gui.myotus.config.upgrade_terminal_panel.show": "업그레이드 터미널 패널 표시",
+  "gui.myotus.config.upgrade_terminal_panel.hide": "업그레이드 터미널 패널 숨기기",
   "gui.myotus.upgrade_slot.empty_tooltip.header": "설치 가능한 터미널 업그레이드:",
   "gui.myotus.upgrade_slot.empty_tooltip.none": "모든 터미널 업그레이드가 이미 설치되어 있습니다."
 }

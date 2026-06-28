@@ -21,7 +21,7 @@ public class MyoReportButton extends CustomImageButton {
 
     @Override
     public List<Component> getTooltipMessage() {
-        return Collections.singletonList(TranslateKey.TOOLTIP_REPORT_BUG.getTranslate());
+        return Collections.singletonList(Component.translatable(TranslateKey.GUI.TOOLTIP_REPORT_BUG.key()));
     }
 
     private static void openBugReport() {

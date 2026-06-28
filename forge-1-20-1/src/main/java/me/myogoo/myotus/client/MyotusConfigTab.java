@@ -1,5 +1,6 @@
 package me.myogoo.myotus.client;
 
+import net.minecraft.network.chat.Component;
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.config.MyoConfigTab;
 import me.myogoo.myotus.client.gui.MyoIcon;
@@ -13,7 +14,7 @@ public final class MyotusConfigTab {
     public static void initialize() {
         ConfigManager.INSTANCE.registerTab(new MyoConfigTab(
                 Myotus.makeId("config"),
-                TranslateKey.TITLE_TERMINAL_SETTING.getTranslate(),
+                Component.translatable(TranslateKey.GUI.TITLE_TERMINAL_SETTING.key()),
                 MyoIcon.MYOTUS_CONFIG,
                 "myotus.json",
                 new MyotusConfigScreen()));

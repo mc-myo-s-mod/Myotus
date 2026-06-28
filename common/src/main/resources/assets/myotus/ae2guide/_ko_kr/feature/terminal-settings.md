@@ -33,6 +33,6 @@ Myotus 탭이 포함된 터미널 설정 화면을 엽니다.
 
 ## 터미널 업그레이드 패널 전환
 
-키: <KeyBind id="key.myotus.toggle.subsidepanel" />
+키: <KeyBind id="key.myotus.toggle.upgrade_terminal_panel" />
 
 터미널 화면에서 Myotus 터미널 업그레이드 패널을 열거나 닫습니다.

@@ -1,5 +1,6 @@
 package me.myogoo.myotus.client.gui.config;
 
+import net.minecraft.network.chat.Component;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.AESubScreen;
 import appeng.client.gui.Icon;
@@ -72,7 +73,7 @@ public class CustomConfigTabScreen<C extends MEStorageMenu>
     }
 
     private void buildTabBar() {
-        TabButton ae2Tab = new TabButton(Icon.COG, TranslateKey.TITLE_AE2_TERMINAL_SETTING.getTranslate(),
+        TabButton ae2Tab = new TabButton(Icon.COG, Component.translatable(TranslateKey.GUI.TITLE_AE2_TERMINAL_SETTING.key()),
                 btn -> selectTab(0));
         ae2Tab.setStyle(TabButton.Style.HORIZONTAL);
         ae2Tab.setSelected(false);

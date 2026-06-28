@@ -3,24 +3,27 @@ package me.myogoo.myotus.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import me.myogoo.myotus.client.settings.TerminalKeyConflictContext;
 import net.minecraft.client.KeyMapping;
+import net.minecraftforge.client.settings.KeyModifier;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyBindings {
     private static final TerminalKeyConflictContext TERMINAL_CONFLICT_CONTEXT = new TerminalKeyConflictContext();
 
     public static final KeyMapping OPEN_TERMINAL_SETTING = new KeyMapping(
-            TranslateKey.OPEN_TERMINAL_SETTING_KEY.key(),
+            TranslateKey.KEY.OPEN_TERMINAL_SETTING.key(),
             TERMINAL_CONFLICT_CONTEXT,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_COMMA,
-            TranslateKey.KEY_CATEGORY.key()
-    );
-
-    public static final KeyMapping TOGGLE_SUB_SIDE_PANEL = new KeyMapping(
-            TranslateKey.TOGGLE_SUB_SIDE_PANEL_KEY.key(),
-            TERMINAL_CONFLICT_CONTEXT,
+            KeyModifier.CONTROL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_PERIOD,
-            TranslateKey.KEY_CATEGORY.key()
+            TranslateKey.KEY.CATEGORY_MYOTUS.key()
+    );
+
+    public static final KeyMapping TOGGLE_UPGRADE_TERMINAL_PANEL = new KeyMapping(
+            TranslateKey.KEY.TOGGLE_UPGRADE_TERMINAL_PANEL.key(),
+            TERMINAL_CONFLICT_CONTEXT,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_COMMA,
+            TranslateKey.KEY.CATEGORY_MYOTUS.key()
     );
 }

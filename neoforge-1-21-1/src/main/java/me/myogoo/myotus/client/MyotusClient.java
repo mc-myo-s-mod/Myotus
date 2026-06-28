@@ -15,6 +15,6 @@ public class MyotusClient {
 
     private static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(KeyBindings.OPEN_TERMINAL_SETTING);
-        event.register(KeyBindings.TOGGLE_SUB_SIDE_PANEL);
+        event.register(KeyBindings.TOGGLE_UPGRADE_TERMINAL_PANEL);
     }
 }

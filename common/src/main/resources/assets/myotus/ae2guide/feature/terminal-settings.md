@@ -33,6 +33,6 @@ Opens the terminal settings screen that includes the Myotus tab.
 
 ## Toggle Terminal Upgrade Panel
 
-Key: <KeyBind id="key.myotus.toggle.subsidepanel" />
+Key: <KeyBind id="key.myotus.toggle.upgrade_terminal_panel" />
 
 Opens or closes the Myotus Terminal Upgrade Panel from a terminal screen.
