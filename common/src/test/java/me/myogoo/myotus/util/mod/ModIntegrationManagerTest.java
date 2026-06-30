@@ -348,6 +348,41 @@ class ModIntegrationManagerTest {
     }
 
     @Test
+    void customConditionVersionMismatchThrowsAfterConditionPasses() {
+        AnnotationScanner.setAnnotationProvider(() -> Stream.of(
+                myoModAnnotation(IncompatibleAvaritiaNeoIntegration.class, ElementType.ANNOTATION_TYPE),
+                myoModAnnotation(ReAvaritiaIntegration.class, ElementType.ANNOTATION_TYPE)));
+
+        MyoModVersionMismatchException exception = assertThrows(MyoModVersionMismatchException.class,
+                () -> ModIntegrationManager.setModList(modList(Map.of("avaritia",
+                        modInfo("avaritia", "avaritia", "Avaritia", "1.1.5")))));
+
+        assertEquals("avaritia", exception.getModId());
+        assertEquals("Avaritia", exception.getDisplayModName());
+        assertEquals("1.2.7", exception.getMinimumVersion().toString());
+        assertEquals("1.1.5", exception.getModVersion().toString());
+        assertEquals("[1.2.7,)", exception.getVersionRange());
+    }
+
+    @Test
+    void customConditionedNonExtendedIntegrationsWithSameModIdAreDifferentActivationGroups() {
+        AnnotationScanner.setAnnotationProvider(() -> Stream.of(
+                myoModAnnotation(CustomConditionedDefaultForkIntegration.class, ElementType.ANNOTATION_TYPE),
+                myoModAnnotation(CustomConditionedOverrideForkIntegration.class, ElementType.ANNOTATION_TYPE)));
+
+        ModIntegrationManager.setModList(modList("forked_mod"));
+
+        assertTrue(ModIntegrationManager.isLoaded(CustomConditionedDefaultForkIntegration.class));
+        assertTrue(ModIntegrationManager.isLoaded(CustomConditionedOverrideForkIntegration.class));
+        assertTrue(ModIntegrationManager.isLoaded("custom-default-fork"));
+        assertTrue(ModIntegrationManager.isLoaded("custom-override-fork"));
+        assertSame(CustomConditionedDefaultForkIntegration.class,
+                ModIntegrationManager.getClass("custom-default-fork"));
+        assertSame(CustomConditionedOverrideForkIntegration.class,
+                ModIntegrationManager.getClass("custom-override-fork"));
+    }
+
+    @Test
     void duplicateAliasIsAllowedWhenIntegrationsUseTheSameModId() {
         AnnotationScanner.setAnnotationProvider(() -> Stream.of(
                 myoModAnnotation(FirstDuplicateAliasIntegration.class, ElementType.ANNOTATION_TYPE),
@@ -601,6 +636,26 @@ class ModIntegrationManagerTest {
     @Retention(RetentionPolicy.RUNTIME)
     @MyoMod(value = "avaritia", alias = "avaritia_neo", customCondition = AvaritiaNeoCondition.class)
     private @interface AvaritiaNeoIntegration {
+    }
+
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @MyoMod(value = "avaritia", alias = "incompatible-avaritia-neo", versionRange = "[1.2.7,)",
+            customCondition = AvaritiaNeoCondition.class)
+    private @interface IncompatibleAvaritiaNeoIntegration {
+    }
+
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @MyoMod(value = "forked_mod", alias = "custom-default-fork", customCondition = TrueCondition.class)
+    private @interface CustomConditionedDefaultForkIntegration {
+    }
+
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @MyoMod(value = "forked_mod", alias = "custom-override-fork", mode = IntegrationMode.OVERRIDE,
+            customCondition = TrueCondition.class)
+    private @interface CustomConditionedOverrideForkIntegration {
     }
 
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})

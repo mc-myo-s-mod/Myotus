@@ -157,18 +157,18 @@ public final class ModIntegrationManager {
 
         Map<String, Set<String>> aliasesByModId = aliasesByModId();
         Map<String, String> versionRangesByModId = versionRangesByModId();
-        Map<String, List<MyoModDto>> activeByModId = new LinkedHashMap<>();
+        Map<String, List<MyoModDto>> activeByGroup = new LinkedHashMap<>();
         for (MyoModRegistration registration : registeredIntegrations.values()) {
             MyoModDto mod = finalizeRegistration(
                     registration,
                     aliasesForActiveRegistration(registration, aliasesByModId),
                     versionRangeForActiveRegistration(registration, versionRangesByModId));
             if (mod != null) {
-                activeByModId.computeIfAbsent(mod.getModId(), ignored -> new ArrayList<>()).add(mod);
+                activeByGroup.computeIfAbsent(activationGroupKey(registration), ignored -> new ArrayList<>()).add(mod);
             }
         }
 
-        for (List<MyoModDto> mods : activeByModId.values()) {
+        for (List<MyoModDto> mods : activeByGroup.values()) {
             List<MyoModDto> overrides = mods.stream()
                     .filter(mod -> mod.getMode() == IntegrationMode.OVERRIDE)
                     .toList();
@@ -179,6 +179,13 @@ public final class ModIntegrationManager {
 
             mods.forEach(ModIntegrationManager::activate);
         }
+    }
+
+    private static String activationGroupKey(MyoModRegistration registration) {
+        if (registration.hasCustomCondition() && registration.mode() != IntegrationMode.EXTENDED) {
+            return registration.annotationClass().getName();
+        }
+        return registration.modId();
     }
 
     private static void activate(MyoModDto mod) {
