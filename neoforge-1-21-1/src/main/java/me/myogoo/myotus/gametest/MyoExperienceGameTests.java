@@ -62,39 +62,42 @@ public final class MyoExperienceGameTests {
     }
 
     @GameTest(template = "empty", timeoutTicks = 20)
-    public static void consumptionPlanUsesDefaultAnvilPriority(GameTestHelper helper) {
-        ExperienceMath.ExperienceConsumptionPlan plan = MyotusAPI.experience().consumeExperience(75, 30, 40, 50);
+    public static void myoExperienceUsesDefaultAnvilPriority(GameTestHelper helper) {
+        ExperienceMath.MyoExperience experience = MyotusAPI.experience().consumeExperience(75, 30, 40, 50);
 
-        assertTrue(helper, plan.canPay(), "Plan should be payable across all default sources");
-        assertEquals(helper, 75L, plan.requiredExperience(), "Required XP");
-        assertEquals(helper, 120L, plan.availableExperience(), "Available XP");
-        assertEquals(helper, 30L, plan.playerExperienceUsed(), "Player XP should be exhausted first");
-        assertEquals(helper, 40L, plan.fluidXpUsed(), "Fluid XP should be exhausted second");
-        assertEquals(helper, 5L, plan.appliedExperiencedAmountUsed(),
+        assertTrue(helper, experience.enough(), "MyoExperience should be enough across all default sources");
+        assertEquals(helper, 75L, experience.required(), "Required XP");
+        assertEquals(helper, 120L, experience.available(), "Available XP");
+        assertEquals(helper, 120L, experience.spendable(), "Spendable XP should include all default priority sources");
+        assertEquals(helper, 30L, experience.player(), "Player XP should be exhausted first");
+        assertEquals(helper, 40L, experience.fluidXp(), "Fluid XP should be exhausted second");
+        assertEquals(helper, 5L, experience.appliedExperiencedAmount(),
                 "Applied Experienced amount should pay the remainder");
-        assertEquals(helper, 0L, plan.missingExperience(), "Payable plan should not miss XP");
-        assertEquals(helper, 40L, plan.used(FLUID_XP), "used(source) should match the source total");
+        assertEquals(helper, 0L, experience.missing(), "Enough MyoExperience should not miss XP");
+        assertEquals(helper, 40L, experience.used(FLUID_XP), "used(source) should match the source total");
         helper.succeed();
     }
 
     @GameTest(template = "empty", timeoutTicks = 20)
-    public static void consumptionPlanSupportsCustomPriorityAndMissingExperience(GameTestHelper helper) {
-        ExperienceMath.ExperienceConsumptionPlan customPlan = MyotusAPI.experience().consumeExperience(75, 30, 40, 50,
+    public static void myoExperienceSupportsCustomPriorityAndMissingExperience(GameTestHelper helper) {
+        ExperienceMath.MyoExperience customExperience = MyotusAPI.experience().consumeExperience(75, 30, 40, 50,
                 List.of(APPLIED_EXPERIENCED_AMOUNT, FLUID_XP, PLAYER));
-        assertTrue(helper, customPlan.canPay(), "Custom priority plan should be payable");
-        assertEquals(helper, 0L, customPlan.playerExperienceUsed(), "Custom priority should leave player XP untouched");
-        assertEquals(helper, 25L, customPlan.fluidXpUsed(), "Fluid XP should pay the custom-priority remainder");
-        assertEquals(helper, 50L, customPlan.appliedExperiencedAmountUsed(),
+        assertTrue(helper, customExperience.enough(), "Custom priority experience should be enough");
+        assertEquals(helper, 0L, customExperience.player(), "Custom priority should leave player XP untouched");
+        assertEquals(helper, 25L, customExperience.fluidXp(), "Fluid XP should pay the custom-priority remainder");
+        assertEquals(helper, 50L, customExperience.appliedExperiencedAmount(),
                 "Applied Experienced amount should be consumed first by custom priority");
 
-        ExperienceMath.ExperienceConsumptionPlan missingPlan = MyotusAPI.experience().consumeExperience(75, 30, 40, 50,
+        ExperienceMath.MyoExperience missingExperience = MyotusAPI.experience().consumeExperience(75, 30, 40, 50,
                 List.of(PLAYER, FLUID_XP));
-        assertTrue(helper, !missingPlan.canPay(), "Plan should be missing XP when priority excludes a needed source");
-        assertEquals(helper, 30L, missingPlan.playerExperienceUsed(), "Missing plan should consume player XP");
-        assertEquals(helper, 40L, missingPlan.fluidXpUsed(), "Missing plan should consume fluid XP");
-        assertEquals(helper, 0L, missingPlan.appliedExperiencedAmountUsed(),
+        assertTrue(helper, !missingExperience.enough(), "MyoExperience should be missing XP when priority excludes a needed source");
+        assertEquals(helper, 120L, missingExperience.available(), "Available XP should include non-priority sources");
+        assertEquals(helper, 70L, missingExperience.spendable(), "Spendable XP should include priority sources only");
+        assertEquals(helper, 30L, missingExperience.player(), "Missing experience should consume player XP");
+        assertEquals(helper, 40L, missingExperience.fluidXp(), "Missing experience should consume fluid XP");
+        assertEquals(helper, 0L, missingExperience.appliedExperiencedAmount(),
                 "Excluded source should not be consumed");
-        assertEquals(helper, 5L, missingPlan.missingExperience(), "Missing XP should equal the unpaid remainder");
+        assertEquals(helper, 5L, missingExperience.missing(), "Missing XP should equal the unpaid remainder");
         helper.succeed();
     }
 

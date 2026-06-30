@@ -3,9 +3,11 @@ package me.myogoo.myotus.api.experience;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Utility methods and stable identifiers for experience values used by Myotus integrations.
@@ -63,71 +65,43 @@ public final class ExperienceMath {
     }
 
     /**
-     * Immutable result of spending a raw XP amount from multiple source pools in a caller-provided priority order.
+     * Immutable Myotus XP spending result for multiple source pools in a caller-provided priority order.
+     *
+     * @param required raw XP points requested by the caller
+     * @param available raw XP points available across all supplied sources, including non-priority sources
+     * @param spendable raw XP points available from sources included in the priority list
+     * @param missing raw XP points still missing after priority sources are considered
+     * @param player raw player XP points to consume
+     * @param fluidXp raw {@code fluid:xp} points to consume
+     * @param appliedExperiencedAmount raw Applied Experienced amount points to consume
      */
-    public static final class ExperienceConsumptionPlan {
-        private final long requiredExperience;
-        private final long availableExperience;
-        private final long playerExperienceUsed;
-        private final long fluidXpUsed;
-        private final long appliedExperiencedAmountUsed;
-        private final long missingExperience;
-
-        private ExperienceConsumptionPlan(long requiredExperience, long availableExperience, long playerExperienceUsed,
-                long fluidXpUsed, long appliedExperiencedAmountUsed, long missingExperience) {
-            this.requiredExperience = requiredExperience;
-            this.availableExperience = availableExperience;
-            this.playerExperienceUsed = playerExperienceUsed;
-            this.fluidXpUsed = fluidXpUsed;
-            this.appliedExperiencedAmountUsed = appliedExperiencedAmountUsed;
-            this.missingExperience = missingExperience;
+    public record MyoExperience(long required, long available, long spendable, long missing, long player, long fluidXp,
+            long appliedExperiencedAmount) {
+        public MyoExperience {
+            requireNonNegative(required, "required");
+            requireNonNegative(available, "available");
+            requireNonNegative(spendable, "spendable");
+            requireNonNegative(missing, "missing");
+            requireNonNegative(player, "player");
+            requireNonNegative(fluidXp, "fluidXp");
+            requireNonNegative(appliedExperiencedAmount, "appliedExperiencedAmount");
         }
 
-        /** Raw XP points requested by the caller. */
-        public long requiredExperience() {
-            return requiredExperience;
-        }
-
-        /** Raw XP points available across all supplied sources. */
-        public long availableExperience() {
-            return availableExperience;
-        }
-
-        /** Raw player XP points to consume. */
-        public long playerExperienceUsed() {
-            return playerExperienceUsed;
-        }
-
-        /** Raw {@code fluid:xp} points to consume. */
-        public long fluidXpUsed() {
-            return fluidXpUsed;
-        }
-
-        /** Raw Applied Experienced amount points to consume. */
-        public long appliedExperiencedAmountUsed() {
-            return appliedExperiencedAmountUsed;
-        }
-
-        /** Raw XP points still missing after all sources are considered. Zero means the plan is payable. */
-        public long missingExperience() {
-            return missingExperience;
-        }
-
-        /** Returns {@code true} when all required XP can be paid from the supplied sources. */
-        public boolean canPay() {
-            return missingExperience == 0;
+        /** Returns {@code true} when all required XP can be paid from spendable sources. */
+        public boolean enough() {
+            return missing == 0;
         }
 
         /** Returns the amount used for a specific source. */
         public long used(ExperienceSource source) {
             Objects.requireNonNull(source, "source");
             if (source == ExperienceSource.PLAYER) {
-                return playerExperienceUsed;
+                return player;
             }
             if (source == ExperienceSource.FLUID_XP) {
-                return fluidXpUsed;
+                return fluidXp;
             }
-            return appliedExperiencedAmountUsed;
+            return appliedExperiencedAmount;
         }
     }
 
@@ -195,7 +169,7 @@ public final class ExperienceMath {
      * @param appliedExperienceAmount available raw Applied Experienced amount points
      * @return immutable source-by-source consumption plan
      */
-    public static ExperienceConsumptionPlan consumeExperience(long requiredExperience, long playerExperience,
+    public static MyoExperience consumeExperience(long requiredExperience, long playerExperience,
             long fluidXp, long appliedExperienceAmount) {
         return consumeExperience(requiredExperience, playerExperience, fluidXp, appliedExperienceAmount,
                 DEFAULT_ANVIL_SOURCE_PRIORITY);
@@ -204,9 +178,9 @@ public final class ExperienceMath {
     /**
      * Creates a consumption plan using the supplied source priority. Earlier sources are consumed first.
      *
-     * <p>The returned plan is safe to inspect even when the supplied pools are insufficient: in that case
-     * {@link ExperienceConsumptionPlan#canPay()} returns {@code false} and
-     * {@link ExperienceConsumptionPlan#missingExperience()} reports the missing raw points.</p>
+     * <p>The returned value is safe to inspect even when the supplied pools are insufficient: in that case
+     * {@link MyoExperience#enough()} returns {@code false} and
+     * {@link MyoExperience#missing()} reports the missing raw points.</p>
      *
      * @param requiredExperience raw XP points to spend
      * @param playerExperience available raw player XP points
@@ -215,7 +189,7 @@ public final class ExperienceMath {
      * @param sourcePriority source order to consume from; duplicate entries are ignored after their first use
      * @return immutable source-by-source consumption plan
      */
-    public static ExperienceConsumptionPlan consumeExperience(long requiredExperience, long playerExperience,
+    public static MyoExperience consumeExperience(long requiredExperience, long playerExperience,
             long fluidXp, long appliedExperienceAmount, List<ExperienceSource> sourcePriority) {
         requireNonNegative(requiredExperience, "requiredExperience");
         requireNonNegative(playerExperience, "playerExperience");
@@ -235,24 +209,31 @@ public final class ExperienceMath {
         }
 
         long remainingRequirement = requiredExperience;
+        long spendableExperience = 0;
+        Set<ExperienceSource> prioritySources = EnumSet.noneOf(ExperienceSource.class);
         for (ExperienceSource source : sourcePriority) {
             Objects.requireNonNull(source, "sourcePriority contains null");
-            if (remainingRequirement == 0 || usedBySource.get(source) > 0) {
+            if (!prioritySources.add(source)) {
                 continue;
             }
             long availableFromSource = remainingBySource.get(source);
+            spendableExperience = Math.addExact(spendableExperience, availableFromSource);
+            if (remainingRequirement == 0) {
+                continue;
+            }
             long used = Math.min(availableFromSource, remainingRequirement);
             usedBySource.put(source, used);
             remainingRequirement -= used;
         }
 
-        return new ExperienceConsumptionPlan(
+        return new MyoExperience(
                 requiredExperience,
                 availableExperience,
+                spendableExperience,
+                remainingRequirement,
                 usedBySource.get(ExperienceSource.PLAYER),
                 usedBySource.get(ExperienceSource.FLUID_XP),
-                usedBySource.get(ExperienceSource.APPLIED_EXPERIENCED_AMOUNT),
-                remainingRequirement);
+                usedBySource.get(ExperienceSource.APPLIED_EXPERIENCED_AMOUNT));
     }
 
     /**

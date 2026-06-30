@@ -68,6 +68,10 @@ neoForge {
 dependencies {
     implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
 
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.3'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.12.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
     compileOnly "org.appliedenergistics:guideme:${Guideme_version}:api"
     runtimeOnly "org.appliedenergistics:guideme:${Guideme_version}"
 
@@ -98,4 +102,6 @@ def generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 }
 
 sourceSets.main.resources.srcDir generateModMetadata
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 neoForge.ideSyncTask generateModMetadata

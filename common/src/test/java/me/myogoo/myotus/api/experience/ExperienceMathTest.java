@@ -75,50 +75,55 @@ class ExperienceMathTest {
 
     @Test
     void consumesExperienceUsingDefaultAnvilPriority() {
-        var plan = ExperienceMath.consumeExperience(75, 30, 40, 50);
+        var experience = ExperienceMath.consumeExperience(75, 30, 40, 50);
 
-        assertTrue(plan.canPay());
-        assertEquals(75, plan.requiredExperience());
-        assertEquals(120, plan.availableExperience());
-        assertEquals(30, plan.playerExperienceUsed());
-        assertEquals(40, plan.fluidXpUsed());
-        assertEquals(5, plan.appliedExperiencedAmountUsed());
-        assertEquals(0, plan.missingExperience());
-        assertEquals(30, plan.used(PLAYER));
-        assertEquals(40, plan.used(FLUID_XP));
-        assertEquals(5, plan.used(APPLIED_EXPERIENCED_AMOUNT));
+        assertTrue(experience.enough());
+        assertEquals(75, experience.required());
+        assertEquals(120, experience.available());
+        assertEquals(120, experience.spendable());
+        assertEquals(30, experience.player());
+        assertEquals(40, experience.fluidXp());
+        assertEquals(5, experience.appliedExperiencedAmount());
+        assertEquals(0, experience.missing());
+        assertEquals(30, experience.used(PLAYER));
+        assertEquals(40, experience.used(FLUID_XP));
+        assertEquals(5, experience.used(APPLIED_EXPERIENCED_AMOUNT));
     }
 
     @Test
     void consumesExperienceUsingCustomPriority() {
-        var plan = ExperienceMath.consumeExperience(75, 30, 40, 50,
+        var experience = ExperienceMath.consumeExperience(75, 30, 40, 50,
                 List.of(APPLIED_EXPERIENCED_AMOUNT, FLUID_XP, PLAYER));
 
-        assertTrue(plan.canPay());
-        assertEquals(0, plan.playerExperienceUsed());
-        assertEquals(25, plan.fluidXpUsed());
-        assertEquals(50, plan.appliedExperiencedAmountUsed());
+        assertTrue(experience.enough());
+        assertEquals(120, experience.spendable());
+        assertEquals(0, experience.player());
+        assertEquals(25, experience.fluidXp());
+        assertEquals(50, experience.appliedExperiencedAmount());
     }
 
     @Test
     void reportsMissingExperienceWhenPrioritySourcesAreInsufficient() {
-        var plan = ExperienceMath.consumeExperience(75, 30, 40, 50, List.of(PLAYER, FLUID_XP));
+        var experience = ExperienceMath.consumeExperience(75, 30, 40, 50, List.of(PLAYER, FLUID_XP));
 
-        assertFalse(plan.canPay());
-        assertEquals(30, plan.playerExperienceUsed());
-        assertEquals(40, plan.fluidXpUsed());
-        assertEquals(0, plan.appliedExperiencedAmountUsed());
-        assertEquals(5, plan.missingExperience());
+        assertFalse(experience.enough());
+        assertEquals(120, experience.available());
+        assertEquals(70, experience.spendable());
+        assertEquals(30, experience.player());
+        assertEquals(40, experience.fluidXp());
+        assertEquals(0, experience.appliedExperiencedAmount());
+        assertEquals(5, experience.missing());
     }
 
     @Test
     void ignoresDuplicatePriorityEntriesAfterFirstUse() {
-        var plan = ExperienceMath.consumeExperience(70, 30, 40, 50, List.of(PLAYER, PLAYER, FLUID_XP));
+        var experience = ExperienceMath.consumeExperience(70, 30, 40, 50, List.of(PLAYER, PLAYER, FLUID_XP));
 
-        assertTrue(plan.canPay());
-        assertEquals(30, plan.playerExperienceUsed());
-        assertEquals(40, plan.fluidXpUsed());
-        assertEquals(0, plan.appliedExperiencedAmountUsed());
+        assertTrue(experience.enough());
+        assertEquals(70, experience.spendable());
+        assertEquals(30, experience.player());
+        assertEquals(40, experience.fluidXp());
+        assertEquals(0, experience.appliedExperiencedAmount());
     }
 
     @Test

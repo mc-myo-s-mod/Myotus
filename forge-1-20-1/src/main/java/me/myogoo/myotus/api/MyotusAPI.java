@@ -276,12 +276,12 @@ public final class MyotusAPI {
             return ExperienceMath.totalExperience(playerExperience, fluidXp, appliedExperienceAmount);
         }
 
-        public ExperienceMath.ExperienceConsumptionPlan consumeExperience(long requiredExperience, long playerExperience,
+        public ExperienceMath.MyoExperience consumeExperience(long requiredExperience, long playerExperience,
                 long fluidXp, long appliedExperienceAmount) {
             return ExperienceMath.consumeExperience(requiredExperience, playerExperience, fluidXp, appliedExperienceAmount);
         }
 
-        public ExperienceMath.ExperienceConsumptionPlan consumeExperience(long requiredExperience, long playerExperience,
+        public ExperienceMath.MyoExperience consumeExperience(long requiredExperience, long playerExperience,
                 long fluidXp, long appliedExperienceAmount, List<ExperienceMath.ExperienceSource> sourcePriority) {
             return ExperienceMath.consumeExperience(requiredExperience, playerExperience, fluidXp, appliedExperienceAmount,
                     sourcePriority);
@@ -336,7 +336,15 @@ public final class MyotusAPI {
             return false;
         }
 
-        public long availableStorageExperience(MEStorage storage, ExperienceMath.ExperienceSource source) {
+        /**
+         * Returns the raw XP amount visibly stored in ME storage for the given source.
+         *
+         * <p>This is a storage snapshot only. It does not prove that the amount can be extracted with
+         * the supplied grid energy or action source. Use {@link #canExtractStorageExperience} or
+         * {@link #extractStorageExperienceExact} for payment decisions.</p>
+         */
+        public long storedStorageExperience(MEStorage storage, ExperienceMath.ExperienceSource source) {
+            Objects.requireNonNull(source, "source");
             if (storage == null) {
                 return 0;
             }
@@ -350,12 +358,58 @@ public final class MyotusAPI {
             return experience;
         }
 
+        /**
+         * @deprecated Use {@link #storedStorageExperience(MEStorage, ExperienceMath.ExperienceSource)}.
+         * This method reports stored amount, not guaranteed extractable amount.
+         */
+        @Deprecated(forRemoval = false)
+        public long availableStorageExperience(MEStorage storage, ExperienceMath.ExperienceSource source) {
+            return storedStorageExperience(storage, source);
+        }
+
+        /**
+         * Returns the amount that the current energy source and storage report as extractable in a
+         * simulation pass. This is useful for UI estimates; payment code should still use
+         * {@link #extractStorageExperienceExact} and check its boolean result.
+         */
+        public long extractableStorageExperience(IEnergySource energySource, MEStorage storage,
+                IActionSource actionSource, ExperienceMath.ExperienceSource source) {
+            return extractStorageExperience(energySource, storage, actionSource,
+                    storedStorageExperience(storage, source), source, Actionable.SIMULATE);
+        }
+
         public boolean canExtractStorageExperience(IEnergySource energySource, MEStorage storage,
                 IActionSource actionSource, long amount, ExperienceMath.ExperienceSource source) {
             return amount <= 0 || extractStorageExperience(energySource, storage, actionSource, amount, source,
                     Actionable.SIMULATE) == amount;
         }
 
+        /**
+         * Extracts exactly {@code amount} raw XP from matching ME storage entries when possible.
+         *
+         * <p>The method simulates first and only modulates when the simulation can satisfy the full
+         * request. It returns {@code false} if the simulation or the real extraction does not remove the
+         * full amount. Like AE2 storage operations generally, it cannot roll back a concurrent partial
+         * extraction that happens after a successful simulation, so callers must treat {@code false} as
+         * payment failure.</p>
+         */
+        public boolean extractStorageExperienceExact(IEnergySource energySource, MEStorage storage,
+                IActionSource actionSource, long amount, ExperienceMath.ExperienceSource source) {
+            if (amount <= 0) {
+                return true;
+            }
+            if (!canExtractStorageExperience(energySource, storage, actionSource, amount, source)) {
+                return false;
+            }
+            return extractStorageExperience(energySource, storage, actionSource, amount, source,
+                    Actionable.MODULATE) == amount;
+        }
+
+        /**
+         * Best-effort extraction helper. The return value is the raw XP amount actually extracted; callers
+         * that need payment semantics must compare it with the requested amount or prefer
+         * {@link #extractStorageExperienceExact}.
+         */
         public long extractStorageExperience(IEnergySource energySource, MEStorage storage, IActionSource actionSource,
                 long amount, ExperienceMath.ExperienceSource source, Actionable actionable) {
             if (amount <= 0 || storage == null) {
