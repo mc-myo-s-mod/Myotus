@@ -29,9 +29,9 @@ public final class ExternalCraftingRecipes extends JsonRecipeProvider {
                 .result(Items.DIAMOND, 1)
                 .save(output);
 
-        AvaritiaNEOCraftingRecipeBuilder.extremeShaped(id("crafting/avaritia_neo/dev_emerald"))
+        AvaritiaNEOCraftingRecipeBuilder.extremeShaped(id("crafting/avaritia-neo/dev_emerald"))
                 .dev()
-                .myoCondition("avaritia_neo")
+                .myoCondition("avaritia-neo")
                 .pattern("RGR")
                 .pattern("GCG")
                 .pattern("RGR")
@@ -41,9 +41,9 @@ public final class ExternalCraftingRecipes extends JsonRecipeProvider {
                 .result(Items.EMERALD, 1)
                 .save(output);
 
-        ReAvaritiaCraftingRecipeBuilder.shaped(id("crafting/re_avaritia/dev_charged_ender_pearl"))
+        ReAvaritiaCraftingRecipeBuilder.shaped(id("crafting/re-avaritia/dev_charged_ender_pearl"))
                 .dev()
-                .myoCondition("re_avaritia")
+                .myoCondition("re-avaritia")
                 .pattern("LPL")
                 .pattern("PEP")
                 .pattern("LPL")
