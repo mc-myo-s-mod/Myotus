@@ -13,3 +13,5 @@
 **/src/generated/
 repo/
 docs/llm-wiki/
+openwiki/
+**/logs/
