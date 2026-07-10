@@ -161,6 +161,27 @@ MyotusAPI.creativeTabs().registerCreativeTabStack(
 );
 ```
 
+### Cycle Buttons
+
+`MyoCycleButton` reports left and right clicks explicitly, including right clicks that an AE2 screen
+forwards to child widgets as button `0`:
+
+```java
+var cycleButton = new MyoCycleButton(
+        mouseButton -> {
+            switch (mouseButton) {
+                case LEFT -> selectNext();
+                case RIGHT -> selectPrevious();
+            }
+        },
+        this::selectedItem,
+        this::tooltip
+);
+```
+
+For separate actions without a switch, use the constructor accepting `leftClickAction` and
+`rightClickAction`. Keyboard activation follows the left-click action.
+
 ### Command Arguments
 
 Annotation-driven commands support built-in primitive, string, entity, and player parameters. Register

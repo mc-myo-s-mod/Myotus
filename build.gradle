@@ -230,6 +230,7 @@ configure(modProjects) {
         include 'me/myogoo/myotus/dto/MyoModInfo.class'
         include 'me/myogoo/myotus/client/gui/MyoIcon.class'
         include 'me/myogoo/myotus/client/gui/widgets/button/CustomTabButton*.class'
+        include 'me/myogoo/myotus/client/gui/widgets/button/MyoCycleButton*.class'
     }
 
     tasks.named('assemble').configure {
