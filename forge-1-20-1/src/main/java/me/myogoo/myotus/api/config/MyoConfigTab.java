@@ -15,6 +15,9 @@ import java.util.Objects;
 /**
  * Immutable description of a tab shown in the terminal configuration screen.
  *
+ * <p>This is a client-only API. Construct and register tabs from client setup, never from a common
+ * class that can load on a dedicated server.</p>
+ *
  * <p>Every tab has a stable {@link ResourceLocation} id. Add-on mods should use
  * their own namespace, for example {@code examplemod:terminal_settings}. The id
  * is used for duplicate detection, ordering/debugging, and future tab-specific
@@ -49,6 +52,10 @@ public record MyoConfigTab(ResourceLocation id, Component title, Blitter blitter
         id = Objects.requireNonNull(id, "id");
         title = Objects.requireNonNull(title, "title");
         stylePath = Objects.requireNonNull(stylePath, "stylePath");
+        if (stylePath.isBlank()) {
+            throw new IllegalArgumentException("stylePath must not be blank");
+        }
+        stack = stack == null ? null : stack.copy();
         configTabScreen = Objects.requireNonNull(configTabScreen, "configTabScreen");
         visibility = Objects.requireNonNullElse(visibility, MyoConfigTabVisibility.ALWAYS_VISIBLE);
     }
@@ -84,6 +91,17 @@ public record MyoConfigTab(ResourceLocation id, Component title, Blitter blitter
         if(stack != null) {
             return new CustomTabButton(stack, title, onPress);
         } else return new CustomTabButton(Objects.requireNonNullElseGet(blitter, Icon.WRENCH::getBlitter), title, onPress);
+    }
+
+    /** Builds this tab's button without exposing the Myotus implementation class. */
+    public Button createButton(Button.OnPress onPress) {
+        return getTabButton(onPress);
+    }
+
+    /** Returns a defensive copy of the item icon, if present. */
+    @Override
+    public ItemStack stack() {
+        return stack == null ? null : stack.copy();
     }
 
     /**

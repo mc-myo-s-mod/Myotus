@@ -26,9 +26,9 @@ public class MyotusCommand {
 
         for (AnnotationScanner.ScannedAnnotation annotation : AnnotationScanner.find(myoCommandType)) {
             try {
-                Class<?> clazz = Class.forName(annotation.className());
+                Class<?> clazz = Class.forName(annotation.className(), false, MyotusCommand.class.getClassLoader());
                 commandClasses.add(clazz);
-            } catch (ClassNotFoundException e) {
+            } catch (ClassNotFoundException | LinkageError e) {
                 MyoLogger.error("Failed to load command class: {}", annotation.className(), e);
             }
         }

@@ -3,7 +3,7 @@ package me.myogoo.myotus.api.network;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
- * Shared networking facade for custom packets that travel through the Myotus packet channel.
+ * Shared networking API for custom packets that travel through the Myotus packet channel.
  *
  * <p>Packets registered here are encoded and delivered through Myotus' own Forge
  * {@code SimpleChannel}, so add-on mods do not need to depend on AE2 networking.</p>

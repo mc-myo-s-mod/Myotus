@@ -74,10 +74,15 @@ class ExperienceMathTest {
     }
 
     @Test
-    void consumesExperienceUsingDefaultAnvilPriority() {
-        var experience = ExperienceMath.consumeExperience(75, 30, 40, 50);
+    void plansExperienceUsingDefaultAnvilPriority() {
+        var experience = ExperienceMath.planConsumption(75,
+                new ExperienceMath.ExperienceAmounts(30, 40, 50),
+                ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY);
 
         assertTrue(experience.enough());
+        assertTrue(experience.canPay());
+        assertEquals(75, experience.totalUsed());
+        assertEquals(new ExperienceMath.ExperienceAmounts(30, 40, 5), experience.usedAmounts());
         assertEquals(75, experience.required());
         assertEquals(120, experience.available());
         assertEquals(120, experience.spendable());
@@ -91,8 +96,9 @@ class ExperienceMathTest {
     }
 
     @Test
-    void consumesExperienceUsingCustomPriority() {
-        var experience = ExperienceMath.consumeExperience(75, 30, 40, 50,
+    void plansExperienceUsingCustomPriority() {
+        var experience = ExperienceMath.planConsumption(75,
+                new ExperienceMath.ExperienceAmounts(30, 40, 50),
                 List.of(APPLIED_EXPERIENCED_AMOUNT, FLUID_XP, PLAYER));
 
         assertTrue(experience.enough());
@@ -104,7 +110,8 @@ class ExperienceMathTest {
 
     @Test
     void reportsMissingExperienceWhenPrioritySourcesAreInsufficient() {
-        var experience = ExperienceMath.consumeExperience(75, 30, 40, 50, List.of(PLAYER, FLUID_XP));
+        var experience = ExperienceMath.planConsumption(75,
+                new ExperienceMath.ExperienceAmounts(30, 40, 50), List.of(PLAYER, FLUID_XP));
 
         assertFalse(experience.enough());
         assertEquals(120, experience.available());
@@ -117,7 +124,8 @@ class ExperienceMathTest {
 
     @Test
     void ignoresDuplicatePriorityEntriesAfterFirstUse() {
-        var experience = ExperienceMath.consumeExperience(70, 30, 40, 50, List.of(PLAYER, PLAYER, FLUID_XP));
+        var experience = ExperienceMath.planConsumption(70,
+                new ExperienceMath.ExperienceAmounts(30, 40, 50), List.of(PLAYER, PLAYER, FLUID_XP));
 
         assertTrue(experience.enough());
         assertEquals(70, experience.spendable());
@@ -127,16 +135,28 @@ class ExperienceMathTest {
     }
 
     @Test
+    void plansFromNamedSourceAmountsWithoutAmbiguousPositionalArguments() {
+        var amounts = new ExperienceMath.ExperienceAmounts(30, 40, 50);
+        var plan = ExperienceMath.planConsumption(75, amounts,
+                List.of(APPLIED_EXPERIENCED_AMOUNT, PLAYER, FLUID_XP));
+
+        assertTrue(plan.canPay());
+        assertEquals(50, plan.appliedExperiencedAmount());
+        assertEquals(25, plan.player());
+        assertEquals(0, plan.fluidXp());
+        assertEquals(120, amounts.total());
+        assertEquals(40, amounts.amount(FLUID_XP));
+    }
+
+    @Test
     void rejectsNegativeExperienceInputs() {
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.totalExperience(-1, 0));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.totalExperience(0, -1));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.totalExperience(-1, 0, 0));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.totalExperience(0, -1, 0));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.totalExperience(0, 0, -1));
-        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.consumeExperience(-1, 0, 0, 0));
-        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.consumeExperience(0, -1, 0, 0));
-        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.consumeExperience(0, 0, -1, 0));
-        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.consumeExperience(0, 0, 0, -1));
+        assertThrows(IllegalArgumentException.class, () -> ExperienceMath.planConsumption(-1,
+                ExperienceMath.ExperienceAmounts.ZERO, ExperienceMath.DEFAULT_ANVIL_SOURCE_PRIORITY));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.totalExperienceForLevel(-1));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.levelForTotalExperience(-1));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.vanillaAnvilExperienceCost(-1, 0));
@@ -145,6 +165,18 @@ class ExperienceMathTest {
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.apothicEnchantingTableExperienceCost(-1, 0));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.apothicEnchantingTableExperienceCost(0, -1));
         assertThrows(IllegalArgumentException.class, () -> ExperienceMath.apothicLibraryPointsForLevel(-1));
+        assertThrows(IllegalArgumentException.class, () -> new ExperienceMath.ExperienceAmounts(-1, 0, 0));
+    }
+
+    @Test
+    void handlesLargeExperienceInputsWithoutLinearScanningOrOverflow() {
+        int level = ExperienceMath.levelForTotalExperience(Long.MAX_VALUE);
+
+        assertTrue(level > 1_000_000_000);
+        assertTrue(ExperienceMath.totalExperienceForLevel(level) <= Long.MAX_VALUE);
+        assertThrows(ArithmeticException.class, () -> ExperienceMath.totalExperienceForLevel(level + 1));
+        assertThrows(ArithmeticException.class, () -> ExperienceMath.totalExperienceForLevel(Integer.MAX_VALUE));
+        assertThrows(ArithmeticException.class, () -> ExperienceMath.experienceToNextLevel(Integer.MAX_VALUE));
     }
 
     @Test
@@ -165,6 +197,8 @@ class ExperienceMathTest {
                         + ExperienceMath.experienceToNextLevel(27) - 1,
                 ExperienceMath.apothicEnchantingTableExperienceCost(30, 2));
         assertEquals(0, ExperienceMath.apothicEnchantingTableExperienceCost(0, 2));
+        assertEquals(ExperienceMath.totalExperienceForLevel(30) - 1,
+                ExperienceMath.apothicEnchantingTableExperienceCost(30, Integer.MAX_VALUE));
     }
 
     @Test
@@ -174,6 +208,7 @@ class ExperienceMathTest {
         assertEquals(2, ExperienceMath.apothicLibraryPointsForLevel(2));
         assertEquals(4, ExperienceMath.apothicLibraryPointsForLevel(3));
         assertEquals(8, ExperienceMath.apothicLibraryPointsForLevel(4));
+        assertThrows(ArithmeticException.class, () -> ExperienceMath.apothicLibraryPointsForLevel(64));
         assertThrows(ArithmeticException.class, () -> ExperienceMath.apothicLibraryPointsForLevel(65));
     }
 }

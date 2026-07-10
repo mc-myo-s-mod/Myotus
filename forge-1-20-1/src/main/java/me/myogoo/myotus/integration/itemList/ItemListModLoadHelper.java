@@ -55,28 +55,38 @@ public class ItemListModLoadHelper {
     }
 
     private static <R> void invokeMethod(Class<?> clazz, Class<R> parameterType, R registration) {
+        Method[] methods;
         try {
-            Method[] methods = clazz.getDeclaredMethods();
-            for (var method : methods) {
-                if (method.isAnnotationPresent(MyotusSubscriber.class)) {
-                    if (!Modifier.isStatic(method.getModifiers())) {
-                        MyoLogger.warn(
-                                "Method {} in class {} is annotated with @MyotusSubscriber but is not static.",
-                                method.getName(), clazz.getName());
-                        continue;
-                    }
-                    if (method.getParameterCount() == 1 && method.getParameterTypes()[0] == parameterType) {
-                        method.setAccessible(true);
-                        method.invoke(null, registration);
-                    } else {
-                        MyoLogger.warn(
-                                "Method {} in class {} is annotated with @MyotusSubscriber but does not have the correct parameters.",
-                                method.getName(), clazz.getName());
-                    }
-                }
+            methods = clazz.getDeclaredMethods();
+        } catch (LinkageError | RuntimeException e) {
+            MyoLogger.error("Failed to inspect ItemList subscribers in class {}", clazz.getName(), e);
+            return;
+        }
+
+        for (var method : methods) {
+            if (!method.isAnnotationPresent(MyotusSubscriber.class)) {
+                continue;
             }
-        } catch (InvocationTargetException | IllegalAccessException e) {
-            MyoLogger.error("Failed to register ItemListMod for class: {}", clazz.getName(), e);
+            if (!Modifier.isStatic(method.getModifiers())) {
+                MyoLogger.warn("Method {} in class {} is annotated with @MyotusSubscriber but is not static.",
+                        method.getName(), clazz.getName());
+                continue;
+            }
+            if (method.getParameterCount() != 1 || method.getParameterTypes()[0] != parameterType) {
+                MyoLogger.warn(
+                        "Method {} in class {} is annotated with @MyotusSubscriber but does not have the correct parameters.",
+                        method.getName(), clazz.getName());
+                continue;
+            }
+
+            try {
+                method.setAccessible(true);
+                method.invoke(null, registration);
+            } catch (InvocationTargetException e) {
+                MyoLogger.error("ItemList subscriber {}.{} failed", clazz.getName(), method.getName(), e.getCause());
+            } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+                MyoLogger.error("Failed to invoke ItemList subscriber {}.{}", clazz.getName(), method.getName(), e);
+            }
         }
     }
 }

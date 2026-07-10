@@ -43,6 +43,7 @@ public class SidePanelToggleButton extends CustomImageButton {
     public void run() {
         boolean newValue = !MyotusClientConfig.CLIENT.openSidePanel.get();
         MyotusClientConfig.CLIENT.openSidePanel.set(newValue);
+        MyotusClientConfig.CLIENT.save();
         this.sidePanel.setVisible(newValue);
         this.updateTooltip();
     }

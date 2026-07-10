@@ -104,6 +104,15 @@ public final class AddTerminalEvent {
         Objects.requireNonNull(hotkeyName, "hotkeyName");
         Objects.requireNonNull(translationKey, "translationKey");
 
+        if (!(item instanceof WirelessTerminalItem)) {
+            throw new IllegalArgumentException(
+                    "Cannot add terminal to AE2WTLib creative tab because it is not a WirelessTerminalItem");
+        }
+        if (quantumBridgeCard && !(item instanceof Item)) {
+            throw new IllegalArgumentException(
+                    "Cannot add quantum bridge card support to a terminal item that is not an Item");
+        }
+
         if (WUTHandler.terminalNames.contains(terminalName)) {
             throw new IllegalStateException(
                     "Trying to register terminal with name " + terminalName + " but it already exists");

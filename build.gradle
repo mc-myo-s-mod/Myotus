@@ -227,7 +227,13 @@ configure(modProjects) {
         include 'me/myogoo/myotus/api/**'
         // Public API signatures expose these supporting value/icon types.
         include 'me/myogoo/myotus/dto/MyoModDto.class'
+        include 'me/myogoo/myotus/dto/MyoModInfo.class'
         include 'me/myogoo/myotus/client/gui/MyoIcon.class'
+        include 'me/myogoo/myotus/client/gui/widgets/button/CustomTabButton*.class'
+    }
+
+    tasks.named('assemble').configure {
+        dependsOn tasks.named('apiJar')
     }
 
     plugins.withId('com.vanniktech.maven.publish') {
@@ -243,6 +249,9 @@ configure(modProjects) {
                     artifact(tasks.named('jar')) {
                         classifier = null
                     }
+                }
+                artifact(tasks.named('apiJar')) {
+                    classifier = 'api'
                 }
             }
         }

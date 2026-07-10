@@ -2,13 +2,18 @@ package me.myogoo.myotus.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import me.myogoo.myotus.command.MyoCommandMetadata.PermissionInfo;
+import me.myogoo.myotus.api.command.permission.MyoPermissionChecker;
 import me.myogoo.myotus.api.command.permission.MyoPermissionLevel;
 import me.myogoo.myotus.util.MyoLogger;
 import net.minecraft.commands.CommandSourceStack;
 
-import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 final class MyoCommandPermissions {
+    private static final Map<Class<? extends MyoPermissionChecker>, MyoPermissionChecker> CHECKERS =
+            new ConcurrentHashMap<>();
+
     private MyoCommandPermissions() {
     }
 
@@ -39,24 +44,55 @@ final class MyoCommandPermissions {
         }
 
         if (count == 0) {
-            MyoLogger.warn("@MyoPermission on {} has no requirement set. Ignoring.", owner);
+            MyoLogger.error("@MyoPermission on {} has no requirement set. Command registration was denied.", owner);
             return false;
         }
         if (count > 1) {
-            MyoLogger.error("@MyoPermission on {} has multiple requirement types set. Ignoring.", owner);
+            MyoLogger.error("@MyoPermission on {} has multiple requirement types set. Command registration was denied.",
+                    owner);
             return false;
+        }
+        if (permission.customChecker() != permission.defaultChecker()
+                && !MyoPermissionChecker.class.isAssignableFrom(permission.customChecker())) {
+            MyoLogger.error("Custom permission checker {} on {} does not implement {}. Command registration was denied.",
+                    permission.customChecker().getName(), owner, MyoPermissionChecker.class.getName());
+            return false;
+        }
+        if (permission.customChecker() != permission.defaultChecker()) {
+            try {
+                Class<? extends MyoPermissionChecker> checkerClass = permission.customChecker()
+                        .asSubclass(MyoPermissionChecker.class);
+                CHECKERS.computeIfAbsent(checkerClass, MyoCommandPermissions::createChecker);
+            } catch (RuntimeException e) {
+                MyoLogger.error("Custom permission checker {} on {} could not be initialized. "
+                                + "Command registration was denied.",
+                        permission.customChecker().getName(), owner, e);
+                return false;
+            }
         }
         return true;
     }
 
     private static boolean checkCustomPermission(CommandSourceStack source, Class<?> checkerClass) {
         try {
-            Object checker = checkerClass.getDeclaredConstructor().newInstance();
-            Method check = checkerClass.getMethod("check", CommandSourceStack.class);
-            return Boolean.TRUE.equals(check.invoke(checker, source));
-        } catch (Exception e) {
+            Class<? extends MyoPermissionChecker> typedClass = checkerClass.asSubclass(MyoPermissionChecker.class);
+            MyoPermissionChecker checker = CHECKERS.computeIfAbsent(typedClass,
+                    ignored -> createChecker(typedClass));
+            return checker.check(source);
+        } catch (RuntimeException e) {
             MyoLogger.error("Failed to evaluate custom Myotus permission checker {}", checkerClass.getName(), e);
             return false;
+        }
+    }
+
+    private static MyoPermissionChecker createChecker(Class<? extends MyoPermissionChecker> checkerClass) {
+        try {
+            return checkerClass.getConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(
+                    "Custom permission checker must expose a public no-argument constructor: "
+                            + checkerClass.getName(),
+                    e);
         }
     }
 }

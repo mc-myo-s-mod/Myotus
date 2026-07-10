@@ -32,12 +32,6 @@ public final class ExperienceMath {
     /** Common fluid tag used by Applied Experienced on NeoForge for experience-compatible fluids. */
     public static final String COMMON_EXPERIENCE_FLUID_TAG_ID = "c:experience";
 
-    /** Applied Experienced accepts/creates one vanilla experience bottle as seven experience points. */
-    public static final int EXPERIENCE_PER_BOTTLE = 7;
-
-    /** Applied Experienced's energy adapter converts one experience point to thirty-two AE. */
-    public static final int AE_PER_EXPERIENCE = 32;
-
     /** Consumption order for anvil-like UIs when fluid XP is available. */
     public static final List<ExperienceSource> DEFAULT_ANVIL_SOURCE_PRIORITY = Collections.unmodifiableList(Arrays.asList(
             ExperienceSource.PLAYER,
@@ -65,6 +59,41 @@ public final class ExperienceMath {
     }
 
     /**
+     * Immutable raw-XP balances grouped by source.
+     *
+     * <p>Values passed here must already be normalized to vanilla experience points. In particular,
+     * fluid storage units such as mB must be converted by the caller before constructing this value.</p>
+     *
+     * @param player raw player experience points
+     * @param fluidXp raw experience points represented by an explicitly converted fluid source
+     * @param appliedExperiencedAmount raw Applied Experienced points
+     */
+    public record ExperienceAmounts(long player, long fluidXp, long appliedExperiencedAmount) {
+        public static final ExperienceAmounts ZERO = new ExperienceAmounts(0, 0, 0);
+
+        public ExperienceAmounts {
+            requireNonNegative(player, "player");
+            requireNonNegative(fluidXp, "fluidXp");
+            requireNonNegative(appliedExperiencedAmount, "appliedExperiencedAmount");
+        }
+
+        /** Returns the amount available from {@code source}. */
+        public long amount(ExperienceSource source) {
+            Objects.requireNonNull(source, "source");
+            return switch (source) {
+                case PLAYER -> player;
+                case FLUID_XP -> fluidXp;
+                case APPLIED_EXPERIENCED_AMOUNT -> appliedExperiencedAmount;
+            };
+        }
+
+        /** Returns the exact total of all source balances. */
+        public long total() {
+            return totalExperience(player, fluidXp, appliedExperiencedAmount);
+        }
+    }
+
+    /**
      * Immutable Myotus XP spending result for multiple source pools in a caller-provided priority order.
      *
      * @param required raw XP points requested by the caller
@@ -85,11 +114,37 @@ public final class ExperienceMath {
             requireNonNegative(player, "player");
             requireNonNegative(fluidXp, "fluidXp");
             requireNonNegative(appliedExperiencedAmount, "appliedExperiencedAmount");
+
+            long used = Math.addExact(Math.addExact(player, fluidXp), appliedExperiencedAmount);
+            if (spendable > available) {
+                throw new IllegalArgumentException("spendable must not exceed available");
+            }
+            if (used > spendable) {
+                throw new IllegalArgumentException("used experience must not exceed spendable experience");
+            }
+            if (used > required || missing != required - used) {
+                throw new IllegalArgumentException("used and missing experience must equal required experience");
+            }
         }
 
         /** Returns {@code true} when all required XP can be paid from spendable sources. */
         public boolean enough() {
             return missing == 0;
+        }
+
+        /** Returns {@code true} when all required XP can be paid from spendable sources. */
+        public boolean canPay() {
+            return enough();
+        }
+
+        /** Returns the exact amount assigned across all sources. */
+        public long totalUsed() {
+            return Math.addExact(Math.addExact(player, fluidXp), appliedExperiencedAmount);
+        }
+
+        /** Returns the source-by-source amounts assigned by this plan. */
+        public ExperienceAmounts usedAmounts() {
+            return new ExperienceAmounts(player, fluidXp, appliedExperiencedAmount);
         }
 
         /** Returns the amount used for a specific source. */
@@ -161,47 +216,24 @@ public final class ExperienceMath {
     }
 
     /**
-     * Creates a consumption plan using {@link #DEFAULT_ANVIL_SOURCE_PRIORITY}.
+     * Creates a pure, non-mutating consumption plan from normalized raw-XP balances.
      *
      * @param requiredExperience raw XP points to spend
-     * @param playerExperience available raw player XP points
-     * @param fluidXp available raw {@code fluid:xp} points
-     * @param appliedExperienceAmount available raw Applied Experienced amount points
+     * @param availableAmounts normalized raw-XP balances
+     * @param sourcePriority source order to use; duplicate entries are ignored
      * @return immutable source-by-source consumption plan
      */
-    public static MyoExperience consumeExperience(long requiredExperience, long playerExperience,
-            long fluidXp, long appliedExperienceAmount) {
-        return consumeExperience(requiredExperience, playerExperience, fluidXp, appliedExperienceAmount,
-                DEFAULT_ANVIL_SOURCE_PRIORITY);
-    }
-
-    /**
-     * Creates a consumption plan using the supplied source priority. Earlier sources are consumed first.
-     *
-     * <p>The returned value is safe to inspect even when the supplied pools are insufficient: in that case
-     * {@link MyoExperience#enough()} returns {@code false} and
-     * {@link MyoExperience#missing()} reports the missing raw points.</p>
-     *
-     * @param requiredExperience raw XP points to spend
-     * @param playerExperience available raw player XP points
-     * @param fluidXp available raw {@code fluid:xp} points
-     * @param appliedExperienceAmount available raw Applied Experienced amount points
-     * @param sourcePriority source order to consume from; duplicate entries are ignored after their first use
-     * @return immutable source-by-source consumption plan
-     */
-    public static MyoExperience consumeExperience(long requiredExperience, long playerExperience,
-            long fluidXp, long appliedExperienceAmount, List<ExperienceSource> sourcePriority) {
+    public static MyoExperience planConsumption(long requiredExperience, ExperienceAmounts availableAmounts,
+            List<ExperienceSource> sourcePriority) {
         requireNonNegative(requiredExperience, "requiredExperience");
-        requireNonNegative(playerExperience, "playerExperience");
-        requireNonNegative(fluidXp, "fluidXp");
-        requireNonNegative(appliedExperienceAmount, "appliedExperienceAmount");
+        Objects.requireNonNull(availableAmounts, "availableAmounts");
         Objects.requireNonNull(sourcePriority, "sourcePriority");
 
-        long availableExperience = totalExperience(playerExperience, fluidXp, appliedExperienceAmount);
+        long availableExperience = availableAmounts.total();
         Map<ExperienceSource, Long> remainingBySource = new EnumMap<>(ExperienceSource.class);
-        remainingBySource.put(ExperienceSource.PLAYER, playerExperience);
-        remainingBySource.put(ExperienceSource.FLUID_XP, fluidXp);
-        remainingBySource.put(ExperienceSource.APPLIED_EXPERIENCED_AMOUNT, appliedExperienceAmount);
+        for (ExperienceSource source : ExperienceSource.values()) {
+            remainingBySource.put(source, availableAmounts.amount(source));
+        }
 
         Map<ExperienceSource, Long> usedBySource = new EnumMap<>(ExperienceSource.class);
         for (ExperienceSource source : ExperienceSource.values()) {
@@ -245,12 +277,16 @@ public final class ExperienceMath {
     public static long totalExperienceForLevel(int level) {
         requireNonNegative(level, "level");
         if (level <= 16) {
-            return (long) level * level + 6L * level;
+            return Math.addExact(Math.multiplyExact((long) level, level), Math.multiplyExact(6L, level));
         }
         if (level <= 31) {
-            return Math.floorDiv(5L * level * level - 81L * level + 720L, 2L);
+            long squaredTerm = Math.multiplyExact(Math.multiplyExact(5L, level), level);
+            long linearTerm = Math.multiplyExact(81L, level);
+            return Math.floorDiv(Math.addExact(Math.subtractExact(squaredTerm, linearTerm), 720L), 2L);
         }
-        return Math.floorDiv(9L * level * level - 325L * level + 4440L, 2L);
+        long squaredTerm = Math.multiplyExact(Math.multiplyExact(9L, level), level);
+        long linearTerm = Math.multiplyExact(325L, level);
+        return Math.floorDiv(Math.addExact(Math.subtractExact(squaredTerm, linearTerm), 4440L), 2L);
     }
 
     /**
@@ -261,11 +297,17 @@ public final class ExperienceMath {
      */
     public static int levelForTotalExperience(long totalExperience) {
         requireNonNegative(totalExperience, "totalExperience");
-        int level = 0;
-        while (totalExperienceForLevel(level + 1) <= totalExperience) {
-            level++;
+        int low = 0;
+        int high = Integer.MAX_VALUE;
+        while (low < high) {
+            int candidate = low + (int) (((long) high - low + 1L) / 2L);
+            if (isLevelAtOrBelowExperience(candidate, totalExperience)) {
+                low = candidate;
+            } else {
+                high = candidate - 1;
+            }
         }
-        return level;
+        return low;
     }
 
     /**
@@ -287,6 +329,9 @@ public final class ExperienceMath {
      */
     public static long experienceToNextLevel(int level) {
         requireNonNegative(level, "level");
+        if (level == Integer.MAX_VALUE) {
+            throw new ArithmeticException("No representable level exists after Integer.MAX_VALUE");
+        }
         return totalExperienceForLevel(level + 1) - totalExperienceForLevel(level);
     }
 
@@ -334,13 +379,9 @@ public final class ExperienceMath {
     public static long apothicEnchantingTableExperienceCost(int level, int slot) {
         requireNonNegative(level, "level");
         requireNonNegative(slot, "slot");
-        long cost = 0;
-        for (int i = 0; i <= slot; i++) {
-            int stepLevel = level - i;
-            if (stepLevel > 0) {
-                cost = Math.addExact(cost, experienceToNextLevel(stepLevel - 1));
-            }
-        }
+        long lowerBoundary = Math.max(0L, (long) level - slot - 1L);
+        long cost = Math.subtractExact(totalExperienceForLevel(level),
+                totalExperienceForLevel((int) lowerBoundary));
         return Math.max(0, cost - 1);
     }
 
@@ -358,10 +399,18 @@ public final class ExperienceMath {
         if (level == 0) {
             return 0;
         }
-        if (level > Long.SIZE) {
+        if (level >= Long.SIZE) {
             throw new ArithmeticException("Apothic library points overflow long for level " + level);
         }
         return 1L << (level - 1);
+    }
+
+    private static boolean isLevelAtOrBelowExperience(int level, long totalExperience) {
+        try {
+            return totalExperienceForLevel(level) <= totalExperience;
+        } catch (ArithmeticException ignored) {
+            return false;
+        }
     }
 
     private static void requireNonNegative(long value, String name) {

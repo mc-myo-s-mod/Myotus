@@ -34,11 +34,15 @@ final class MyoCommandNodeBuilder {
 
         LiteralArgumentBuilder<CommandSourceStack> node = Commands.literal(command.value());
         PermissionInfo permission = MyoCommandMetadata.getPermissionInfo(clazz);
-        PermissionInfo executePermission = null;
-        if (permission != null && MyoCommandPermissions.validate(permission, clazz.getName())) {
-            MyoCommandPermissions.apply(node, permission);
-            if (!permission.propagate()) {
-                executePermission = permission;
+        PermissionInfo localExecutePermission = null;
+        if (permission != null) {
+            if (!MyoCommandPermissions.validate(permission, clazz.getName())) {
+                return null;
+            }
+            if (permission.propagate()) {
+                MyoCommandPermissions.apply(node, permission);
+            } else {
+                localExecutePermission = permission;
             }
         }
 
@@ -52,7 +56,20 @@ final class MyoCommandNodeBuilder {
                 continue;
             }
 
-            buildExecutionBranch(clazz, method, execute, executePermission, node);
+            PermissionInfo methodPermission = MyoCommandMetadata.getPermissionInfo(method);
+            if (methodPermission != null && !MyoCommandPermissions.validate(methodPermission,
+                    clazz.getName() + "." + method.getName())) {
+                continue;
+            }
+
+            List<PermissionInfo> executePermissions = new ArrayList<>(2);
+            if (localExecutePermission != null) {
+                executePermissions.add(localExecutePermission);
+            }
+            if (methodPermission != null) {
+                executePermissions.add(methodPermission);
+            }
+            buildExecutionBranch(clazz, method, execute, List.copyOf(executePermissions), node);
         }
 
         addChildCommands(clazz, allCommandClasses, node);
@@ -62,7 +79,7 @@ final class MyoCommandNodeBuilder {
     private static void buildExecutionBranch(Class<?> owner,
                                              Method method,
                                              ExecuteInfo execute,
-                                             PermissionInfo executePermission,
+                                             List<PermissionInfo> executePermissions,
                                              LiteralArgumentBuilder<CommandSourceStack> node) {
         Parameter[] parameters = method.getParameters();
         List<ParameterMapping> mappings = new ArrayList<>();
@@ -97,19 +114,22 @@ final class MyoCommandNodeBuilder {
 
         method.setAccessible(true);
         Command<CommandSourceStack> executor = context -> invokeExecute(method, parameters, mappings,
-                executePermission, context);
+                executePermissions, context);
         attachExecution(node, execute.path(), argumentBuilders, executor);
     }
 
     private static int invokeExecute(Method method,
                                      Parameter[] parameters,
                                      List<ParameterMapping> mappings,
-                                     PermissionInfo executePermission,
+                                     List<PermissionInfo> executePermissions,
                                      CommandContext<CommandSourceStack> context) {
         try {
-            if (executePermission != null && !MyoCommandPermissions.check(context.getSource(), executePermission)) {
-                context.getSource().sendFailure(Component.literal("You do not have permission to execute this command."));
-                return 0;
+            for (PermissionInfo permission : executePermissions) {
+                if (!MyoCommandPermissions.check(context.getSource(), permission)) {
+                    context.getSource().sendFailure(
+                            Component.literal("You do not have permission to execute this command."));
+                    return 0;
+                }
             }
 
             Object[] args = new Object[parameters.length];
@@ -125,7 +145,7 @@ final class MyoCommandNodeBuilder {
                 return bool ? Command.SINGLE_SUCCESS : 0;
             }
             return Command.SINGLE_SUCCESS;
-        } catch (Exception e) {
+        } catch (Exception | LinkageError e) {
             MyoLogger.error("Error executing Myotus command method {}", method.getName(), e);
             return 0;
         }

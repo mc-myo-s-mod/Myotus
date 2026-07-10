@@ -11,6 +11,7 @@ import net.minecraft.commands.Commands;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 final class MyoCommandAliasRegistrar {
     private MyoCommandAliasRegistrar() {
@@ -23,7 +24,7 @@ final class MyoCommandAliasRegistrar {
         AliasInfo rootAliases = MyoCommandMetadata.getAliasInfo(rootClass);
         if (rootAliases != null) {
             for (String alias : rootAliases.values()) {
-                registerAlias(dispatcher, alias, rootNode, List.of());
+                registerAlias(dispatcher, alias, rootNode, List.of(), source -> true);
             }
         }
 
@@ -48,8 +49,10 @@ final class MyoCommandAliasRegistrar {
             }
 
             List<String> parentPath = path.subList(0, path.size() - 1);
+            Predicate<CommandSourceStack> ancestorRequirement = collectAncestorRequirement(dispatcher, path);
             for (String alias : aliases.values()) {
-                registerAlias(dispatcher, alias, targetNode, parentPath);
+                registerAlias(dispatcher, alias, targetNode, parentPath,
+                        alias.startsWith("/") ? ancestorRequirement : source -> true);
             }
         }
     }
@@ -57,13 +60,15 @@ final class MyoCommandAliasRegistrar {
     private static void registerAlias(CommandDispatcher<CommandSourceStack> dispatcher,
                                       String alias,
                                       CommandNode<CommandSourceStack> targetNode,
-                                      List<String> parentPath) {
+                                      List<String> parentPath,
+                                      Predicate<CommandSourceStack> ancestorRequirement) {
         List<String> segments = MyoCommandPaths.resolveAlias(alias, parentPath);
         if (segments.isEmpty()) {
             return;
         }
 
-        LiteralArgumentBuilder<CommandSourceStack> current = copyTargetNode(segments.get(segments.size() - 1), targetNode);
+        LiteralArgumentBuilder<CommandSourceStack> current = copyTargetNode(
+                segments.get(segments.size() - 1), targetNode, ancestorRequirement);
         if (segments.size() == 1) {
             dispatcher.register(current);
             return;
@@ -87,16 +92,31 @@ final class MyoCommandAliasRegistrar {
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> copyTargetNode(String name,
-                                                                            CommandNode<CommandSourceStack> targetNode) {
+            CommandNode<CommandSourceStack> targetNode,
+            Predicate<CommandSourceStack> ancestorRequirement) {
         LiteralArgumentBuilder<CommandSourceStack> copy = Commands.literal(name);
         if (targetNode.getCommand() != null) {
             copy.executes(targetNode.getCommand());
         }
-        copy.requires(targetNode.getRequirement());
+        copy.requires(ancestorRequirement.and(targetNode.getRequirement()));
         for (CommandNode<CommandSourceStack> child : targetNode.getChildren()) {
             copy.then(child);
         }
         return copy;
+    }
+
+    private static Predicate<CommandSourceStack> collectAncestorRequirement(
+            CommandDispatcher<CommandSourceStack> dispatcher, List<String> path) {
+        Predicate<CommandSourceStack> combined = source -> true;
+        CommandNode<CommandSourceStack> node = dispatcher.getRoot();
+        for (int i = 0; i < path.size() - 1; i++) {
+            node = node.getChild(path.get(i));
+            if (node == null) {
+                return source -> false;
+            }
+            combined = combined.and(node.getRequirement());
+        }
+        return combined;
     }
 
     private static void collectAllChildren(Class<?> parentClass, List<Class<?>> allCommandClasses, List<Class<?>> result) {

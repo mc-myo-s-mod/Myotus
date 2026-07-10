@@ -34,5 +34,9 @@ public final class MyotusConfig {
         public ModConfigSpec get() {
             return spec;
         }
+
+        public void save() {
+            spec.save();
+        }
     }
 }

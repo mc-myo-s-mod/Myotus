@@ -36,55 +36,45 @@ public interface IMyotusAPI {
      *
      * @return the config registrar
      */
-    IConfigRegistrar configRegistrar();
+    IConfigRegistrar configTabs();
 
     /**
      * Returns the registrar for contributing entries to the shared Myotus creative tab.
      *
      * @return the creative tab registrar
      */
-    ICreativeTabRegistrar creativeTabRegistrar();
+    ICreativeTabRegistrar creativeTabs();
 
     /**
-     * Canonical alias for {@link #configRegistrar()}.
+     * Returns the public API for Myotus-managed optional integrations.
      *
-     * @return the config tab registrar
+     * @return the integration API
      */
-    default IConfigRegistrar configTabs() {
-        return configRegistrar();
-    }
-
-    /**
-     * Canonical alias for {@link #creativeTabRegistrar()}.
-     *
-     * @return the creative tab registrar
-     */
-    default ICreativeTabRegistrar creativeTabs() {
-        return creativeTabRegistrar();
-    }
-
-    /**
-     * Returns the public facade for Myotus-managed optional integrations.
-     *
-     * @return the integration facade
-     */
-    default MyotusAPI.IntegrationFacade integrations() {
+    default MyotusAPI.IntegrationsApi integrations() {
         return MyotusAPI.integrations();
     }
 
     /**
-     * Returns the public facade for Applied Experienced / {@code fluid:xp} calculations.
+     * Returns the public API for Applied Experienced / {@code fluid:xp} calculations.
      *
-     * @return the experience calculation facade
+     * @return the experience calculation API
      */
-    default MyotusAPI.ExperienceFacade experience() {
+    default MyotusAPI.ExperienceApi experience() {
         return MyotusAPI.experience();
     }
 
+    default MyotusAPI.TerminalUpgradesApi terminalUpgrades() {
+        return MyotusAPI.terminalUpgrades();
+    }
+
+    default MyotusAPI.CommandsApi commands() {
+        return MyotusAPI.commands();
+    }
+
     /**
-     * Returns the shared networking facade used to register and send Myotus packets.
+     * Returns the shared networking API used to register and send Myotus packets.
      *
-     * @return the networking facade
+     * @return the networking API
      */
     IMyotusNetwork network();
 
@@ -121,15 +111,6 @@ public interface IMyotusAPI {
     default IMyotusAPI registerCreativeTabStack(Supplier<ItemStack> stack) {
         creativeTabs().registerCreativeTabStack(stack);
         return this;
-    }
-
-    /**
-     * Returns the shared networking facade.
-     *
-     * @return the networking facade
-     */
-    default IMyotusNetwork getNetwork() {
-        return network();
     }
 
 }

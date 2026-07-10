@@ -32,7 +32,9 @@ public abstract class AEBaseMenuMixin extends AbstractContainerMenu {
 
         Slot sourceSlot = this.slots.get(index);
         ItemStack sourceStack = sourceSlot.getItem();
-        if (sourceStack.isEmpty() || !(sourceStack.getItem() instanceof ITerminalUpgradeCard)) {
+        if (player.level().isClientSide() || sourceSlot.container != player.getInventory()
+                || !sourceSlot.mayPickup(player) || sourceStack.isEmpty()
+                || !(sourceStack.getItem() instanceof ITerminalUpgradeCard)) {
             return;
         }
 
@@ -42,13 +44,14 @@ public abstract class AEBaseMenuMixin extends AbstractContainerMenu {
         }
 
         ItemStack original = sourceStack.copy();
-        if (myotus$moveOneStackToEmptyUpgradeSlot(sourceSlot, sourceStack, upgradeSlots)) {
+        if (myotus$moveOneStackToEmptyUpgradeSlot(player, sourceSlot, sourceStack, upgradeSlots)) {
             cir.setReturnValue(original);
         }
     }
 
     @Unique
-    private static boolean myotus$moveOneStackToEmptyUpgradeSlot(Slot sourceSlot, ItemStack sourceStack, List<Slot> upgradeSlots) {
+    private static boolean myotus$moveOneStackToEmptyUpgradeSlot(Player player, Slot sourceSlot, ItemStack sourceStack,
+            List<Slot> upgradeSlots) {
         for (Slot targetSlot : upgradeSlots) {
             if (targetSlot.hasItem() || !targetSlot.mayPlace(sourceStack)) {
                 continue;
@@ -59,16 +62,17 @@ public abstract class AEBaseMenuMixin extends AbstractContainerMenu {
                 continue;
             }
 
-            ItemStack movedStack = sourceStack.copy();
-            movedStack.setCount(moveCount);
-            targetSlot.set(movedStack);
-            targetSlot.setChanged();
-
-            sourceStack.shrink(moveCount);
-            if (sourceStack.isEmpty()) {
-                sourceSlot.set(ItemStack.EMPTY);
+            ItemStack moving = sourceStack.copy();
+            moving.setCount(moveCount);
+            ItemStack remainder = targetSlot.safeInsert(moving, moveCount);
+            int inserted = moveCount - remainder.getCount();
+            if (inserted <= 0) {
+                continue;
             }
+
+            ItemStack removed = sourceSlot.remove(inserted);
             sourceSlot.setChanged();
+            sourceSlot.onTake(player, removed);
             return true;
         }
         return false;

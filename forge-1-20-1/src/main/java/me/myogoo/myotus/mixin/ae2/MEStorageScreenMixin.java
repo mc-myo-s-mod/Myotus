@@ -112,7 +112,6 @@ public abstract class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
 
         ((ScreenStyleAccessor) (Object) style).getWidgets().put(TerminalUpgradePanel.WIDGET_ID, sidePanelStyle);
 
-        super.init();
     }
 
     @Unique

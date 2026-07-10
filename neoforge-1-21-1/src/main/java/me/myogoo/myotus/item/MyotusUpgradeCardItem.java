@@ -3,16 +3,20 @@ package me.myogoo.myotus.item;
 import appeng.menu.me.common.MEStorageMenu;
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.ITerminalUpgradeCard;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 
 /**
  * 테스트용 업그레이드 카드: 터미널 콜백이 호출될 때마다 다이아몬드 1개를 지급합니다.
  */
 public class MyotusUpgradeCardItem extends Item implements ITerminalUpgradeCard {
+    private static final String CALLBACK_COUNT_TAG = "myotus_test_callbacks";
 
     public MyotusUpgradeCardItem(Properties properties) {
         super(properties);
@@ -20,16 +24,19 @@ public class MyotusUpgradeCardItem extends Item implements ITerminalUpgradeCard 
 
     @Override
     public void onTerminalOpen(MEStorageMenu menu, ItemStack stack) {
+        incrementCallbackCount(stack);
         giveDiamond(menu);
     }
 
     @Override
     public void onTerminalTick(MEStorageMenu menu, ItemStack stack) {
+        incrementCallbackCount(stack);
         giveDiamond(menu);
     }
 
     @Override
     public void onTerminalClose(MEStorageMenu menu, ItemStack stack) {
+        incrementCallbackCount(stack);
         giveDiamond(menu);
     }
 
@@ -42,5 +49,11 @@ public class MyotusUpgradeCardItem extends Item implements ITerminalUpgradeCard 
         if (Myotus.DEV_MODE && menu.getPlayer() instanceof ServerPlayer player) {
             player.getInventory().add(new ItemStack(Items.DIAMOND));
         }
+    }
+
+    private static void incrementCallbackCount(ItemStack stack) {
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        tag.putInt(CALLBACK_COUNT_TAG, tag.getInt(CALLBACK_COUNT_TAG) + 1);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
 }

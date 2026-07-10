@@ -243,6 +243,7 @@ public class KeyBindingButton extends AbstractButton implements ITooltip {
             boundKeyMapping.setKeyModifierAndCode(modifier, mainKey);
         }
         KeyMapping.resetMapping();
+        Minecraft.getInstance().options.save();
     }
 
     /**

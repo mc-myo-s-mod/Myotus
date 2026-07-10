@@ -13,11 +13,11 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 final class MyoCommandArguments {
-    private static final Map<Class<?>, MyoArgumentAdapter<?>> ADAPTERS = new HashMap<>();
+    private static final Map<Class<?>, MyoArgumentAdapter<?>> ADAPTERS = new ConcurrentHashMap<>();
 
     static {
         registerAdapter(int.class, simpleAdapter(IntegerArgumentType.integer(), IntegerArgumentType::getInteger));
@@ -57,7 +57,9 @@ final class MyoCommandArguments {
     }
 
     static void registerAdapter(Class<?> type, MyoArgumentAdapter<?> adapter) {
-        ADAPTERS.put(type, adapter);
+        if (ADAPTERS.putIfAbsent(type, adapter) != null) {
+            throw new IllegalArgumentException("A command argument adapter is already registered for " + type.getName());
+        }
     }
 
     static MyoArgumentAdapter<?> getAdapter(Class<?> type) {

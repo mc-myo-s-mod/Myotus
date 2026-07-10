@@ -138,7 +138,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
         int slotStartX = this.x + (isAe2WtlibScreen ? 5 : 1);
         int slotStartY = this.y + PADDING;
 
-        boolean showViewCell = MyotusConfig.CLIENT.showViewCellSlots.get();
+        boolean showViewCell = showViewCellSlots();
 
         if (showViewCell) {
             for (int i = 0; i < Math.min(SLOT_COUNT, viewCellSlots.size()); i++) {
@@ -169,7 +169,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
 
         int xl = screenOrigin.getX() + this.x;
         int slotOriginY = screenOrigin.getY() + this.y;
-        boolean showViewCell = MyotusConfig.CLIENT.showViewCellSlots.get();
+        boolean showViewCell = showViewCellSlots();
         for (int i = 0; i < SLOT_COUNT; i++) {
             boolean borderTop = (i == 0);
             boolean borderBottom = (i == SLOT_COUNT - 1);
@@ -228,7 +228,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     }
 
     private boolean isOverSlot(Point mousePos) {
-        if (MyotusConfig.CLIENT.showViewCellSlots.get()) {
+        if (showViewCellSlots()) {
             for (Slot slot : viewCellSlots) {
                 if (isMouseOverSlot(mousePos, slot))
                     return true;
@@ -258,7 +258,11 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     }
 
     public int getPanelWidth() {
-        return (MyotusConfig.CLIENT.showViewCellSlots.get() ? (SLOT_SIZE * 2) : SLOT_SIZE) + (PADDING * 2);
+        return (showViewCellSlots() ? (SLOT_SIZE * 2) : SLOT_SIZE) + (PADDING * 2);
+    }
+
+    private boolean showViewCellSlots() {
+        return MyotusConfig.CLIENT.showViewCellSlots.get() && !viewCellSlots.isEmpty();
     }
 
     static class MyoSlotBlitter {

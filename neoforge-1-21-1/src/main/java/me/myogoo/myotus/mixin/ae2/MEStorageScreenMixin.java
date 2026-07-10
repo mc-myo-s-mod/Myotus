@@ -12,11 +12,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.InputConstants;
 import me.myogoo.myotus.api.annotation.mods.AE2WTLib;
 import me.myogoo.myotus.client.KeyBindings;
+import me.myogoo.myotus.client.integration.AE2WTLibClientCompat;
 import me.myogoo.myotus.client.gui.config.TabbedTerminalSettingsScreen;
 import me.myogoo.myotus.client.TerminalUpgradePanel;
 import me.myogoo.myotus.client.gui.widgets.SidePanelToggleButton;
 import me.myogoo.myotus.config.MyotusConfig;
-import me.myogoo.myotus.mixin.ae2wtlib.ScrollingUpgradesPanelAccessor;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Rect2i;
@@ -126,26 +126,18 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
 
         if (ModIntegrationManager.isLoaded(AE2WTLib.class)) {
             var WtUpgradesPanel = widgetsAccessor.getCompositeWidgets().getOrDefault(MYOTUS$AE2WTLIB_UPGRADES_ID, null);
-            if (WtUpgradesPanel instanceof ScrollingUpgradesPanelAccessor scrollbar) {
-                scrollbar.myotus$setMaxRows(myotus$getVisibleRowsForNextInit());
-                sidePanelStyle.setRight(scrollbar.hasScrollBar() ? -34 : -26); // 이거 좀 자연스럽게 처리하고 싶은데
-            }
+            AE2WTLibClientCompat.configureScrollingUpgradesPanel(WtUpgradesPanel,
+                    myotus$getVisibleRowsForNextInit()).ifPresent(scrolling ->
+                            sidePanelStyle.setRight(scrolling ? -34 : -26));
         }
         ((ScreenStyleAccessor) (Object) style).getWidgets().put(TerminalUpgradePanel.WIDGET_ID, sidePanelStyle);
     }
 
     @Unique
     private boolean myotus$isAe2WtlibMenuHost(Object host) {
-        if (host == null || !ModIntegrationManager.isLoaded(AE2WTLib.class)) {
-            return false;
-        }
-        try {
-            Class<?> wtMenuHostClass = Class.forName("de.mari_023.ae2wtlib.api.terminal.WTMenuHost", false,
-                    host.getClass().getClassLoader());
-            return wtMenuHostClass.isInstance(host);
-        } catch (ClassNotFoundException ignored) {
-            return false;
-        }
+        return host != null
+                && ModIntegrationManager.isLoaded(AE2WTLib.class)
+                && AE2WTLibClientCompat.isMenuHost(host);
     }
 
     @Unique

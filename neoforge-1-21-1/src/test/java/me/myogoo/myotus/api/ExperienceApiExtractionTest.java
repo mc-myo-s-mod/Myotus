@@ -9,6 +9,7 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.MEStorage;
 import me.myogoo.myotus.api.experience.ExperienceMath;
+import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -21,10 +22,11 @@ import static me.myogoo.myotus.api.experience.ExperienceMath.ExperienceSource.PL
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class ExperienceFacadeExtractionTest {
+class ExperienceApiExtractionTest {
     @Test
     void storedReportsVisibleStoredAmountWithoutClaimingExtractability() {
         AEKey key = appliedExperiencedKey();
@@ -99,18 +101,78 @@ class ExperienceFacadeExtractionTest {
         when(fluidKey.getId()).thenReturn(ResourceLocation.fromNamespaceAndPath("fluid", "xp"));
         when(fluidKey.getType()).thenReturn(AEKeyType.items());
         AEKey appliedKey = appliedExperiencedKey();
-        MutableStorage storage = new MutableStorage(fluidKey, 50, appliedKey, 50);
-        LimitedEnergySource limitedEnergy = new LimitedEnergySource(50);
+        MutableStorage storage = new MutableStorage(fluidKey, 12_500, appliedKey, 50);
+        LimitedEnergySource limitedEnergy = new LimitedEnergySource(12_500);
+        ExperienceStorageAdapter fluidAdapter = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key == fluidKey, 250);
 
         var payment = MyotusAPI.experience().planPayment(limitedEnergy, storage, IActionSource.empty(),
-                25, 75, List.of(FLUID_XP, APPLIED_EXPERIENCED_AMOUNT, PLAYER));
+                25, 75, List.of(FLUID_XP, APPLIED_EXPERIENCED_AMOUNT, PLAYER),
+                List.of(fluidAdapter, MyotusAPI.experience().appliedExperiencedStorage()));
 
         assertTrue(payment.enough());
         assertEquals(50, payment.fluidXp());
         assertEquals(0, payment.appliedExperiencedAmount());
         assertEquals(25, payment.player());
-        assertEquals(50, storage.stored(fluidKey));
+        assertEquals(12_500, storage.stored(fluidKey));
         assertEquals(50, storage.stored(appliedKey));
+    }
+
+    @Test
+    void fluidStorageRequiresAnExplicitUnitConversion() {
+        AEKey fluidKey = mock(AEKey.class);
+        when(fluidKey.getId()).thenReturn(ResourceLocation.fromNamespaceAndPath("example", "liquid_xp"));
+        when(fluidKey.getType()).thenReturn(AEKeyType.items());
+        MutableStorage storage = new MutableStorage(fluidKey, 499);
+        ExperienceStorageAdapter adapter = new ExperienceStorageAdapter(FLUID_XP, key -> key == fluidKey, 250);
+
+        assertEquals(0, MyotusAPI.experience().stored(storage, FLUID_XP));
+        assertEquals(1, MyotusAPI.experience().stored(storage, adapter));
+        assertTrue(MyotusAPI.experience().extractExact(unlimitedEnergy(), storage, IActionSource.empty(), 1, adapter));
+        assertEquals(249, storage.stored(fluidKey));
+    }
+
+    @Test
+    void bestEffortFluidExtractionDoesNotConsumeAnIncompleteXpUnit() {
+        AEKey fluidKey = mock(AEKey.class);
+        when(fluidKey.getId()).thenReturn(ResourceLocation.fromNamespaceAndPath("example", "liquid_xp"));
+        MutableStorage storage = new MutableStorage(fluidKey, 499);
+        ExperienceStorageAdapter adapter = new ExperienceStorageAdapter(FLUID_XP, key -> key == fluidKey, 250);
+
+        assertEquals(0, MyotusAPI.experience().extract(new LimitedEnergySource(249), storage,
+                IActionSource.empty(), 1, adapter, Actionable.MODULATE));
+        assertEquals(499, storage.stored(fluidKey));
+    }
+
+    @Test
+    void paymentPlanningRejectsOverlappingStorageAdapters() {
+        AEKey appliedKey = appliedExperiencedKey();
+        MutableStorage storage = new MutableStorage(appliedKey, 100);
+        ExperienceStorageAdapter overlappingFluid = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key == appliedKey, 1);
+
+        assertThrows(IllegalArgumentException.class, () -> MyotusAPI.experience().planPayment(
+                unlimitedEnergy(), storage, IActionSource.empty(), 0, 10,
+                List.of(FLUID_XP, APPLIED_EXPERIENCED_AMOUNT),
+                List.of(overlappingFluid, MyotusAPI.experience().appliedExperiencedStorage())));
+    }
+
+    @Test
+    void appliedExperiencedMatchingRequiresTheCustomKeyType() {
+        AEKey wrongType = mock(AEKey.class);
+        when(wrongType.getId()).thenReturn(ResourceLocation.fromNamespaceAndPath("appex", "experience"));
+        when(wrongType.getType()).thenReturn(AEKeyType.items());
+
+        assertFalse(MyotusAPI.experience().matchesSource(wrongType, APPLIED_EXPERIENCED_AMOUNT));
+        assertTrue(MyotusAPI.experience().matchesSource(appliedExperiencedKey(), APPLIED_EXPERIENCED_AMOUNT));
+    }
+
+    @Test
+    void extractionRejectsNegativeExperience() {
+        assertThrows(IllegalArgumentException.class, () -> MyotusAPI.experience().canExtract(
+                unlimitedEnergy(), null, IActionSource.empty(), -1, APPLIED_EXPERIENCED_AMOUNT));
+        assertThrows(IllegalArgumentException.class, () -> MyotusAPI.experience().extractExact(
+                unlimitedEnergy(), null, IActionSource.empty(), -1, APPLIED_EXPERIENCED_AMOUNT));
     }
 
     private static IEnergySource unlimitedEnergy() {
@@ -119,8 +181,12 @@ class ExperienceFacadeExtractionTest {
 
     private static AEKey appliedExperiencedKey() {
         AEKey key = mock(AEKey.class);
-        when(key.getId()).thenReturn(ResourceLocation.fromNamespaceAndPath("appex", "experience"));
-        when(key.getType()).thenReturn(AEKeyType.items());
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath("appex", "experience");
+        AEKeyType keyType = mock(AEKeyType.class);
+        when(key.getId()).thenReturn(id);
+        when(keyType.getId()).thenReturn(id);
+        when(keyType.getAmountPerOperation()).thenReturn(1);
+        when(key.getType()).thenReturn(keyType);
         return key;
     }
 

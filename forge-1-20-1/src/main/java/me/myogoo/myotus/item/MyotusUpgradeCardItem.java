@@ -13,22 +13,27 @@ import net.minecraft.world.item.Items;
  * 테스트용 업그레이드 카드: 터미널 콜백이 호출될 때마다 다이아몬드 1개를 지급합니다.
  */
 public class MyotusUpgradeCardItem extends Item implements ITerminalUpgradeCard {
+    private static final String CALLBACK_COUNT_TAG = "myotus_test_callbacks";
+
     public MyotusUpgradeCardItem(Properties properties) {
         super(properties);
     }
 
     @Override
     public void onTerminalOpen(MEStorageMenu menu, ItemStack stack) {
+        incrementCallbackCount(stack);
         giveDiamond(menu);
     }
 
     @Override
     public void onTerminalTick(MEStorageMenu menu, ItemStack stack) {
+        incrementCallbackCount(stack);
         giveDiamond(menu);
     }
 
     @Override
     public void onTerminalClose(MEStorageMenu menu, ItemStack stack) {
+        incrementCallbackCount(stack);
         giveDiamond(menu);
     }
 
@@ -41,5 +46,10 @@ public class MyotusUpgradeCardItem extends Item implements ITerminalUpgradeCard 
         if (Myotus.DEV_MODE && menu.getPlayer() instanceof ServerPlayer player) {
             player.getInventory().add(new ItemStack(Items.DIAMOND));
         }
+    }
+
+    private static void incrementCallbackCount(ItemStack stack) {
+        var tag = stack.getOrCreateTag();
+        tag.putInt(CALLBACK_COUNT_TAG, tag.getInt(CALLBACK_COUNT_TAG) + 1);
     }
 }

@@ -15,10 +15,6 @@ import java.util.Optional;
 public interface IMyotusTableRecipe<I extends Container> {
     Recipe<?> recipe();
 
-    default <R extends Recipe<?>> R get() {
-        return (R) recipe();
-    }
-
     default <R extends Recipe<?>> Optional<R> unwrap(Class<R> recipeClass) {
         var recipe = recipe();
         if (recipeClass.isInstance(recipe)) {
@@ -27,8 +23,9 @@ public interface IMyotusTableRecipe<I extends Container> {
         return Optional.empty();
     }
 
-    default ResourceLocation recipeId() {
-        return recipe().getId();
+    /** Returns the recipe id exposed by Minecraft 1.20 recipes. */
+    default Optional<ResourceLocation> findRecipeId() {
+        return Optional.of(recipe().getId());
     }
 
     default ResourceLocation tableType() {

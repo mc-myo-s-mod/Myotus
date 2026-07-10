@@ -13,8 +13,8 @@ stable bridge that other AE2-related mods can depend on.
 
 | Module | Loader | Minecraft | Java | AE2 | Artifact version |
 | --- | --- | --- | --- | --- | --- |
-| `forge-1-20-1` | Forge `47.x` | `1.20.1` | `17` | `15.4.x` | `15.1.0` |
-| `neoforge-1-21-1` | NeoForge `21.1.x` | `1.21.1` | `21` | `19.2.x` | `19.1.0` |
+| `forge-1-20-1` | Forge `47.x` | `1.20.1` | `17` | `15.4.x` | `15.1.2-SNAPSHOT` |
+| `neoforge-1-21-1` | NeoForge `21.1.x` | `1.21.1` | `21` | `19.2.x` | `19.1.2-SNAPSHOT` |
 
 The project has a shared `common` source set plus loader-specific modules. Forge and
 NeoForge APIs are kept separate when Minecraft/loader differences make that healthier
@@ -26,6 +26,7 @@ than forcing artificial parity.
 - Optional integration discovery and runtime checks.
 - AE2 terminal config-tab registration.
 - Shared Myotus creative-tab registration.
+- Extensible argument adapters for annotation-driven commands.
 - Item-backed AE2 terminal upgrade cards.
 - Terminal upgrade query helpers.
 - Client widget helpers.
@@ -61,11 +62,13 @@ repositories {
 }
 
 dependencies {
-    // Forge 1.20.1 line
-    compileOnly "me.myogoo:myotus:15.1.0"
+    // Forge 1.20.1 line: mapped compile API plus the loader-discoverable runtime mod
+    compileOnly "me.myogoo:myotus:15.1.2-SNAPSHOT:api"
+    runtimeOnly fg.deobf("me.myogoo:myotus:15.1.2-SNAPSHOT")
 
     // NeoForge 1.21.1 line
-    // compileOnly "me.myogoo:myotus:19.1.0"
+    // compileOnly "me.myogoo:myotus:19.1.2-SNAPSHOT:api"
+    // runtimeOnly "me.myogoo:myotus:19.1.2-SNAPSHOT"
 }
 ```
 
@@ -74,6 +77,9 @@ not an API-only jar: it includes loader metadata, Myotus runtime classes, assets
 resources. Addons should still prefer the public `me.myogoo.myotus.api.*` packages and
 avoid depending on implementation packages unless a class is explicitly promoted into the
 public API.
+
+The `api` classifier is a mapped compile-time artifact. It is not a standalone runtime mod;
+keep the normal unclassified artifact in the development runtime and declare Myotus in loader metadata.
 
 When using Myotus features at runtime, also declare the matching Myotus mod dependency in
 your loader metadata so the mod is present before your addon initializes.
@@ -99,9 +105,9 @@ is commonly verified with:
 ### Access the API Safely
 
 ```java
-if (MyotusAPI.isInitialized()) {
-    MyotusAPI.configTabs();
-}
+MyotusAPI.tryGet().ifPresent(api -> {
+    // Register API contributions during normal mod setup.
+});
 ```
 
 Avoid calling `MyotusAPI.get()` from static initializers. Use it during or after normal mod
@@ -125,7 +131,7 @@ Register custom tabs for AE2 terminal configuration screens:
 MyotusAPI.configTabs().registerTerminalConfigTab(new MyoConfigTab(
         ResourceLocation.fromNamespaceAndPath("examplemod", "terminal_settings"),
         Component.literal("Example"),
-        Icon.COG,
+        new ItemStack(Items.REDSTONE),
         "example_terminal.json",
         new ExampleConfigScreen()
 ));
@@ -137,7 +143,7 @@ When the tab is only valid for certain terminal contexts, attach a visibility ru
 MyotusAPI.configTabs().registerTerminalConfigTab(new MyoConfigTab(
         ResourceLocation.fromNamespaceAndPath("examplemod", "portable_terminal_settings"),
         Component.literal("Portable"),
-        Icon.COG,
+        new ItemStack(Items.REDSTONE),
         "portable_terminal.json",
         new PortableConfigScreen()
 ).visibleWhen(context -> context.isItemHost()));
@@ -154,6 +160,18 @@ MyotusAPI.creativeTabs().registerCreativeTabStack(
         () -> new ItemStack(MY_ITEM.get(), 1)
 );
 ```
+
+### Command Arguments
+
+Annotation-driven commands support built-in primitive, string, entity, and player parameters. Register
+an adapter for an addon-specific parameter type through the public API before commands are built:
+
+```java
+MyotusAPI.commands().registerArgument(MyValue.class, myValueArgumentAdapter);
+```
+
+Each Java parameter type has exactly one adapter; duplicate registration fails instead of replacing the
+existing parser silently.
 
 ### Terminal Upgrade Cards
 
@@ -181,7 +199,7 @@ Useful helper queries:
 
 ```java
 boolean installed = MyotusAPI.terminalUpgrades().hasUpgrade(menu, MY_UPGRADE_ID);
-List<ItemStack> upgrades = MyotusAPI.terminalUpgrades().getInstalledUpgrades(menu);
+List<ItemStack> upgrades = MyotusAPI.terminalUpgrades().installedUpgrades(menu);
 ```
 
 A terminal can only install one copy of the same upgrade item type. Upgrade card items
@@ -189,74 +207,66 @@ should generally have max stack size `1`.
 
 ### Experience Helpers
 
-`MyotusAPI.experience()` exposes pure Java helpers for raw vanilla XP point math.
-These helpers do not import Applied Experienced classes, so they are safe to use even when
-Applied Experienced is not installed.
+`MyotusAPI.experience()` uses raw vanilla XP points throughout. The math API is independent of
+Applied Experienced and does not load optional-mod classes.
 
 ```java
-long appliedExperience = 0; // use 0 when Applied Experienced data is absent
-long fluidXp = 7;
+var xp = MyotusAPI.experience();
 
-long total = MyotusAPI.experience().totalExperience(appliedExperience, fluidXp);
-int level = MyotusAPI.experience().levelForTotalExperience(total);
-long progress = MyotusAPI.experience().experienceIntoLevel(total);
-long next = MyotusAPI.experience().experienceToNextLevel(level);
+long total = xp.total(30, 40, 50);
+int level = xp.levelForTotal(total);
+long progress = xp.intoLevel(total);
+long next = xp.toNextLevel(level);
 ```
 
-For anvil-like flows that can spend XP from multiple pools, use `consumeExperience(...)`.
-The default priority is:
-
-```text
-player XP -> fluid:xp -> appex:experience_amount
-```
-
-```java
-long requiredXp = 75;
-long playerXp = 30;
-long fluidXp = 40;
-long appliedExperienceAmount = 50;
-
-var plan = MyotusAPI.experience().consumeExperience(
-        requiredXp,
-        playerXp,
-        fluidXp,
-        appliedExperienceAmount
-);
-
-if (plan.canPay()) {
-    long playerUsed = plan.playerExperienceUsed();
-    long fluidUsed = plan.fluidXpUsed();
-    long appliedUsed = plan.appliedExperiencedAmountUsed();
-
-    // Spend each source using the amounts reported by the plan.
-}
-```
-
-Custom source ordering is also supported:
+For a pure, non-mutating payment plan, supply named balances. Every amount must already be
+normalized to raw XP points:
 
 ```java
 import me.myogoo.myotus.api.experience.ExperienceMath;
 
-var plan = MyotusAPI.experience().consumeExperience(
-        requiredXp,
-        playerXp,
-        fluidXp,
-        appliedExperienceAmount,
-        List.of(
-                ExperienceMath.ExperienceSource.FLUID_XP,
-                ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT,
-                ExperienceMath.ExperienceSource.PLAYER
-        )
-);
+var available = new ExperienceMath.ExperienceAmounts(30, 40, 50);
+var plan = xp.plan(75, available);
+
+if (plan.canPay()) {
+    long playerUsed = plan.player();
+    long fluidUsed = plan.fluidXp();
+    long appliedUsed = plan.appliedExperiencedAmount();
+}
 ```
 
-Stable IDs are exposed for integrations that need to compare external keys:
+The default order is player, fluid, then Applied Experienced. Pass a list to `plan(...)` for a
+custom order.
+
+ME fluid keys store fluid units, not XP points. A fluid source is therefore disabled by default;
+register an explicit matcher and conversion rate from the owning integration's configuration:
 
 ```java
-String appexMod = MyotusAPI.experience().appliedExperiencedModId();          // "appex"
-String appexKey = MyotusAPI.experience().appliedExperiencedAeKeyId();        // "appex:experience"
-String amountId = MyotusAPI.experience().appliedExperiencedAmountComponentId();
-String fluidXpId = MyotusAPI.experience().fluidXpId();                       // "fluid:xp"
+import me.myogoo.myotus.api.experience.ExperienceMath;
+
+var fluidAdapter = xp.fluidStorage(
+        key -> key.getId().equals(ResourceLocation.fromNamespaceAndPath("example", "liquid_xp")),
+        250 // storage units per raw XP point
+);
+
+var adapters = List.of(xp.appliedExperiencedStorage(), fluidAdapter);
+var priority = List.of(
+        ExperienceMath.ExperienceSource.PLAYER,
+        ExperienceMath.ExperienceSource.FLUID_XP,
+        ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT
+);
+
+boolean payable = xp.canConsume(energy, storage, actionSource, player, 75, priority, adapters);
+boolean consumed = payable && xp.consume(energy, storage, actionSource, player, 75, priority, adapters);
+```
+
+The built-in Applied Experienced adapter matches both the AE key type and key id. Stable ids remain
+available for integrations that need them:
+
+```java
+String appexMod = xp.appliedModId();                 // "appex"
+String appexKey = xp.appliedAeKeyId();               // "appex:experience"
+String amountId = xp.appliedAmountComponentId();
 ```
 
 ## Repository Layout

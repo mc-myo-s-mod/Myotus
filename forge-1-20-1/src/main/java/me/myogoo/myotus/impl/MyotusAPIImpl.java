@@ -16,12 +16,12 @@ public enum MyotusAPIImpl implements IMyotusAPI {
     private final IMyotusNetwork network = MyotusNetwork.INSTANCE;
 
     @Override
-    public IConfigRegistrar configRegistrar() {
+    public IConfigRegistrar configTabs() {
         return configRegistrar;
     }
 
     @Override
-    public ICreativeTabRegistrar creativeTabRegistrar() {
+    public ICreativeTabRegistrar creativeTabs() {
         return creativeTabRegistrar;
     }
 

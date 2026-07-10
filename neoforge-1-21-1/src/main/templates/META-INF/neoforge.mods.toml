@@ -75,4 +75,6 @@ side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "ae2"
 type = "required"
+versionRange = "${AE2_version_range}"
+ordering = "AFTER"
 side = "BOTH"

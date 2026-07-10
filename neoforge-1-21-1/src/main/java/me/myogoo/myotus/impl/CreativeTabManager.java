@@ -14,20 +14,27 @@ public enum CreativeTabManager {
     private final List<Supplier<? extends ItemLike>> items = new ArrayList<>();
     private final List<Supplier<ItemStack>> stacks = new ArrayList<>();
 
-    public void registerItem(Supplier<? extends ItemLike> item) {
+    public synchronized void registerItem(Supplier<? extends ItemLike> item) {
         items.add(item);
     }
 
-    public void registerStack(Supplier<ItemStack> stack) {
+    public synchronized void registerStack(Supplier<ItemStack> stack) {
         stacks.add(stack);
     }
 
     public void populate(CreativeModeTab.Output output) {
-        for (var item : items) {
+        List<Supplier<? extends ItemLike>> itemSnapshot;
+        List<Supplier<ItemStack>> stackSnapshot;
+        synchronized (this) {
+            itemSnapshot = List.copyOf(items);
+            stackSnapshot = List.copyOf(stacks);
+        }
+
+        for (var item : itemSnapshot) {
             output.accept(item.get());
         }
 
-        for (var stack : stacks) {
+        for (var stack : stackSnapshot) {
             output.accept(stack.get());
         }
     }

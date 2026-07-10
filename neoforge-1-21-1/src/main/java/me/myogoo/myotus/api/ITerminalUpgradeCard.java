@@ -37,10 +37,11 @@ import net.minecraft.world.item.ItemStack;
 public interface ITerminalUpgradeCard {
 
     /**
-     * Called when a terminal containing this card is opened.
+     * Called when a terminal containing this card begins its first server menu update, after the concrete
+     * menu has finished construction, or when the card is inserted into an already active menu.
      *
-     * <p>This callback runs on the server when the menu is opened or when the
-     * card is inserted into an already open terminal.</p>
+     * <p>This callback runs on the server. {@code stack} is the installed stack and may be used to
+     * persist this card's data. Do not replace its item, change its count, or retain the reference.</p>
      *
      * @param menu currently open terminal menu
      * @param stack the card stack installed in the slot
@@ -50,8 +51,9 @@ public interface ITerminalUpgradeCard {
     /**
      * Called when a terminal containing this card is closed.
      *
-     * <p>This callback runs on the server when the menu is closed or when the
-     * card is removed from an open terminal.</p>
+     * <p>This callback runs on the server when the menu is closed or when the card is removed from an
+     * open terminal. For an installed card, {@code stack} is the live stack and may persist card data.
+     * A removed card receives its last snapshot instead.</p>
      *
      * @param menu terminal menu being closed
      * @param stack the card stack installed in the slot
@@ -61,7 +63,8 @@ public interface ITerminalUpgradeCard {
     /**
      * Called once per server tick while the card is installed in an open terminal.
      *
-     * <p>This is invoked from the server-side menu update flow.</p>
+     * <p>This is invoked once per game tick from the server-side menu update flow. {@code stack} is the
+     * installed stack and may be used to persist this card's data. Do not retain the reference.</p>
      *
      * @param menu currently open terminal menu
      * @param stack the card stack installed in the slot

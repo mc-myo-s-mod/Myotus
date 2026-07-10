@@ -25,11 +25,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import appeng.api.storage.ITerminalHost;
 import appeng.menu.AEBaseMenu;
-import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
 import appeng.menu.slot.RestrictedInputSlot;
-import appeng.util.ConfigMenuInventory;
-import appeng.helpers.externalstorage.GenericStackInv;
 
 
 @Mixin(value = MEStorageMenu.class, remap = false)
@@ -39,6 +36,12 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
     @Unique
     private final Map<Slot, ItemStack> myotus$prevUpgradeItems = new IdentityHashMap<>();
 
+    @Unique
+    private long myotus$lastUpgradeTick = Long.MIN_VALUE;
+
+    @Unique
+    private boolean myotus$upgradeLifecycleStarted;
+
     private MEStorageMenuMixin(MenuType<?> menuType, int id, Inventory playerInventory, Object host) {
         super(menuType, id, playerInventory, host);
     }
@@ -47,27 +50,25 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
     private void myotus$ensureSidePanelSlots(MenuType<?> menuType, int id, Inventory ip, ITerminalHost host,
             boolean bindInventory, CallbackInfo ci) {
 
-        if (this.getSlots(SlotSemantics.VIEW_CELL).isEmpty()) {
-            myotus$addCustomViewCellSlots(host);
-        }
-
         if (this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).isEmpty()) {
             myotus$addCustomUpgradeSlots(host);
-        }
-
-        // 이전 슬롯 상태 초기화 (삽입/제거 감지용, broadcastChanges에서 비교)
-        if (!this.getPlayer().level().isClientSide()) {
-            for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
-                myotus$prevUpgradeItems.put(slot, slot.getItem().copy());
-            }
-            myotus$dispatchUpgradeOpen();
         }
     }
 
     @Inject(method = "broadcastChanges", at = @At("HEAD"))
     private void myotus$onBroadcastChanges(CallbackInfo ci) {
         if (this.getPlayer().level().isClientSide()) return;
-        myotus$checkUpgradeSlotChanges();
+        if (!myotus$upgradeLifecycleStarted) {
+            myotus$upgradeLifecycleStarted = true;
+            myotus$dispatchUpgradeOpen();
+        } else {
+            myotus$checkUpgradeSlotChanges();
+        }
+        long gameTime = this.getPlayer().level().getGameTime();
+        if (myotus$lastUpgradeTick == gameTime) {
+            return;
+        }
+        myotus$lastUpgradeTick = gameTime;
         myotus$dispatchUpgradeTick();
     }
 
@@ -78,7 +79,8 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
             ItemStack prevStack = myotus$prevUpgradeItems.getOrDefault(slot, ItemStack.EMPTY);
             ItemStack nowStack = slot.getItem();
 
-            if (ItemStack.isSameItemSameComponents(prevStack, nowStack)) {
+            if (ItemStack.isSameItem(prevStack, nowStack)) {
+                myotus$prevUpgradeItems.put(slot, nowStack.copy());
                 continue;
             }
 
@@ -88,20 +90,13 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
             }
             // 새 카드 삽입 → open 이벤트
             if (!nowStack.isEmpty() && nowStack.getItem() instanceof ITerminalUpgradeCard newCard) {
-                newCard.onTerminalOpen(menu, nowStack.copy());
+                ItemStack before = nowStack.copy();
+                newCard.onTerminalOpen(menu, nowStack);
+                myotus$persistCallbackChanges(slot, before);
+                continue;
             }
 
             myotus$prevUpgradeItems.put(slot, nowStack.copy());
-        }
-    }
-
-    @Unique
-    private void myotus$addCustomViewCellSlots(ITerminalHost host) {
-        GenericStackInv stackInv = new GenericStackInv(null, GenericStackInv.Mode.CONFIG_TYPES, 5);
-        ConfigMenuInventory menuInv = new ConfigMenuInventory(stackInv);
-        for (int i = 0; i < 5; i++) {
-            var slot = new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.VIEW_CELL, menuInv, i);
-            this.addSlot(slot, SlotSemantics.VIEW_CELL);
         }
     }
 
@@ -132,7 +127,11 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
             ItemStack stack = slot.getItem();
             if (!stack.isEmpty() && stack.getItem() instanceof ITerminalUpgradeCard card) {
+                ItemStack before = stack.copy();
                 card.onTerminalOpen(menu, stack);
+                myotus$persistCallbackChanges(slot, before);
+            } else {
+                myotus$prevUpgradeItems.put(slot, stack.copy());
             }
         }
     }
@@ -143,8 +142,19 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
             ItemStack stack = slot.getItem();
             if (!stack.isEmpty() && stack.getItem() instanceof ITerminalUpgradeCard card) {
+                ItemStack before = stack.copy();
                 card.onTerminalTick(menu, stack);
+                myotus$persistCallbackChanges(slot, before);
             }
         }
+    }
+
+    @Unique
+    private void myotus$persistCallbackChanges(Slot slot, ItemStack before) {
+        ItemStack current = slot.getItem();
+        if (!ItemStack.isSameItemSameComponents(before, current)) {
+            slot.set(current);
+        }
+        myotus$prevUpgradeItems.put(slot, current.copy());
     }
 }

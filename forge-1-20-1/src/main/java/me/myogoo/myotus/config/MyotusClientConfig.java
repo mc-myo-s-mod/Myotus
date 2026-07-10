@@ -27,5 +27,9 @@ public class MyotusClientConfig {
             return spec;
         }
 
+        public void save() {
+            spec.save();
+        }
+
     }
 }

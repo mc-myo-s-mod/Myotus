@@ -48,7 +48,7 @@ public class TerminalUpgradeHelper {
         for (var slot : menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
             ItemStack stack = slot.getItem();
             if (!stack.isEmpty()) {
-                upgrades.add(stack);
+                upgrades.add(stack.copy());
             }
         }
         return List.copyOf(upgrades);
