@@ -22,10 +22,10 @@ public final class MyoExperienceGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 20)
     public static void exposesStableExperienceIntegrationIds(GameTestHelper helper) {
-        assertEquals(helper, "appex", MyotusAPI.experience().appliedExperiencedModId(), "Applied Experienced mod id");
-        assertEquals(helper, "appex:experience", MyotusAPI.experience().appliedExperiencedAeKeyId(),
+        assertEquals(helper, "appex", MyotusAPI.experience().appliedModId(), "Applied Experienced mod id");
+        assertEquals(helper, "appex:experience", MyotusAPI.experience().appliedAeKeyId(),
                 "Applied Experienced AE key id");
-        assertEquals(helper, "appex:experience_amount", MyotusAPI.experience().appliedExperiencedAmountComponentId(),
+        assertEquals(helper, "appex:experience_amount", MyotusAPI.experience().appliedAmountComponentId(),
                 "Applied Experienced amount component id");
         assertEquals(helper, "fluid:xp", MyotusAPI.experience().fluidXpId(), "Fluid XP id");
         helper.succeed();
@@ -33,18 +33,18 @@ public final class MyoExperienceGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 20)
     public static void vanillaLevelConversionsRoundTripBoundaryValues(GameTestHelper helper) {
-        assertEquals(helper, 0L, MyotusAPI.experience().totalExperienceForLevel(0), "Level 0 total XP");
-        assertEquals(helper, 7L, MyotusAPI.experience().totalExperienceForLevel(1), "Level 1 total XP");
-        assertEquals(helper, 315L, MyotusAPI.experience().totalExperienceForLevel(15), "Level 15 total XP");
-        assertEquals(helper, 352L, MyotusAPI.experience().totalExperienceForLevel(16), "Level 16 total XP");
-        assertEquals(helper, 1395L, MyotusAPI.experience().totalExperienceForLevel(30), "Level 30 total XP");
-        assertEquals(helper, 1628L, MyotusAPI.experience().totalExperienceForLevel(32), "Level 32 total XP");
+        assertEquals(helper, 0L, MyotusAPI.experience().totalForLevel(0), "Level 0 total XP");
+        assertEquals(helper, 7L, MyotusAPI.experience().totalForLevel(1), "Level 1 total XP");
+        assertEquals(helper, 315L, MyotusAPI.experience().totalForLevel(15), "Level 15 total XP");
+        assertEquals(helper, 352L, MyotusAPI.experience().totalForLevel(16), "Level 16 total XP");
+        assertEquals(helper, 1395L, MyotusAPI.experience().totalForLevel(30), "Level 30 total XP");
+        assertEquals(helper, 1628L, MyotusAPI.experience().totalForLevel(32), "Level 32 total XP");
 
-        assertEquals(helper, 0, MyotusAPI.experience().levelForTotalExperience(6), "6 XP is still level 0");
-        assertEquals(helper, 1, MyotusAPI.experience().levelForTotalExperience(7), "7 XP reaches level 1");
-        assertEquals(helper, 31, MyotusAPI.experience().levelForTotalExperience(1627), "1627 XP is level 31");
-        assertEquals(helper, 32, MyotusAPI.experience().levelForTotalExperience(1628), "1628 XP reaches level 32");
-        assertEquals(helper, 120L, MyotusAPI.experience().experienceIntoLevel(1627), "XP progress within level 31");
+        assertEquals(helper, 0, MyotusAPI.experience().levelForTotal(6), "6 XP is still level 0");
+        assertEquals(helper, 1, MyotusAPI.experience().levelForTotal(7), "7 XP reaches level 1");
+        assertEquals(helper, 31, MyotusAPI.experience().levelForTotal(1627), "1627 XP is level 31");
+        assertEquals(helper, 32, MyotusAPI.experience().levelForTotal(1628), "1628 XP reaches level 32");
+        assertEquals(helper, 120L, MyotusAPI.experience().intoLevel(1627), "XP progress within level 31");
         helper.succeed();
     }
 
@@ -63,7 +63,7 @@ public final class MyoExperienceGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 20)
     public static void myoExperienceUsesDefaultAnvilPriority(GameTestHelper helper) {
-        ExperienceMath.MyoExperience experience = MyotusAPI.experience().consumeExperience(75, 30, 40, 50);
+        ExperienceMath.MyoExperience experience = MyotusAPI.experience().consume(75, 30, 40, 50);
 
         assertTrue(helper, experience.enough(), "MyoExperience should be enough across all default sources");
         assertEquals(helper, 75L, experience.required(), "Required XP");
@@ -80,7 +80,7 @@ public final class MyoExperienceGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 20)
     public static void myoExperienceSupportsCustomPriorityAndMissingExperience(GameTestHelper helper) {
-        ExperienceMath.MyoExperience customExperience = MyotusAPI.experience().consumeExperience(75, 30, 40, 50,
+        ExperienceMath.MyoExperience customExperience = MyotusAPI.experience().consume(75, 30, 40, 50,
                 List.of(APPLIED_EXPERIENCED_AMOUNT, FLUID_XP, PLAYER));
         assertTrue(helper, customExperience.enough(), "Custom priority experience should be enough");
         assertEquals(helper, 0L, customExperience.player(), "Custom priority should leave player XP untouched");
@@ -88,7 +88,7 @@ public final class MyoExperienceGameTests {
         assertEquals(helper, 50L, customExperience.appliedExperiencedAmount(),
                 "Applied Experienced amount should be consumed first by custom priority");
 
-        ExperienceMath.MyoExperience missingExperience = MyotusAPI.experience().consumeExperience(75, 30, 40, 50,
+        ExperienceMath.MyoExperience missingExperience = MyotusAPI.experience().consume(75, 30, 40, 50,
                 List.of(PLAYER, FLUID_XP));
         assertTrue(helper, !missingExperience.enough(), "MyoExperience should be missing XP when priority excludes a needed source");
         assertEquals(helper, 120L, missingExperience.available(), "Available XP should include non-priority sources");
@@ -103,13 +103,13 @@ public final class MyoExperienceGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 20)
     public static void vanillaAndApothicCostsStaySemanticallySeparate(GameTestHelper helper) {
-        long vanillaCost = MyotusAPI.experience().vanillaAnvilExperienceCost(100, 30);
-        long apothicCost = MyotusAPI.experience().apothicAnvilExperienceCost(30);
+        long vanillaCost = MyotusAPI.experience().vanillaAnvilCost(100, 30);
+        long apothicCost = MyotusAPI.experience().apothicAnvilCost(30);
 
-        assertEquals(helper, MyotusAPI.experience().totalExperienceForLevel(100)
-                - MyotusAPI.experience().totalExperienceForLevel(70), vanillaCost,
+        assertEquals(helper, MyotusAPI.experience().totalForLevel(100)
+                - MyotusAPI.experience().totalForLevel(70), vanillaCost,
                 "Vanilla anvil cost should remove levels from the current player level");
-        assertEquals(helper, MyotusAPI.experience().totalExperienceForLevel(30), apothicCost,
+        assertEquals(helper, MyotusAPI.experience().totalForLevel(30), apothicCost,
                 "Apothic anvil cost should be the raw XP value of the displayed level cost");
         assertTrue(helper, vanillaCost > apothicCost, "High-level vanilla anvil cost should exceed Apothic cost");
         helper.succeed();
@@ -117,22 +117,22 @@ public final class MyoExperienceGameTests {
 
     @GameTest(template = "empty", timeoutTicks = 20)
     public static void apothicEnchantingAndLibraryCalculationsStaySeparate(GameTestHelper helper) {
-        long level30Step = MyotusAPI.experience().experienceToNextLevel(29);
-        long level29Step = MyotusAPI.experience().experienceToNextLevel(28);
-        long level28Step = MyotusAPI.experience().experienceToNextLevel(27);
+        long level30Step = MyotusAPI.experience().toNextLevel(29);
+        long level29Step = MyotusAPI.experience().toNextLevel(28);
+        long level28Step = MyotusAPI.experience().toNextLevel(27);
 
-        assertEquals(helper, level30Step - 1, MyotusAPI.experience().apothicEnchantingTableExperienceCost(30, 0),
+        assertEquals(helper, level30Step - 1, MyotusAPI.experience().apothicEnchantingTableCost(30, 0),
                 "Slot 0 should charge the level step cost minus one");
         assertEquals(helper, level30Step + level29Step - 1,
-                MyotusAPI.experience().apothicEnchantingTableExperienceCost(30, 1),
+                MyotusAPI.experience().apothicEnchantingTableCost(30, 1),
                 "Slot 1 should sum two descending level step costs minus one");
         assertEquals(helper, level30Step + level29Step + level28Step - 1,
-                MyotusAPI.experience().apothicEnchantingTableExperienceCost(30, 2),
+                MyotusAPI.experience().apothicEnchantingTableCost(30, 2),
                 "Slot 2 should sum three descending level step costs minus one");
         assertEquals(helper, 16L, MyotusAPI.experience().apothicLibraryPointsForLevel(5),
                 "Apothic library points should double per enchantment level");
         assertTrue(helper, MyotusAPI.experience().apothicLibraryPointsForLevel(5)
-                        != MyotusAPI.experience().totalExperienceForLevel(5),
+                        != MyotusAPI.experience().totalForLevel(5),
                 "Apothic library points must not be treated as raw vanilla XP");
         helper.succeed();
     }
