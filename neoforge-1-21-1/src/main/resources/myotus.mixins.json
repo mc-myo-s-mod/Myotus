@@ -6,7 +6,6 @@
   "mixins": [
     "ae2.AbstractTerminalPartMixin",
     "ae2.AEBaseMenuMixin",
-    "curios.CuriosContainerMixin",
     "ae2.MEStorageMenuMixin",
     "minecraft.AbstractContainerMenuMixin"
   ],
