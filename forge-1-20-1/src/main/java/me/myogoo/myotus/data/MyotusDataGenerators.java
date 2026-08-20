@@ -2,6 +2,7 @@ package me.myogoo.myotus.data;
 
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.data.recipe.advancedae.AdvancedAERecipes;
+import me.myogoo.myotus.data.recipe.ae2cs.AE2CrystalScienceRecipes;
 import me.myogoo.myotus.data.recipe.crafting.ExternalCraftingRecipes;
 import me.myogoo.myotus.data.recipe.extendedae.ExtendedAERecipes;
 import net.minecraftforge.data.event.GatherDataEvent;
@@ -23,6 +24,7 @@ public final class MyotusDataGenerators {
         generator.addProvider(event.includeServer(), new MyotusRecipeDataProvider(output));
         generator.addProvider(event.includeServer(), new ExtendedAERecipes(output));
         generator.addProvider(event.includeServer(), new AdvancedAERecipes(output));
+        generator.addProvider(event.includeServer(), new AE2CrystalScienceRecipes(output));
         generator.addProvider(event.includeServer(), new ExternalCraftingRecipes(output));
 
         var blockTags = new MyotusBlockTagDataProvider(output, registries, existingFileHelper);

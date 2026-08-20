@@ -1,5 +1,6 @@
 package me.myogoo.myotus.mixin.ae2;
 
+import appeng.client.Point;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.me.common.TerminalSettingsScreen;
@@ -47,7 +48,9 @@ public abstract class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
     @Inject(method = "<init>", at = @At("TAIL"))
     private void myotus$addFloatingSubScreen(CallbackInfo ci) {
         WidgetStyle customStyle = new WidgetStyle();
-        ((ScreenStyleAccessor) (Object) style).getWidgets().put(TerminalUpgradePanel.WIDGET_ID, customStyle);
+        customStyle.setRight(-37);
+        ((ScreenStyleAccessor) (Object) style).myotus$getWidgets()
+                .put(TerminalUpgradePanel.WIDGET_ID, customStyle);
 
         if (this.menu instanceof MEStorageMenu storageMenu) {
             myotus$floatingSubScreen = new TerminalUpgradePanel(storageMenu, this.imageWidth);
@@ -56,11 +59,13 @@ public abstract class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
             myotus$updateToggleButtonVisibility();
             this.addToLeftToolbar(myotus$toggleButton);
 
-            myotus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
-            Rect2i screenBounds = new Rect2i(this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
-            myotus$floatingSubScreen.populateScreen(this::addRenderableWidget, screenBounds, this);
+            if (myotus$floatingSubScreen != null) {
+                myotus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
+                Rect2i screenBounds = new Rect2i(this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+                myotus$floatingSubScreen.populateScreen(this::addRenderableWidget, screenBounds, this);
 
-            this.widgets.add(TerminalUpgradePanel.WIDGET_ID, myotus$floatingSubScreen);
+                this.widgets.add(TerminalUpgradePanel.WIDGET_ID, myotus$floatingSubScreen);
+            }
         }
     }
 
@@ -101,17 +106,26 @@ public abstract class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
         }
     }
 
-    @Inject(method = "init", at = @At("TAIL"), remap = true)
-    public void myotus$init(CallbackInfo ci) {
+    @Inject(method = "init", at = @At("HEAD"), remap = true)
+    protected void initPanel(CallbackInfo ci) {
         myotus$updateToggleButtonVisibility();
         if (myotus$floatingSubScreen != null) {
             myotus$floatingSubScreen.setVisible(MyotusClientConfig.CLIENT.openSidePanel.get());
         }
-        WidgetStyle sidePanelStyle = ((ScreenStyleAccessor) (Object) style).getWidgets().get(TerminalUpgradePanel.WIDGET_ID);
-        sidePanelStyle.setRight(-37);
+        WidgetStyle sidePanelStyle = ((ScreenStyleAccessor) (Object) style).myotus$getWidgets()
+                .get(TerminalUpgradePanel.WIDGET_ID);
+        ((ScreenStyleAccessor) (Object) style).myotus$getWidgets()
+                .put(TerminalUpgradePanel.WIDGET_ID, sidePanelStyle);
+    }
 
-        ((ScreenStyleAccessor) (Object) style).getWidgets().put(TerminalUpgradePanel.WIDGET_ID, sidePanelStyle);
+    @Inject(method = "init", at = @At("TAIL"), remap = true)
+    protected void repositionPanel(CallbackInfo ci) {
+        if (myotus$floatingSubScreen == null) {
+            return;
+        }
 
+        int panelX = this.imageWidth + 37;
+        myotus$floatingSubScreen.setPosition(new Point(panelX, 0));
     }
 
     @Unique

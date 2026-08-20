@@ -1,6 +1,7 @@
 package me.myogoo.myotus.data;
 
 import me.myogoo.myotus.data.recipe.ae2.AE2Recipes;
+import me.myogoo.myotus.data.recipe.ae2cs.AE2CrystalScienceRecipes;
 import me.myogoo.myotus.data.recipe.crafting.CraftingRecipes;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.FinishedRecipe;
@@ -18,5 +19,6 @@ public class MyotusRecipeDataProvider extends RecipeProvider {
     protected void buildRecipes(@NotNull Consumer<FinishedRecipe> consumer) {
         CraftingRecipes.build(consumer);
         AE2Recipes.build(consumer);
+        AE2CrystalScienceRecipes.buildStonecutting(consumer);
     }
 }

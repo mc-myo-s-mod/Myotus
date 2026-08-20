@@ -75,6 +75,10 @@ mixin {
 dependencies {
     implementation fg.deobf("appeng:appliedenergistics2-forge:${AE2_version}")
 
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.3'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.12.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
     compileOnly fg.deobf("org.appliedenergistics:guideme:${Guideme_version}:api")
     runtimeOnly fg.deobf("org.appliedenergistics:guideme:${Guideme_version}")
     compileOnly fg.deobf("maven.modrinth:applied-energistics-2-wireless-terminals:${AE2WTLib_version}")

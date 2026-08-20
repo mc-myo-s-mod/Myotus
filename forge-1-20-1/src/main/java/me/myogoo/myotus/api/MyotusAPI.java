@@ -57,11 +57,6 @@ import java.util.function.Predicate;
  * code after it is active.</p>
  */
 public final class MyotusAPI {
-    private static final IntegrationsApi INTEGRATIONS = IntegrationsApi.INSTANCE;
-    private static final TerminalUpgradesApi TERMINAL_UPGRADES = TerminalUpgradesApi.INSTANCE;
-    private static final ExperienceApi EXPERIENCE = ExperienceApi.INSTANCE;
-    private static final CommandsApi COMMANDS = CommandsApi.INSTANCE;
-
     private static IMyotusAPI instance;
 
     private MyotusAPI() {
@@ -118,7 +113,7 @@ public final class MyotusAPI {
      * @return the integration API
      */
     public static IntegrationsApi integrations() {
-        return INTEGRATIONS;
+        return IntegrationsApi.INSTANCE;
     }
 
     /**
@@ -127,7 +122,7 @@ public final class MyotusAPI {
      * @return the terminal upgrade API
      */
     public static TerminalUpgradesApi terminalUpgrades() {
-        return TERMINAL_UPGRADES;
+        return TerminalUpgradesApi.INSTANCE;
     }
 
     /**
@@ -136,12 +131,12 @@ public final class MyotusAPI {
      * @return the experience calculation API
      */
     public static ExperienceApi experience() {
-        return EXPERIENCE;
+        return ExperienceApi.INSTANCE;
     }
 
     /** Returns the API for extending annotation-driven command arguments. */
     public static CommandsApi commands() {
-        return COMMANDS;
+        return CommandsApi.INSTANCE;
     }
 
     public static final class CommandsApi {
@@ -873,7 +868,7 @@ public final class MyotusAPI {
             if (!(key instanceof AEFluidKey fluidKey)) {
                 return false;
             }
-            return EXPERIENCE_FLUID_TAGS.stream().anyMatch(fluidKey::isTagged);
+            return ExperienceFluidTags.VALUES.stream().anyMatch(fluidKey::isTagged);
         }
 
         private static boolean isAppliedExperiencedKey(AEKey key) {
@@ -959,15 +954,20 @@ public final class MyotusAPI {
             }
         }
 
-        private static final List<TagKey<Fluid>> EXPERIENCE_FLUID_TAGS = List.of(
-                xpFluidTag("c", "experience"),
-                xpFluidTag("c", "fluid_xp"),
-                xpFluidTag("c", "fluid_experience"),
-                xpFluidTag("c", "experience_fluid"),
-                xpFluidTag("forge", "experience"),
-                xpFluidTag("forge", "fluid_xp"),
-                xpFluidTag("forge", "fluid_experience"),
-                xpFluidTag("forge", "experience_fluid"));
+        private static final class ExperienceFluidTags {
+            private static final List<TagKey<Fluid>> VALUES = List.of(
+                    xpFluidTag("c", "experience"),
+                    xpFluidTag("c", "fluid_xp"),
+                    xpFluidTag("c", "fluid_experience"),
+                    xpFluidTag("c", "experience_fluid"),
+                    xpFluidTag("forge", "experience"),
+                    xpFluidTag("forge", "fluid_xp"),
+                    xpFluidTag("forge", "fluid_experience"),
+                    xpFluidTag("forge", "experience_fluid"));
+
+            private ExperienceFluidTags() {
+            }
+        }
 
         private static TagKey<Fluid> xpFluidTag(String namespace, String path) {
             return TagKey.create(Registries.FLUID, ResourceLocation.fromNamespaceAndPath(namespace, path));

@@ -10,5 +10,5 @@ import java.util.Map;
 @Mixin(value = WidgetContainer.class, remap = false)
 public interface WidgetContainerAccessor {
     @Accessor("compositeWidgets")
-    Map<String, ICompositeWidget> getCompositeWidgets();
+    Map<String, ICompositeWidget> myotus$getCompositeWidgets();
 }

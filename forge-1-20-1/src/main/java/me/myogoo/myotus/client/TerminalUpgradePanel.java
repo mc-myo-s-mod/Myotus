@@ -18,13 +18,12 @@ import appeng.client.Point;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.ICompositeWidget;
 import appeng.client.gui.style.Blitter;
-import appeng.menu.SlotSemantics;
 import appeng.menu.me.common.MEStorageMenu;
 
 /**
  * MEStorageScreen 위에 떠 있는(floating) 드래그 가능한 서브스크린 패널.
  * Mekanism의 GuiWindow 패턴을 참고하여 구현.
- * ViewCell 5개를 세로로 표시합니다.
+ * 터미널 업그레이드 슬롯 5개를 세로로 표시합니다.
  */
 public class TerminalUpgradePanel implements ICompositeWidget {
 
@@ -50,7 +49,6 @@ public class TerminalUpgradePanel implements ICompositeWidget {
 
     // 가시성
     private boolean visible = false;
-    private final List<Slot> viewCellSlots;
     private final List<Slot> upgradeSlots;
     private final Map<Slot, SlotState> hiddenSlots = new IdentityHashMap<>();
 
@@ -58,7 +56,6 @@ public class TerminalUpgradePanel implements ICompositeWidget {
 
     public TerminalUpgradePanel(MEStorageMenu menu, int terminalScreenWidth) {
         this.menu = menu;
-        this.viewCellSlots = menu.getSlots(SlotSemantics.VIEW_CELL);
         this.upgradeSlots = menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT);
         setPosition(new Point(terminalScreenWidth, 0));
         configureUpgradeSlots(menu);
@@ -87,12 +84,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     }
 
     private void hideSlots() {
-        hideViewCellSlots();
         hideSlotList(upgradeSlots);
-    }
-
-    private void hideViewCellSlots() {
-        hideSlotList(viewCellSlots);
     }
 
     private void hideSlotList(List<Slot> slots) {
@@ -146,8 +138,6 @@ public class TerminalUpgradePanel implements ICompositeWidget {
             hideSlots();
             return;
         }
-        hideViewCellSlots();
-
         // 패널 내 첫 번째 슬롯 좌표 (screen-relative: guiLeft/top 기준)
         int slotStartX = this.x;
         int slotStartY = this.y + PADDING;

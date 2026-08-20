@@ -5,6 +5,7 @@ import appeng.menu.me.common.MEStorageMenu;
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.ITerminalUpgradeCard;
 import me.myogoo.myotus.item.MyotusUpgradeCardItem;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -92,7 +93,7 @@ public class TerminalUpgradeHelper {
         List<Component> tooltip = new ArrayList<>(availableCards.size() + 1);
         tooltip.add(Component.translatable(TranslateKey.GUI.UPGRADE_SLOT_EMPTY_TOOLTIP_HEADER.key()));
         for (ItemStack stack : availableCards) {
-            tooltip.add(Component.literal("- ").append(stack.getHoverName()));
+            tooltip.add(Component.literal("- ").append(stack.getHoverName()).withStyle(ChatFormatting.GRAY));
         }
         return List.copyOf(tooltip);
     }

@@ -54,6 +54,12 @@ public final class MyoStonecuttingRecipeBuilder extends SingleItemRecipeBuilder 
         return this;
     }
 
+    public MyoStonecuttingRecipeBuilder modLoaded(String modId) {
+        this.ensureConditions();
+        this.conditions.addAll(ExternalRecipeBuilder.conditions(modId));
+        return this;
+    }
+
     private void ensureConditions() {
         if (this.conditions == null) {
             this.conditions = new JsonArray();
@@ -112,7 +118,11 @@ public final class MyoStonecuttingRecipeBuilder extends SingleItemRecipeBuilder 
 
         @Override
         public JsonObject serializeAdvancement() {
-            return this.original.serializeAdvancement();
+            JsonObject advancement = this.original.serializeAdvancement();
+            if (advancement != null) {
+                advancement.add("conditions", this.conditions);
+            }
+            return advancement;
         }
 
         @Override

@@ -17,6 +17,9 @@ public class CustomTabButton extends TabButton {
     private Blitter blitter;
     @Nullable
     private ItemStack stack;
+    @Nullable
+    private Icon icon;
+    private boolean disableBackground;
 
     public CustomTabButton(MyoIcon icon, Component message, OnPress onPress) {
         this(icon.getBlitter(), message, onPress);
@@ -29,12 +32,20 @@ public class CustomTabButton extends TabButton {
 
     public CustomTabButton(Icon icon, Component message, OnPress onPress) {
         super(icon, message, onPress);
+        this.icon = icon;
     }
 
     public CustomTabButton(ItemStack stack, Component message, OnPress onPress) {
         super(stack, message, onPress);
-        this.stack =  stack;
+        this.stack = stack;
+    }
 
+    public boolean isDisableBackground() {
+        return disableBackground;
+    }
+
+    public void setDisableBackground(boolean disableBackground) {
+        this.disableBackground = disableBackground;
     }
 
     @Override
@@ -53,7 +64,9 @@ public class CustomTabButton extends TabButton {
                     yield Icon.HORIZONTAL_TAB;
                 }
             };
-            backdrop.getBlitter().dest(getX(), getY()).blit(guiGraphics);
+            if (!this.isDisableBackground()) {
+                backdrop.getBlitter().dest(getX(), getY()).blit(guiGraphics);
+            }
 
             var iconX = switch (this.getStyle()) {
                 case CORNER -> 1;
@@ -76,8 +89,13 @@ public class CustomTabButton extends TabButton {
                 var font = Minecraft.getInstance().font;
                 guiGraphics.renderItemDecorations(font, this.stack, getX() + iconX + ICON_X_OFFSET, getY() + iconY);
                 pose.popPose();
-            } else {
-                super.renderWidget(guiGraphics, x, y, partial);
+            } else if (icon != null) {
+                int ae2IconX = switch (this.getStyle()) {
+                    case CORNER -> 4;
+                    case BOX -> 3;
+                    case HORIZONTAL -> 1;
+                };
+                icon.getBlitter().dest(getX() + ae2IconX, getY() + 3).blit(guiGraphics);
             }
         }
     }
