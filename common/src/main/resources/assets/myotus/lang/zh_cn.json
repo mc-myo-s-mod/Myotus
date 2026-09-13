@@ -20,6 +20,7 @@
   "block.myotus.charged_ender_pearl_block": "充能末影珍珠块",
   "item.myotus.myotus_upgrade_card": "Myotus升级卡",
   "key.categories.myotus": "Myotus",
+  "key.category.myotus.myotus": "Myotus",
   "gui.myotus.config.upgrade_terminal_panel.show": "显示终端升级面板",
   "gui.myotus.config.upgrade_terminal_panel.hide": "隐藏终端升级面板",
   "gui.myotus.upgrade_slot.empty_tooltip.header": "可安装的终端升级：",

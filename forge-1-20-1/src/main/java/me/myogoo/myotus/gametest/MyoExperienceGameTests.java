@@ -22,6 +22,7 @@ import me.myogoo.myotus.api.experience.ExperienceMath;
 import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
 import me.myogoo.myotus.init.MyoItems;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
+import me.myogoo.myotus.menu.PlayerUpgradeContainer;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.Connection;
@@ -277,6 +278,18 @@ public final class MyoExperienceGameTests {
         assertEquals(helper, 250L, storage.stored(water), "Planning must not mutate water storage");
         assertEquals(helper, 125L, storage.stored(lava), "Planning must not mutate lava storage");
         assertEquals(helper, 1.5, energy.stored(), "Planning must not consume backing AE power");
+        assertEquals(helper, 2, storage.reportCalls, "Availability and planning should each request one full report");
+
+        var player = makeMenuPlayer(helper);
+        player.getAbilities().instabuild = false;
+        player.giveExperiencePoints(165);
+        assertTrue(helper, MyotusAPI.experience().canConsume(new TrackingEnergySource(100), storage,
+                IActionSource.empty(), player, 5, List.of(PLAYER, FLUID_XP, APPLIED_EXPERIENCED_AMOUNT), adapters),
+                "A player-first payment must remain affordable with two positive network adapters");
+        assertEquals(helper, 3, storage.reportCalls, "canConsume must share one report across both adapters");
+        assertEquals(helper, 165L, MyotusAPI.experience().playerRaw(player), "Payment simulation must not debit XP");
+        assertEquals(helper, 250L, storage.stored(water), "Payment simulation must not debit fluid storage");
+        assertEquals(helper, 125L, storage.stored(lava), "Payment simulation must not debit the second adapter");
         helper.succeed();
     }
 
@@ -321,6 +334,13 @@ public final class MyoExperienceGameTests {
                 new TrackingEnergySource(2), storage, IActionSource.empty(), 0, 1,
                 List.of(FLUID_XP, APPLIED_EXPERIENCED_AMOUNT), List.of(fluid, alsoApplied)),
                 "One AE key must not be claimed by multiple experience sources");
+        var player = makeMenuPlayer(helper);
+        player.giveExperiencePoints(165);
+        assertThrows(helper, IllegalArgumentException.class, () -> MyotusAPI.experience().canConsume(
+                new TrackingEnergySource(100), storage, IActionSource.empty(), player, 5, List.of(PLAYER),
+                List.of(fluid, alsoApplied)),
+                "A player-funded payment must still reject overlapping storage adapters");
+        assertEquals(helper, 2, storage.reportCalls, "Each invalid operation must inspect only one full report");
         assertEquals(helper, 250L, storage.stored(water),
                 "Adapter validation must fail before storage is touched");
         helper.succeed();
@@ -380,6 +400,45 @@ public final class MyoExperienceGameTests {
                     "Tick and close callback data should survive reopening the menu");
             helper.succeed();
         });
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void terminalUpgradesSurvivePlayerCloning(GameTestHelper helper) {
+        String currentKey = "host:example.CurrentTerminal";
+        var legacyKeys = List.of(
+                "item:ae2wtlib:wireless_universal_terminal:12345678-abcd-1234-abcd-123456789012",
+                "item:example.WirelessHost:example:wireless_terminal:87654321-abcd-1234-abcd-123456789012");
+        for (boolean keepEverything : new boolean[] {false, true}) {
+            var original = makeMenuPlayer(helper);
+            var target = makeMenuPlayer(helper);
+            var card = new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get());
+            card.setHoverName(Component.literal("Persistent terminal card"));
+            new PlayerUpgradeContainer(original, currentKey).setItemDirect(4, card.copy());
+            var saved = original.getPersistentData().get(currentKey);
+            assertTrue(helper, saved != null, "Installing a card must save the current inventory");
+            for (String key : legacyKeys) {
+                // These saved terminals are never opened on the old player.
+                original.getPersistentData().put(key, saved.copy());
+            }
+            original.getPersistentData().putString("othermod:unrelated", "not a terminal");
+
+            target.restoreFrom(original, keepEverything);
+
+            for (String key : List.of(currentKey, legacyKeys.get(0), legacyKeys.get(1))) {
+                assertTrue(helper, original.getPersistentData().get(key) != target.getPersistentData().get(key),
+                        "Cloned terminal NBT must not share the old player's mutable data");
+                var reopened = new PlayerUpgradeContainer(target, key);
+                assertTrue(helper, ItemStack.matches(card, reopened.getStackInSlot(4)),
+                        "Current and unopened legacy cards must survive death and End-return cloning");
+                reopened.setItemDirect(4, ItemStack.EMPTY);
+                assertTrue(helper, ItemStack.matches(card,
+                                new PlayerUpgradeContainer(original, key).getStackInSlot(4)),
+                        "Removing a cloned card must not mutate the old player's saved inventory");
+            }
+            assertTrue(helper, !target.getPersistentData().contains("othermod:unrelated"),
+                    "Cloning terminal upgrades must not copy other root data");
+        }
+        helper.succeed();
     }
 
     private static int upgradeCallbackCount(ItemStack stack) {
@@ -479,6 +538,7 @@ public final class MyoExperienceGameTests {
     }
 
     private static final class MutableStorage implements MEStorage {
+        private int reportCalls;
         private final LinkedHashMap<AEKey, Long> storedByKey = new LinkedHashMap<>();
 
         private MutableStorage() {
@@ -510,6 +570,7 @@ public final class MyoExperienceGameTests {
 
         @Override
         public void getAvailableStacks(KeyCounter out) {
+            reportCalls++;
             for (var entry : this.storedByKey.entrySet()) {
                 if (entry.getValue() > 0) {
                     out.add(entry.getKey(), entry.getValue());

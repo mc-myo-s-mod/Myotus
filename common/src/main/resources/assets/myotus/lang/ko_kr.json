@@ -20,6 +20,7 @@
   "block.myotus.charged_ender_pearl_block": "충전된 엔더 진주 블록",
   "item.myotus.myotus_upgrade_card": "Myotus 업그레이드 카드",
   "key.categories.myotus": "myotus",
+  "key.category.myotus.myotus": "myotus",
   "gui.myotus.config.upgrade_terminal_panel.show": "업그레이드 터미널 패널 표시",
   "gui.myotus.config.upgrade_terminal_panel.hide": "업그레이드 터미널 패널 숨기기",
   "gui.myotus.upgrade_slot.empty_tooltip.header": "설치 가능한 터미널 업그레이드:",

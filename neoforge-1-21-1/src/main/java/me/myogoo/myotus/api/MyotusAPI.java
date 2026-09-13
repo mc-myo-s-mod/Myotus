@@ -418,6 +418,7 @@ public final class MyotusAPI {
                 List<ExperienceStorageAdapter> storageAdapters) {
             Objects.requireNonNull(selectedSource, "selectedSource");
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
 
             var priority = new ArrayList<ExperienceMath.ExperienceSource>();
@@ -475,7 +476,16 @@ public final class MyotusAPI {
                 List<ExperienceMath.ExperienceSource> sourcePriority,
                 List<ExperienceStorageAdapter> storageAdapters) {
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
+            return planPayment(energySource, storage, actionSource, playerExperience, requiredExperience,
+                    sourcePriority, adapters);
+        }
+
+        private ExperienceMath.MyoExperience planPayment(IEnergySource energySource, MEStorage storage,
+                IActionSource actionSource, long playerExperience, long requiredExperience,
+                List<ExperienceMath.ExperienceSource> sourcePriority,
+                Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters) {
             var networkAmounts = extractableByPriority(energySource, storage, actionSource, sourcePriority, adapters);
             return ExperienceMath.planConsumption(requiredExperience,
                     new ExperienceMath.ExperienceAmounts(
@@ -525,12 +535,13 @@ public final class MyotusAPI {
             requireNonNegative(requiredExperience, "requiredExperience");
             orderedUniqueSources(sourcePriority);
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
             if (player.getAbilities().instabuild) {
                 return true;
             }
-            var payment = planPayment(energySource, storage, actionSource, player, requiredExperience,
-                    sourcePriority, storageAdapters);
+            var payment = planPayment(energySource, storage, actionSource, playerRaw(player), requiredExperience,
+                    sourcePriority, adapters);
             if (payment.player() > Integer.MAX_VALUE) {
                 return false;
             }
@@ -559,6 +570,7 @@ public final class MyotusAPI {
             requireNonNegative(requiredExperience, "requiredExperience");
             orderedUniqueSources(sourcePriority);
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
             if (!(player instanceof ServerPlayer serverPlayer) || player.level().isClientSide()) {
                 return false;
@@ -567,8 +579,8 @@ public final class MyotusAPI {
                 return true;
             }
 
-            var payment = planPayment(energySource, storage, actionSource, player, requiredExperience,
-                    sourcePriority, storageAdapters);
+            var payment = planPayment(energySource, storage, actionSource, playerRaw(player), requiredExperience,
+                    sourcePriority, adapters);
             PlayerExperienceDebit playerDebit = preparePlayerDebit(serverPlayer, payment.player());
             if (!payment.enough() || !canExtractPlannedStorage(energySource, storage, actionSource, payment,
                     sourcePriority, adapters) || playerDebit == null) {
@@ -739,6 +751,7 @@ public final class MyotusAPI {
 
         public long extractable(IEnergySource energySource, MEStorage storage,
                 IActionSource actionSource, ExperienceStorageAdapter adapter) {
+            storage = snapshotStorage(storage);
             return extract(energySource, storage, actionSource, stored(storage, adapter), adapter, Actionable.SIMULATE);
         }
 
@@ -779,6 +792,7 @@ public final class MyotusAPI {
             if (amount == 0) {
                 return true;
             }
+            storage = snapshotStorage(storage);
             if (!canExtract(energySource, storage, actionSource, amount, adapter)) {
                 return false;
             }
@@ -809,6 +823,7 @@ public final class MyotusAPI {
             }
             Objects.requireNonNull(energySource, "energySource");
             Objects.requireNonNull(actionSource, "actionSource");
+            storage = snapshotStorage(storage);
 
             long requestedStorageUnits = adapter.toStorageUnits(amount);
             if (actionable == Actionable.MODULATE) {
@@ -907,6 +922,41 @@ public final class MyotusAPI {
         }
 
         private record PlayerExperienceDebit(int amount, int targetLevel, int pointsIntoLevel) {
+        }
+
+        private static MEStorage snapshotStorage(MEStorage storage) {
+            return storage == null || storage instanceof OperationStorage ? storage : new OperationStorage(storage);
+        }
+
+        /** Shares one full report within an API operation; permission and energy checks remain live. */
+        private static final class OperationStorage implements MEStorage {
+            private final MEStorage delegate;
+            private KeyCounter availableStacks;
+
+            private OperationStorage(MEStorage delegate) {
+                this.delegate = delegate;
+            }
+
+            @Override
+            public KeyCounter getAvailableStacks() {
+                if (availableStacks == null) {
+                    availableStacks = delegate.getAvailableStacks();
+                }
+                return availableStacks;
+            }
+
+            @Override
+            public long extract(AEKey key, long amount, Actionable mode, IActionSource source) {
+                if (mode == Actionable.MODULATE) {
+                    availableStacks = null;
+                }
+                return delegate.extract(key, amount, mode, source);
+            }
+
+            @Override
+            public Component getDescription() {
+                return delegate.getDescription();
+            }
         }
 
         private static final class CumulativeSimulatingEnergySource implements IEnergySource {

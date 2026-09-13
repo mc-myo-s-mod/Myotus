@@ -9,11 +9,7 @@ import me.myogoo.myotus.init.MyoBlocks;
 import me.myogoo.myotus.init.MyoConfig;
 import me.myogoo.myotus.init.MyoCreativeModeTabs;
 import me.myogoo.myotus.init.MyoItems;
-import me.myogoo.myotus.platform.AnnotationScanData;
-import me.myogoo.myotus.platform.mod.ForgeModList;
-import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import me.myogoo.myotus.util.mod.MyoModVersionMismatchException;
-import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingException;
@@ -37,9 +33,8 @@ public class Myotus {
     public Myotus(FMLJavaModLoadingContext context) {
         this.modEventBus = context.getModEventBus();
         MyotusAPI._setInstance(MyotusAPIImpl.INSTANCE);
-        AnnotationScanner.setAnnotationProvider(AnnotationScanData::getAnnotations);
         try {
-            ModIntegrationManager.setModList(ForgeModList.INSTANCE);
+            MyotusAPI.integrations();
         } catch (MyoModVersionMismatchException e) {
             throw new ModLoadingException(
                     context.getContainer().getModInfo(),

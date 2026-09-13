@@ -37,5 +37,12 @@ public final class CraftingRecipes {
                 .requires(MyoItems.ENDER_PEARL_BLOCK.get())
                 .unlockedBy("has_ender_pearl_block", RecipeJsonHas.has(MyoItems.ENDER_PEARL_BLOCK.get()))
                 .save(output, Myotus.makeId("crafting/ender_pearls_from_block"));
+
+        MyoShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, Items.OBSIDIAN)
+                .requires(Items.WATER_BUCKET)
+                .requires(Items.LAVA_BUCKET)
+                .dev()
+                .unlockedBy("has_water_bucket", RecipeJsonHas.has(Items.WATER_BUCKET))
+                .save(output, Myotus.makeId("crafting/dev_fluid_bucket_test"));
     }
 }

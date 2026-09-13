@@ -99,9 +99,18 @@ class ModIntegrationManagerTest {
         assertTrue(ModIntegrationManager.isLoaded("first"));
         assertTrue(ModIntegrationManager.isLoaded("first_namespace"));
         assertTrue(ModIntegrationManager.isLoaded("First Display"));
+        assertTrue(ModIntegrationManager.isRegistered("first"));
+        assertTrue(ModIntegrationManager.isRegistered("first_namespace"));
+        assertTrue(ModIntegrationManager.isRegistered("First Display"));
+        assertFalse(ModIntegrationManager.isRegistered("missing"));
+        assertFalse(ModIntegrationManager.isRegistered((String) null));
         assertFalse(ModIntegrationManager.isLoaded((String) null));
         assertNull(ModIntegrationManager.get("missing"));
         assertNull(ModIntegrationManager.getClass("missing"));
+        ModIntegrationManager.setModList(IModList.EMPTY);
+        assertTrue(ModIntegrationManager.isRegistered("first"));
+        assertFalse(ModIntegrationManager.isRegistered("first_namespace"));
+        assertFalse(ModIntegrationManager.isRegistered("First Display"));
     }
 
     @Test

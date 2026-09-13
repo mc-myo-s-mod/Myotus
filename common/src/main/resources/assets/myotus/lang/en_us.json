@@ -20,6 +20,7 @@
   "block.myotus.charged_ender_pearl_block": "Charged Ender Pearl Block",
   "item.myotus.myotus_upgrade_card": "Myotus Upgrade Card",
   "key.categories.myotus": "Myotus",
+  "key.category.myotus.myotus": "Myotus",
   "gui.myotus.config.upgrade_terminal_panel.show": "Show Upgrade Terminal Panel",
   "gui.myotus.config.upgrade_terminal_panel.hide": "Hide Upgrade Terminal Panel",
   "gui.myotus.upgrade_slot.empty_tooltip.header": "Installable terminal upgrades:",

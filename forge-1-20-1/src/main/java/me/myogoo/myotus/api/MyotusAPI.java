@@ -21,7 +21,10 @@ import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
 import me.myogoo.myotus.command.MyoCommandRegistrar;
 import me.myogoo.myotus.menu.TerminalUpgradeHelper;
+import me.myogoo.myotus.platform.AnnotationScanData;
+import me.myogoo.myotus.platform.mod.ForgeModList;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
+import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -43,6 +46,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -58,6 +63,10 @@ import java.util.function.Predicate;
  */
 public final class MyotusAPI {
     private static IMyotusAPI instance;
+    private static final InitializationTask INTEGRATIONS_INITIALIZER = new InitializationTask(() -> {
+        AnnotationScanner.setAnnotationProvider(AnnotationScanData::getAnnotations);
+        ModIntegrationManager.setModList(ForgeModList.INSTANCE);
+    });
 
     private MyotusAPI() {
     }
@@ -113,6 +122,7 @@ public final class MyotusAPI {
      * @return the integration API
      */
     public static IntegrationsApi integrations() {
+        INTEGRATIONS_INITIALIZER.run();
         return IntegrationsApi.INSTANCE;
     }
 
@@ -423,6 +433,7 @@ public final class MyotusAPI {
                 List<ExperienceStorageAdapter> storageAdapters) {
             Objects.requireNonNull(selectedSource, "selectedSource");
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
 
             var priority = new ArrayList<ExperienceMath.ExperienceSource>();
@@ -480,7 +491,16 @@ public final class MyotusAPI {
                 List<ExperienceMath.ExperienceSource> sourcePriority,
                 List<ExperienceStorageAdapter> storageAdapters) {
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
+            return planPayment(energySource, storage, actionSource, playerExperience, requiredExperience,
+                    sourcePriority, adapters);
+        }
+
+        private ExperienceMath.MyoExperience planPayment(IEnergySource energySource, MEStorage storage,
+                IActionSource actionSource, long playerExperience, long requiredExperience,
+                List<ExperienceMath.ExperienceSource> sourcePriority,
+                Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters) {
             var networkAmounts = extractableByPriority(energySource, storage, actionSource, sourcePriority, adapters);
             return ExperienceMath.planConsumption(requiredExperience,
                     new ExperienceMath.ExperienceAmounts(
@@ -530,12 +550,13 @@ public final class MyotusAPI {
             requireNonNegative(requiredExperience, "requiredExperience");
             orderedUniqueSources(sourcePriority);
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
             if (player.getAbilities().instabuild) {
                 return true;
             }
-            var payment = planPayment(energySource, storage, actionSource, player, requiredExperience,
-                    sourcePriority, storageAdapters);
+            var payment = planPayment(energySource, storage, actionSource, playerRaw(player), requiredExperience,
+                    sourcePriority, adapters);
             if (payment.player() > Integer.MAX_VALUE) {
                 return false;
             }
@@ -564,6 +585,7 @@ public final class MyotusAPI {
             requireNonNegative(requiredExperience, "requiredExperience");
             orderedUniqueSources(sourcePriority);
             Map<ExperienceMath.ExperienceSource, ExperienceStorageAdapter> adapters = adaptersBySource(storageAdapters);
+            storage = snapshotStorage(storage);
             validateDisjointStorageAdapters(storage, adapters);
             if (!(player instanceof ServerPlayer serverPlayer) || player.level().isClientSide()) {
                 return false;
@@ -572,8 +594,8 @@ public final class MyotusAPI {
                 return true;
             }
 
-            var payment = planPayment(energySource, storage, actionSource, player, requiredExperience,
-                    sourcePriority, storageAdapters);
+            var payment = planPayment(energySource, storage, actionSource, playerRaw(player), requiredExperience,
+                    sourcePriority, adapters);
             PlayerExperienceDebit playerDebit = preparePlayerDebit(serverPlayer, payment.player());
             if (!payment.enough() || !canExtractPlannedStorage(energySource, storage, actionSource, payment,
                     sourcePriority, adapters) || playerDebit == null) {
@@ -744,6 +766,7 @@ public final class MyotusAPI {
 
         public long extractable(IEnergySource energySource, MEStorage storage,
                 IActionSource actionSource, ExperienceStorageAdapter adapter) {
+            storage = snapshotStorage(storage);
             return extract(energySource, storage, actionSource, stored(storage, adapter), adapter, Actionable.SIMULATE);
         }
 
@@ -784,6 +807,7 @@ public final class MyotusAPI {
             if (amount == 0) {
                 return true;
             }
+            storage = snapshotStorage(storage);
             if (!canExtract(energySource, storage, actionSource, amount, adapter)) {
                 return false;
             }
@@ -814,6 +838,7 @@ public final class MyotusAPI {
             }
             Objects.requireNonNull(energySource, "energySource");
             Objects.requireNonNull(actionSource, "actionSource");
+            storage = snapshotStorage(storage);
 
             long requestedStorageUnits = adapter.toStorageUnits(amount);
             if (actionable == Actionable.MODULATE) {
@@ -914,6 +939,41 @@ public final class MyotusAPI {
         private record PlayerExperienceDebit(int amount, int targetLevel, int pointsIntoLevel) {
         }
 
+        private static MEStorage snapshotStorage(MEStorage storage) {
+            return storage == null || storage instanceof OperationStorage ? storage : new OperationStorage(storage);
+        }
+
+        /** Shares one full report within an API operation; permission and energy checks remain live. */
+        private static final class OperationStorage implements MEStorage {
+            private final MEStorage delegate;
+            private KeyCounter availableStacks;
+
+            private OperationStorage(MEStorage delegate) {
+                this.delegate = delegate;
+            }
+
+            @Override
+            public KeyCounter getAvailableStacks() {
+                if (availableStacks == null) {
+                    availableStacks = delegate.getAvailableStacks();
+                }
+                return availableStacks;
+            }
+
+            @Override
+            public long extract(AEKey key, long amount, Actionable mode, IActionSource source) {
+                if (mode == Actionable.MODULATE) {
+                    availableStacks = null;
+                }
+                return delegate.extract(key, amount, mode, source);
+            }
+
+            @Override
+            public Component getDescription() {
+                return delegate.getDescription();
+            }
+        }
+
         private static final class CumulativeSimulatingEnergySource implements IEnergySource {
             private final IEnergySource delegate;
             private double reserved;
@@ -1007,5 +1067,47 @@ public final class MyotusAPI {
             throw new IllegalStateException("MyotusAPI instance is already set!");
         }
         instance = Objects.requireNonNull(api, "api");
+    }
+
+    static final class InitializationTask {
+        private volatile Thread initializingThread;
+        private final FutureTask<Void> task;
+
+        InitializationTask(Runnable initializer) {
+            this.task = new FutureTask<>(() -> {
+                this.initializingThread = Thread.currentThread();
+                try {
+                    initializer.run();
+                    return null;
+                } finally {
+                    this.initializingThread = null;
+                }
+            });
+        }
+
+        void run() {
+            if (Thread.currentThread() == this.initializingThread) {
+                return;
+            }
+            this.task.run();
+            try {
+                this.task.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while initializing Myotus integrations", e);
+            } catch (ExecutionException e) {
+                throw propagate(e.getCause());
+            }
+        }
+
+        private static RuntimeException propagate(Throwable cause) {
+            if (cause instanceof RuntimeException runtimeException) {
+                return runtimeException;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            return new IllegalStateException("Failed to initialize Myotus integrations", cause);
+        }
     }
 }

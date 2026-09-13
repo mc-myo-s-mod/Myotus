@@ -44,6 +44,7 @@ class ExperienceApiExtractionTest {
 
         assertEquals(25, MyotusAPI.experience().extractable(limitedEnergy, storage,
                 IActionSource.empty(), ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT));
+        assertEquals(1, storage.reportCalls);
         assertEquals(100, storage.stored(key));
     }
 
@@ -54,6 +55,7 @@ class ExperienceApiExtractionTest {
 
         assertTrue(MyotusAPI.experience().extractExact(unlimitedEnergy(), storage,
                 IActionSource.empty(), 40, ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT));
+        assertEquals(1, storage.reportCalls);
         assertEquals(60, storage.stored(key));
     }
 
@@ -78,6 +80,7 @@ class ExperienceApiExtractionTest {
         assertEquals(List.of(PLAYER, APPLIED_EXPERIENCED_AMOUNT),
                 MyotusAPI.experience().availableAnvilSourcePriority(unlimitedEnergy(), storage, IActionSource.empty(),
                         PLAYER));
+        assertEquals(2, storage.reportCalls);
     }
 
     @Test
@@ -115,6 +118,40 @@ class ExperienceApiExtractionTest {
         assertEquals(25, payment.player());
         assertEquals(12_500, storage.stored(fluidKey));
         assertEquals(50, storage.stored(appliedKey));
+        assertEquals(1, storage.reportCalls);
+    }
+
+    @Test
+    void extractionRefreshesStorageAndPermissionsForEachOperation() {
+        AEKey key = appliedExperiencedKey();
+        MutableStorage storage = new MutableStorage(key, 100);
+
+        assertEquals(100, MyotusAPI.experience().extractable(unlimitedEnergy(), storage,
+                IActionSource.empty(), APPLIED_EXPERIENCED_AMOUNT));
+        storage.storedByKey.put(key, 40L);
+        storage.extractionAllowed = false;
+        assertEquals(0, MyotusAPI.experience().extractable(unlimitedEnergy(), storage,
+                IActionSource.empty(), APPLIED_EXPERIENCED_AMOUNT));
+        storage.extractionAllowed = true;
+        assertTrue(MyotusAPI.experience().extractExact(unlimitedEnergy(), storage,
+                IActionSource.empty(), 40, APPLIED_EXPERIENCED_AMOUNT));
+        assertEquals(3, storage.reportCalls);
+        assertEquals(0, storage.stored(key));
+    }
+
+    @Test
+    void extractExactRechecksPermissionsAfterReadingTheSnapshot() {
+        AEKey key = appliedExperiencedKey();
+        MutableStorage storage = new MutableStorage(key, 100);
+        IEnergySource revokingEnergy = (amount, mode, multiplier) -> {
+            storage.extractionAllowed = false;
+            return amount;
+        };
+
+        assertFalse(MyotusAPI.experience().extractExact(revokingEnergy, storage, IActionSource.empty(),
+                40, APPLIED_EXPERIENCED_AMOUNT));
+        assertEquals(1, storage.reportCalls);
+        assertEquals(100, storage.stored(key));
     }
 
     @Test
@@ -208,6 +245,8 @@ class ExperienceApiExtractionTest {
 
     private static final class MutableStorage implements MEStorage {
         private final java.util.LinkedHashMap<AEKey, Long> storedByKey = new java.util.LinkedHashMap<>();
+        private int reportCalls;
+        private boolean extractionAllowed = true;
 
         private MutableStorage(AEKey key, long stored) {
             this.storedByKey.put(key, stored);
@@ -224,6 +263,9 @@ class ExperienceApiExtractionTest {
 
         @Override
         public long extract(AEKey requestedKey, long amount, Actionable mode, IActionSource source) {
+            if (!extractionAllowed) {
+                return 0;
+            }
             long stored = stored(requestedKey);
             long extracted = Math.min(amount, stored);
             if (mode == Actionable.MODULATE) {
@@ -234,6 +276,7 @@ class ExperienceApiExtractionTest {
 
         @Override
         public KeyCounter getAvailableStacks() {
+            reportCalls++;
             KeyCounter counter = new KeyCounter();
             for (var entry : this.storedByKey.entrySet()) {
                 if (entry.getValue() > 0) {

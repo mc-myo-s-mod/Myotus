@@ -87,10 +87,15 @@ public final class ModIntegrationManager {
                 .anyMatch(mod -> matches(mod, id));
     }
 
+    /**
+     * Recognizes declared mod IDs and aliases, plus namespace/display names of active integrations.
+     * Recognition does not imply activation or an unambiguous annotation-class lookup.
+     */
     public static boolean isRegistered(String id) {
         State snapshot = state;
         return snapshot.registeredIntegrations().values().stream()
-                .anyMatch(mod -> mod.matches(id));
+                .anyMatch(mod -> mod.matches(id))
+                || snapshot.activeIntegrations().keySet().stream().anyMatch(mod -> matches(mod, id));
     }
 
     public static boolean isRegistered(Class<? extends Annotation> annotationClass) {

@@ -158,7 +158,7 @@ configure(project(':common')) {
 configure(modProjects) {
     def commonJavaSourceDir = rootProject.layout.projectDirectory.dir('common/src/main/java').asFile
     def commonResourcesSourceDir = rootProject.layout.projectDirectory.dir('common/src/main/resources').asFile
-    def loaderResourcesSourceDir = new File(project.projectDir, 'src/main/resources')
+    def loaderResourceDirs = [file('src/main/resources'), file('src/generated/resources')]
     def generatedCommonJavaDir = layout.buildDirectory.dir('generated/sources/myotusCommon/java')
     def generatedCommonResourcesDir = layout.buildDirectory.dir('generated/resources/myotusCommon')
 
@@ -171,8 +171,10 @@ configure(modProjects) {
     def syncMyotusCommonResources = tasks.register('syncMyotusCommonResources', Sync) {
         from commonResourcesSourceDir
         into generatedCommonResourcesDir
+        inputs.files(loaderResourceDirs.collect { fileTree(it) })
+                .withPropertyName('loaderResourceOverrides').withPathSensitivity(PathSensitivity.RELATIVE)
         exclude { details ->
-            !details.directory && new File(loaderResourcesSourceDir, details.relativePath.pathString).exists()
+            !details.directory && loaderResourceDirs.any { new File(it, details.relativePath.pathString).isFile() }
         }
     }
 
