@@ -1,0 +1,264 @@
+plugins {
+    id 'java-library'
+
+    id 'com.vanniktech.maven.publish' version '0.36.0'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+group = project.mod_group_id
+version = project.mod_version
+
+base {
+    archivesName = "${project.mod_name}-${project.minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version.toString()))
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+        name = 'ModMaven'
+        url = 'https://modmaven.dev'
+        content {
+            includeGroup 'appeng'
+            includeGroup 'de.mari_023'
+        }
+    }
+}
+
+def loaderResourceDirs = [file('src/main/resources'), file('src/generated/resources')]
+def generatedCommonResourcesDir = layout.buildDirectory.dir('generated/resources/myotusCommon')
+def syncMyotusCommonResources = tasks.register('syncMyotusCommonResources', Sync) {
+    from '../common/src/main/resources'
+    into generatedCommonResourcesDir
+    inputs.files(loaderResourceDirs.collect { fileTree(it) })
+            .withPropertyName('loaderResourceOverrides').withPathSensitivity(PathSensitivity.RELATIVE)
+    exclude { details ->
+        !details.directory && loaderResourceDirs.any { new File(it, details.relativePath.pathString).isFile() }
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDir '../common/src/main/java'
+        resources.srcDir files(generatedCommonResourcesDir).builtBy(syncMyotusCommonResources)
+        resources.srcDir 'src/generated/resources'
+    }
+    test {
+        java.srcDir '../common/src/test/java'
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+tasks.withType(Javadoc).configureEach {
+    failOnError = false
+    options.encoding = 'UTF-8'
+    options.addStringOption('charSet', 'UTF-8')
+    options.addStringOption('docEncoding', 'UTF-8')
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.withType(org.gradle.api.publish.tasks.GenerateModuleMetadata).configureEach {
+    enabled = false
+}
+
+mavenPublishing {
+    coordinates(project.mod_group_id, project.mod_id, project.mod_version)
+
+    pom {
+        name = project.mod_id
+        description = "Myotus is a terminal extension mod for Applied Energistics 2. This library provides hooks and utilities for other mods to extend Myotus' functionality."
+        url = "https://github.com/mc-myo-s-mod/Myotus"
+
+        licenses {
+            license {
+                name = "GNU Lesser General Public License v3.0"
+                url = "https://www.gnu.org/licenses/lgpl-3.0.html"
+            }
+        }
+
+        developers {
+            developer {
+                name = "myogoo"
+                url = "https://github.com/myogoo"
+            }
+        }
+
+        scm {
+            connection = "scm:git:git://github.com/mc-myo-s-mod/Myotus.git"
+            developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/Myotus.git"
+            url = "https://github.com/mc-myo-s-mod/Myotus"
+        }
+    }
+
+    publishToMavenCentral()
+    signAllPublications()
+}
+
+def myotusRootDir = project.projectDir.parentFile
+
+neoForge {
+    version = project.neo_version
+
+    if (project.hasProperty('parchment_mappings_version') && project.hasProperty('parchment_minecraft_version')) {
+        parchment {
+            mappingsVersion = project.parchment_mappings_version
+            minecraftVersion = project.parchment_minecraft_version
+        }
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = project.file('run-client')
+
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+
+            systemProperty("guideme.ae2.guide.sources", "${new File(myotusRootDir, "common/src/main/resources").absolutePath}/assets/${mod_id}/ae2guide")
+            systemProperty("guideme.ae2.guide.sourcesNamespace", mod_id)
+
+        }
+
+        server {
+            server()
+            gameDirectory = project.file('run-server')
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        gameTestServer {
+            type = "gameTestServer"
+            gameDirectory = project.file('run-gametest')
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            serverData()
+            gameDirectory = project.file('run-data')
+
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'myotus.startupVersionMismatchTest', (findProperty('myotusStartupVersionMismatchTest') ?: 'false').toString()
+
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
+
+    compileOnly 'org.slf4j:slf4j-api:2.0.1'
+    compileOnly 'org.ow2.asm:asm:9.9.1'
+    compileOnly 'org.apache.maven:maven-artifact:3.8.5'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.3'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.20.0'
+    testImplementation 'org.ow2.asm:asm:9.9.1'
+    testImplementation 'org.apache.maven:maven-artifact:3.8.5'
+    testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    compileOnly "org.appliedenergistics:guideme:${Guideme_version}:api"
+    runtimeOnly "org.appliedenergistics:guideme:${Guideme_version}"
+
+    compileOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
+    if (project.enable_ae2wt == "true") {
+        runtimeOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
+        runtimeOnly "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"
+    }
+}
+
+def generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    def replaceProperties = [minecraft_version      : minecraft_version,
+                             minecraft_version_range: minecraft_version_range,
+                             neo_version            : neo_version,
+                             neo_version_range      : neo_version_range,
+                             AE2_version_range      : AE2_version_range,
+                             loader_version_range   : loader_version_range,
+                             mod_id                 : mod_id,
+                             mod_name               : mod_name,
+                             mod_license            : mod_license,
+                             mod_version            : mod_version,
+                             mod_authors            : mod_authors,
+                             mod_description        : mod_description]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
+neoForge.ideSyncTask syncMyotusCommonResources
+neoForge.ideSyncTask generateModMetadata
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'       : mod_id,
+                'Specification-Vendor'      : mod_authors,
+                'Specification-Version'     : '1',
+                'Implementation-Title'      : project.name,
+                'Implementation-Version'    : project.version.toString(),
+                'Implementation-Vendor'     : mod_authors,
+                'Implementation-Timestamp'  : new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+tasks.register('apiJar', Jar) {
+    archiveClassifier = 'api'
+    from sourceSets.main.output
+    include 'me/myogoo/myotus/api/**'
+    include 'me/myogoo/myotus/dto/MyoModDto.class'
+    include 'me/myogoo/myotus/dto/MyoModInfo.class'
+    include 'me/myogoo/myotus/client/gui/MyoIcon.class'
+    include 'me/myogoo/myotus/client/gui/widgets/button/CustomTabButton*.class'
+    include 'me/myogoo/myotus/client/gui/widgets/button/MyoCycleButton*.class'
+}
+
+tasks.named('assemble').configure {
+    dependsOn tasks.named('apiJar')
+}
+
+plugins.withId('com.vanniktech.maven.publish') {
+    afterEvaluate {
+        publishing.publications.withType(org.gradle.api.publish.maven.MavenPublication).configureEach {
+            artifactId = project.mod_id
+            artifacts.clear()
+            artifact(tasks.named('jar')) {
+                classifier = null
+            }
+            artifact(tasks.named('apiJar')) {
+                classifier = 'api'
+            }
+            artifact(tasks.named('sourcesJar')) {
+                classifier = 'sources'
+            }
+            artifact(tasks.named('plainJavadocJar')) {
+                classifier = 'javadoc'
+            }
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.myogoo.myotus.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "ae2.AbstractTerminalPartMixin",
+    "ae2.AEBaseMenuMixin",
+    "ae2.MEStorageMenuMixin",
+    "minecraft.AbstractContainerMenuMixin"
+  ],
+  "client": [
+    "ae2wtlib.ScrollingUpgradesPanelAccessor",
+    "ae2.MEStorageScreenMixin",
+    "ae2.ScreenStyleAccessor",
+    "ae2.WidgetContainerAccessor",
+    "guideme.GuideMeAddonMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
