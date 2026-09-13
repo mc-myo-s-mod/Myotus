@@ -1,335 +1,91 @@
 # Myotus
 
-Myotus is a small Applied Energistics 2 extension library for Minecraft mod developers.
+Myotus is an Applied Energistics 2 addon and integration library. It exposes terminal configuration tabs, item-backed terminal upgrade hooks, a shared creative tab, annotation-driven commands, optional-integration metadata, and raw-XP planning/payment helpers.
 
-It provides public API hooks for optional integrations, AE2 terminal configuration tabs,
-shared creative-tab entries, terminal upgrade cards, and a few pure helper APIs used by
-addons.
+For players, install the normal Myotus mod JAR together with AE2 and the matching Minecraft loader. The `api` JAR is for compiling addons, not for a `mods` folder.
 
-Myotus is intentionally not a large standalone content mod. Its main job is to be a
-stable bridge that other AE2-related mods can depend on.
+## Versions in this checkout
 
-## Supported Minecraft Lines
+These are build inputs from the linked `gradle.properties` files, not a claim that every version is available from a remote Maven repository or a mod download site.
 
-| Module | Loader | Minecraft | Java | AE2 | Artifact version |
+| Module | Minecraft | Loader build | Java | AE2 build | Myotus version |
 | --- | --- | --- | --- | --- | --- |
-| `forge-1-20-1` | Forge `47.x` | `1.20.1` | `17` | `15.4.x` | `15.1.3-SNAPSHOT` |
-| `neoforge-1-21-1` | NeoForge `21.1.x` | `1.21.1` | `21` | `19.2.x` | `19.1.3-SNAPSHOT` |
+| [forge-1-20-1](forge-1-20-1/gradle.properties) | 1.20.1 | Forge 47.4.17 | 17 | 15.4.10 | 15.1.0 |
+| [neoforge-1-21-1](neoforge-1-21-1/gradle.properties) | 1.21.1 | NeoForge 21.1.219 | 21 | 19.2.17 | 19.1.1 |
+| [neoforge-26-1-2](neoforge-26-1-2/gradle.properties) | 26.1.2 | NeoForge 26.1.2.97 | 25 | 26.1.10-beta | 26.1.0 |
 
-The project has a shared `common` source set plus loader-specific modules. Forge and
-NeoForge APIs are kept separate when Minecraft/loader differences make that healthier
-than forcing artificial parity.
+The root Gradle build includes `common`, Forge 1.20.1, and NeoForge 1.21.1. The 26.1.2 directory is a **separate Gradle build** that also uses `common`; a root `build` does not build it.
 
-## What Myotus Provides
+## Developer documentation
 
-- `MyotusAPI` as the main public API entry point.
-- Optional integration discovery and runtime checks.
-- AE2 terminal config-tab registration.
-- Shared Myotus creative-tab registration.
-- Extensible argument adapters for annotation-driven commands.
-- Item-backed AE2 terminal upgrade cards.
-- Terminal upgrade query helpers.
-- Client widget helpers.
-- Pure experience math helpers for Applied Experienced / `fluid:xp` style integrations.
-- A normal loader-discoverable Myotus mod artifact for addon development and runtime use.
+- [Quickstart](openwiki/quickstart.md): dependencies, runtime metadata, and first API calls.
+- [API reference](openwiki/api.md): actual methods, examples, and limitations.
+- [Architecture and lifecycle](openwiki/architecture.md): bootstrap order, sides, resource precedence, and version differences.
+- [Build and verification](openwiki/workflows.md): compile, tests, datagen, runtime checks, and local publishing.
 
-## For Players and Modpacks
+## Public entry points
 
-If another mod depends on Myotus, install Myotus alongside that mod, Applied Energistics 2,
-and the correct loader for your Minecraft version.
+```java
+import me.myogoo.myotus.api.MyotusAPI;
+import me.myogoo.myotus.api.experience.ExperienceMath;
 
-Myotus can be included in modpacks. On its own it may look small, because most of its value
-is exposed to other mods through API hooks.
+// Balances and cost are raw vanilla XP points, not levels or mB.
+var plan = MyotusAPI.experience().plan(
+        75, new ExperienceMath.ExperienceAmounts(30, 40, 50));
+boolean payable = plan.canPay(); // true: 30 player + 40 fluid + 5 Applied Experienced
+```
 
-## For Addon Developers
+| Entry point / package | Purpose |
+| --- | --- |
+| `MyotusAPI.get()`, `tryGet()`, `isInitialized()` | Access/check the runtime `IMyotusAPI` instance |
+| `MyotusAPI.integrations()` | Query registered and active `@MyoMod` integrations |
+| `MyotusAPI.configTabs()` | Register client-only `MyoConfigTab` definitions |
+| `MyotusAPI.creativeTabs()` | Register item/stack suppliers for the shared creative tab |
+| `MyotusAPI.terminalUpgrades()` / `ITerminalUpgradeCard` | Inspect cards and implement server-side menu callbacks |
+| `MyotusAPI.experience()` / `api.experience` | XP math, pure plans, powered ME extraction, and server-side payment |
+| `MyotusAPI.commands()` / `api.annotation.commands` | Command argument adapters and command declarations |
+| `api.recipe` / `api.datagen` | Table recipe adapters and loader-specific resource conditions |
+| `MyotusAPI.Client.Widgets` | Client-only key-binding button factories |
+| `MyotusAPI.network()` / `api.wt.AddTerminalEvent` | Forge 1.20.1-only networking and AE2WTLib registration hooks |
 
-### Dependency Coordinates
+Register runtime contributions after Myotus initialization. `tryGet()` reports current state; it does not defer a callback until initialization. Keep config tabs, widgets, and optional-mod class references in appropriately isolated code. See the [lifecycle rules](openwiki/architecture.md#bootstrap-and-registration-order).
 
-Use the `myotus` artifact when compiling an addon against Myotus:
+## Compile against a local build
+
+The root modules configure `me.myogoo:myotus:<version>` and an `api` classifier. After [publishing a matching local build](openwiki/workflows.md#local-artifacts), a Forge 1.20.1 addon can use:
 
 ```gradle
 repositories {
-    mavenLocal() // useful while testing local builds
-    mavenCentral()
-    maven {
-        name = "ModMaven"
-        url = "https://modmaven.dev"
-        content {
-            includeGroup "appeng"
-            includeGroup "de.mari_023"
-        }
-    }
+    mavenLocal()
+    // Keep the repositories required by your own loader and AE2 setup.
 }
 
 dependencies {
-    // Forge 1.20.1 line: mapped compile API plus the loader-discoverable runtime mod
-    compileOnly "me.myogoo:myotus:15.1.3-SNAPSHOT:api"
-    runtimeOnly fg.deobf("me.myogoo:myotus:15.1.3-SNAPSHOT")
-
-    // NeoForge 1.21.1 line
-    // compileOnly "me.myogoo:myotus:19.1.3-SNAPSHOT:api"
-    // runtimeOnly "me.myogoo:myotus:19.1.3-SNAPSHOT"
+    compileOnly "me.myogoo:myotus:15.1.0:api"
+    runtimeOnly fg.deobf("me.myogoo:myotus:15.1.0")
 }
 ```
 
-The published `myotus` jar is the normal loader-discoverable Myotus mod artifact. It is
-not an API-only jar: it includes loader metadata, Myotus runtime classes, assets, and data
-resources. Addons should still prefer the public `me.myogoo.myotus.api.*` packages and
-avoid depending on implementation packages unless a class is explicitly promoted into the
-public API.
+For NeoForge 1.21.1, use `19.1.1` and plain `runtimeOnly` without `fg.deobf`. For standalone 26.1.2, use `26.1.0` after publishing from that directory; see the [26.1.2 setup](openwiki/quickstart.md#neoforge-2612). Declare Myotus in the addon's loader metadata as well as in Gradle.
 
-The `api` classifier is a mapped compile-time artifact. It is not a standalone runtime mod;
-keep the normal unclassified artifact in the development runtime and declare Myotus in loader metadata.
+The API classifier includes `api/**` and supporting DTO/icon/button types exposed by those signatures. It omits runtime implementation and loader metadata. Prefer `me.myogoo.myotus.api.*`; an implementation class being `public` does not make it a cross-version compatibility promise.
 
-When using Myotus features at runtime, also declare the matching Myotus mod dependency in
-your loader metadata so the mod is present before your addon initializes.
+## Build
 
-### Local Publishing
+On Windows, from this repository root:
 
-From the repository root:
-
-```bash
-./gradlew :forge-1-20-1:publishToMavenLocal
-./gradlew :neoforge-1-21-1:publishToMavenLocal
+```powershell
+cmd.exe /c "gradlew.bat :common:test :forge-1-20-1:build :neoforge-1-21-1:build --console=plain --no-configuration-cache"
 ```
 
-On Windows, use `gradlew.bat`. From WSL against a Windows-mounted workspace, this project
-is commonly verified with:
+Build 26.1.2 separately, from `neoforge-26-1-2`, with Java 25:
 
-```bash
-/mnt/c/Windows/System32/cmd.exe /c "gradlew.bat build :forge-1-20-1:publishToMavenLocal :neoforge-1-21-1:publishToMavenLocal --console=plain"
+```powershell
+cmd.exe /c "gradlew.bat build --console=plain"
 ```
 
-## API Quick Start
-
-### Access the API Safely
-
-```java
-MyotusAPI.tryGet().ifPresent(api -> {
-    // Register API contributions during normal mod setup.
-});
-```
-
-Avoid calling `MyotusAPI.get()` from static initializers. Use it during or after normal mod
-setup when Myotus has installed its API instance.
-
-### Optional Integration Checks
-
-```java
-if (MyotusAPI.integrations().isLoaded("examplemod")) {
-    // Run code that should only be active when examplemod is present.
-}
-```
-
-You can also query by Myotus integration annotation class or ASM `Type` where appropriate.
-
-### Terminal Config Tabs
-
-Register custom tabs for AE2 terminal configuration screens:
-
-```java
-MyotusAPI.configTabs().registerTerminalConfigTab(new MyoConfigTab(
-        ResourceLocation.fromNamespaceAndPath("examplemod", "terminal_settings"),
-        Component.literal("Example"),
-        new ItemStack(Items.REDSTONE),
-        "example_terminal.json",
-        new ExampleConfigScreen()
-));
-```
-
-When the tab is only valid for certain terminal contexts, attach a visibility rule:
-
-```java
-MyotusAPI.configTabs().registerTerminalConfigTab(new MyoConfigTab(
-        ResourceLocation.fromNamespaceAndPath("examplemod", "portable_terminal_settings"),
-        Component.literal("Portable"),
-        new ItemStack(Items.REDSTONE),
-        "portable_terminal.json",
-        new PortableConfigScreen()
-).visibleWhen(context -> context.isItemHost()));
-```
-
-### Shared Creative Tab Entries
-
-Add items or preconfigured stacks to the shared Myotus creative tab:
-
-```java
-MyotusAPI.creativeTabs().registerCreativeTabItem(MY_ITEM);
-
-MyotusAPI.creativeTabs().registerCreativeTabStack(
-        () -> new ItemStack(MY_ITEM.get(), 1)
-);
-```
-
-### Cycle Buttons
-
-`MyoCycleButton` reports left and right clicks explicitly, including right clicks that an AE2 screen
-forwards to child widgets as button `0`:
-
-```java
-var cycleButton = new MyoCycleButton(
-        mouseButton -> {
-            switch (mouseButton) {
-                case LEFT -> selectNext();
-                case RIGHT -> selectPrevious();
-            }
-        },
-        this::selectedItem,
-        this::tooltip
-);
-```
-
-For separate actions without a switch, use the constructor accepting `leftClickAction` and
-`rightClickAction`. Keyboard activation follows the left-click action.
-
-### Command Arguments
-
-Annotation-driven commands support built-in primitive, string, entity, and player parameters. Register
-an adapter for an addon-specific parameter type through the public API before commands are built:
-
-```java
-MyotusAPI.commands().registerArgument(MyValue.class, myValueArgumentAdapter);
-```
-
-Each Java parameter type has exactly one adapter; duplicate registration fails instead of replacing the
-existing parser silently.
-
-### Terminal Upgrade Cards
-
-Upgrade cards are normal items that implement `ITerminalUpgradeCard`:
-
-```java
-public class MyUpgradeCardItem extends Item implements ITerminalUpgradeCard {
-    public MyUpgradeCardItem(Properties properties) {
-        super(properties.stacksTo(1));
-    }
-
-    @Override
-    public void onTerminalOpen(MEStorageMenu menu, ItemStack stack) {
-        // Apply behavior when the terminal opens.
-    }
-
-    @Override
-    public void onTerminalClose(MEStorageMenu menu, ItemStack stack) {
-        // Clean up behavior when the terminal closes.
-    }
-}
-```
-
-Useful helper queries:
-
-```java
-boolean installed = MyotusAPI.terminalUpgrades().hasUpgrade(menu, MY_UPGRADE_ID);
-List<ItemStack> upgrades = MyotusAPI.terminalUpgrades().installedUpgrades(menu);
-```
-
-A terminal can only install one copy of the same upgrade item type. Upgrade card items
-should generally have max stack size `1`.
-
-### Experience Helpers
-
-`MyotusAPI.experience()` uses raw vanilla XP points throughout. The math API is independent of
-Applied Experienced and does not load optional-mod classes.
-
-```java
-var xp = MyotusAPI.experience();
-
-long total = xp.total(30, 40, 50);
-int level = xp.levelForTotal(total);
-long progress = xp.intoLevel(total);
-long next = xp.toNextLevel(level);
-```
-
-For a pure, non-mutating payment plan, supply named balances. Every amount must already be
-normalized to raw XP points:
-
-```java
-import me.myogoo.myotus.api.experience.ExperienceMath;
-
-var available = new ExperienceMath.ExperienceAmounts(30, 40, 50);
-var plan = xp.plan(75, available);
-
-if (plan.canPay()) {
-    long playerUsed = plan.player();
-    long fluidUsed = plan.fluidXp();
-    long appliedUsed = plan.appliedExperiencedAmount();
-}
-```
-
-The default order is player, fluid, then Applied Experienced. Pass a list to `plan(...)` for a
-custom order.
-
-ME fluid keys store fluid units, not XP points. A fluid source is therefore disabled by default;
-register an explicit matcher and conversion rate from the owning integration's configuration:
-
-```java
-import me.myogoo.myotus.api.experience.ExperienceMath;
-
-var fluidAdapter = xp.fluidStorage(
-        key -> key.getId().equals(ResourceLocation.fromNamespaceAndPath("example", "liquid_xp")),
-        250 // storage units per raw XP point
-);
-
-var adapters = List.of(xp.appliedExperiencedStorage(), fluidAdapter);
-var priority = List.of(
-        ExperienceMath.ExperienceSource.PLAYER,
-        ExperienceMath.ExperienceSource.FLUID_XP,
-        ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT
-);
-
-boolean payable = xp.canConsume(energy, storage, actionSource, player, 75, priority, adapters);
-boolean consumed = payable && xp.consume(energy, storage, actionSource, player, 75, priority, adapters);
-```
-
-The built-in Applied Experienced adapter matches both the AE key type and key id. Stable ids remain
-available for integrations that need them:
-
-```java
-String appexMod = xp.appliedModId();                 // "appex"
-String appexKey = xp.appliedAeKeyId();               // "appex:experience"
-String amountId = xp.appliedAmountComponentId();
-```
-
-## Repository Layout
-
-```text
-common/             Shared source and tests copied into loader modules
-forge-1-20-1/       Forge 1.20.1 implementation and API surface
-neoforge-1-21-1/    NeoForge 1.21.1 implementation and API surface
-readme/             Mod-page README drafts/assets
-repo/               Optional project-local Maven repository
-```
-
-## Building and Testing
-
-From the repository root:
-
-```bash
-./gradlew build
-./gradlew :common:test
-./gradlew :forge-1-20-1:compileJava
-./gradlew :neoforge-1-21-1:compileJava
-```
-
-Loader-specific runtime tasks live in each module:
-
-```bash
-./gradlew :forge-1-20-1:runClient
-./gradlew :forge-1-20-1:runGameTestServer
-
-./gradlew :neoforge-1-21-1:runClient
-./gradlew :neoforge-1-21-1:runGameTestServer
-```
-
-## API Boundary Notes
-
-- Prefer `me.myogoo.myotus.api.*` classes from the `myotus` artifact.
-- Do not rely on `me.myogoo.myotus.util`, `dto`, `client`, `init`, or other implementation
-  packages unless they are explicitly promoted into the public API.
-- Optional-mod integrations should avoid importing optional classes into always-loaded code
-  paths unless guarded by a safe loader-specific isolation pattern.
-- Some Forge-only or NeoForge-only API differences are deliberate.
+Compilation and tests do not establish in-game behavior or TPS/FPS. Use the matching [client/server/GameTest checks](openwiki/workflows.md) for the code being changed.
 
 ## License
 
-Myotus is licensed under the **GNU Lesser General Public License v3.0**.
+[GNU Lesser General Public License v3.0](LICENSE).
