@@ -45,8 +45,26 @@ jobs:
         include:
           - module: forge-1-20-1
             minecraft: 1.20.1
+            java_version: |
+              17
+              21
+            gradle_wrapper: ./gradlew
+            gradle_project_directory: .
+            gradle_task_prefix: ":forge-1-20-1:"
           - module: neoforge-1-21-1
             minecraft: 1.21.1
+            java_version: |
+              17
+              21
+            gradle_wrapper: ./gradlew
+            gradle_project_directory: .
+            gradle_task_prefix: ":neoforge-1-21-1:"
+          - module: neoforge-26-1-2
+            minecraft: 26.1.2
+            java_version: 25
+            gradle_wrapper: ./neoforge-26-1-2/gradlew
+            gradle_project_directory: neoforge-26-1-2
+            gradle_task_prefix: ""
 
     steps:
       - name: Checkout code
@@ -56,9 +74,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: |
-            17
-            21
+          java-version: ${{ matrix.java_version }}
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -66,13 +82,23 @@ jobs:
           cache-provider: basic
 
       - name: Make gradlew executable
-        run: chmod +x ./gradlew
+        run: chmod +x "${{ matrix.gradle_wrapper }}"
 
       - name: Generate data
-        run: ./gradlew :${{ matrix.module }}:runData --no-daemon --stacktrace
+        run: |
+          "${{ matrix.gradle_wrapper }}" \
+            --project-dir "${{ matrix.gradle_project_directory }}" \
+            "${{ matrix.gradle_task_prefix }}runData" \
+            --no-daemon \
+            --stacktrace
 
       - name: Build with Gradle
-        run: ./gradlew :${{ matrix.module }}:build --no-daemon --stacktrace
+        run: |
+          "${{ matrix.gradle_wrapper }}" \
+            --project-dir "${{ matrix.gradle_project_directory }}" \
+            "${{ matrix.gradle_task_prefix }}build" \
+            --no-daemon \
+            --stacktrace
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7

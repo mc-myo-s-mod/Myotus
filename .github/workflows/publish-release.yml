@@ -93,6 +93,12 @@ jobs:
           neoforge_version_type="$(read_property mod_version_type neoforge-1-21-1/gradle.properties)"
           neoforge_java_version="$(read_property java_version neoforge-1-21-1/gradle.properties)"
 
+          neoforge_26_mc_version="$(read_property minecraft_version neoforge-26-1-2/gradle.properties)"
+          neoforge_26_mod_version="$(read_property mod_version neoforge-26-1-2/gradle.properties)"
+          neoforge_26_mod_loader="$(read_property mod_loader neoforge-26-1-2/gradle.properties)"
+          neoforge_26_version_type="$(read_property mod_version_type neoforge-26-1-2/gradle.properties)"
+          neoforge_26_java_version="$(read_property java_version neoforge-26-1-2/gradle.properties)"
+
           release_version="${RELEASE_TAG#v}"
 
           case "$release_version" in
@@ -103,6 +109,9 @@ jobs:
               mod_loader="$forge_mod_loader"
               version_type="$forge_version_type"
               java_version="$forge_java_version"
+              gradle_wrapper="./gradlew"
+              gradle_project_directory="."
+              gradle_task_prefix=":${module}:"
               ;;
             "${neoforge_mc_version}-"*)
               module="neoforge-1-21-1"
@@ -111,10 +120,24 @@ jobs:
               mod_loader="$neoforge_mod_loader"
               version_type="$neoforge_version_type"
               java_version="$neoforge_java_version"
+              gradle_wrapper="./gradlew"
+              gradle_project_directory="."
+              gradle_task_prefix=":${module}:"
+              ;;
+            "${neoforge_26_mc_version}-"*)
+              module="neoforge-26-1-2"
+              mc_version="$neoforge_26_mc_version"
+              base_mod_version="$neoforge_26_mod_version"
+              mod_loader="$neoforge_26_mod_loader"
+              version_type="$neoforge_26_version_type"
+              java_version="$neoforge_26_java_version"
+              gradle_wrapper="./${module}/gradlew"
+              gradle_project_directory="$module"
+              gradle_task_prefix=""
               ;;
             *)
               echo "::error::Release tag '${RELEASE_TAG}' does not match a releasable Myotus version."
-              echo "::error::Expected a tag for Minecraft ${forge_mc_version} or ${neoforge_mc_version}, optionally prefixed with 'v'."
+              echo "::error::Expected a tag for Minecraft ${forge_mc_version}, ${neoforge_mc_version}, or ${neoforge_26_mc_version}, optionally prefixed with 'v'."
               exit 1
               ;;
           esac
@@ -167,39 +190,41 @@ jobs:
           echo "mod_loader=${mod_loader}" >> "$GITHUB_OUTPUT"
           echo "mod_version=${mod_version}" >> "$GITHUB_OUTPUT"
           echo "module=${module}" >> "$GITHUB_OUTPUT"
+          echo "gradle_wrapper=${gradle_wrapper}" >> "$GITHUB_OUTPUT"
+          echo "gradle_project_directory=${gradle_project_directory}" >> "$GITHUB_OUTPUT"
+          echo "gradle_task_prefix=${gradle_task_prefix}" >> "$GITHUB_OUTPUT"
           echo "version_type=${version_type}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare release notes
         if: github.event_name == 'release'
         env:
           RELEASE_BODY: ${{ github.event.release.body }}
+          TARGET_MODULE: ${{ steps.metadata.outputs.module }}
         run: |
           set -euo pipefail
           mkdir -p dist
 
           if [[ -n "${RELEASE_BODY//[[:space:]]/}" ]]; then
             printf '%s\n' "$RELEASE_BODY" > dist/release-notes.md
-          elif [[ -s CHANGELOG.md ]]; then
-            cp CHANGELOG.md dist/release-notes.md
+          elif [[ -s "${TARGET_MODULE}/CHANGELOG.md" ]]; then
+            cp "${TARGET_MODULE}/CHANGELOG.md" dist/release-notes.md
           else
-            echo "::error::The GitHub Release body and CHANGELOG.md are both empty."
+            echo "::error::The GitHub Release body and ${TARGET_MODULE}/CHANGELOG.md are both empty."
             exit 1
           fi
 
-      - name: Set up Java 17 and 21
+      - name: Set up Java 17 for common tests
         uses: actions/setup-java@v5
         with:
-          distribution: microsoft
-          java-version: |
-            17
-            21
+          distribution: temurin
+          java-version: 17
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: false
 
-      - name: Make Gradle wrapper executable
+      - name: Make root Gradle wrapper executable
         run: chmod +x ./gradlew
 
       - name: Verify Maven Central publishing secrets
@@ -235,12 +260,27 @@ jobs:
             --no-daemon \
             --console=plain
 
+      - name: Set up selected Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.metadata.outputs.java_version }}
+
+      - name: Make selected Gradle wrapper executable
+        env:
+          GRADLE_WRAPPER: ${{ steps.metadata.outputs.gradle_wrapper }}
+        run: chmod +x "${GRADLE_WRAPPER}"
+
       - name: Generate selected Minecraft version data
         env:
           RELEASE_MOD_VERSION: ${{ steps.metadata.outputs.mod_version }}
-          TARGET_MODULE: ${{ steps.metadata.outputs.module }}
+          GRADLE_WRAPPER: ${{ steps.metadata.outputs.gradle_wrapper }}
+          GRADLE_PROJECT_DIRECTORY: ${{ steps.metadata.outputs.gradle_project_directory }}
+          GRADLE_TASK_PREFIX: ${{ steps.metadata.outputs.gradle_task_prefix }}
         run: |
-          ./gradlew ":${TARGET_MODULE}:runData" \
+          "${GRADLE_WRAPPER}" \
+            --project-dir "${GRADLE_PROJECT_DIRECTORY}" \
+            "${GRADLE_TASK_PREFIX}runData" \
             -Pmod_version="${RELEASE_MOD_VERSION}" \
             --build-cache \
             --no-daemon \
@@ -249,9 +289,13 @@ jobs:
       - name: Build selected Minecraft version
         env:
           RELEASE_MOD_VERSION: ${{ steps.metadata.outputs.mod_version }}
-          TARGET_MODULE: ${{ steps.metadata.outputs.module }}
+          GRADLE_WRAPPER: ${{ steps.metadata.outputs.gradle_wrapper }}
+          GRADLE_PROJECT_DIRECTORY: ${{ steps.metadata.outputs.gradle_project_directory }}
+          GRADLE_TASK_PREFIX: ${{ steps.metadata.outputs.gradle_task_prefix }}
         run: |
-          ./gradlew ":${TARGET_MODULE}:build" \
+          "${GRADLE_WRAPPER}" \
+            --project-dir "${GRADLE_PROJECT_DIRECTORY}" \
+            "${GRADLE_TASK_PREFIX}build" \
             -Pmod_version="${RELEASE_MOD_VERSION}" \
             --build-cache \
             --no-daemon \
@@ -281,14 +325,18 @@ jobs:
       - name: Publish selected module to Maven Central
         env:
           RELEASE_MOD_VERSION: ${{ steps.metadata.outputs.mod_version }}
-          TARGET_MODULE: ${{ steps.metadata.outputs.module }}
+          GRADLE_WRAPPER: ${{ steps.metadata.outputs.gradle_wrapper }}
+          GRADLE_PROJECT_DIRECTORY: ${{ steps.metadata.outputs.gradle_project_directory }}
+          GRADLE_TASK_PREFIX: ${{ steps.metadata.outputs.gradle_task_prefix }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_ID }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PW }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_IN_MEMORY_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSWORD }}
         run: |
-          ./gradlew ":${TARGET_MODULE}:publishAndReleaseToMavenCentral" \
+          "${GRADLE_WRAPPER}" \
+            --project-dir "${GRADLE_PROJECT_DIRECTORY}" \
+            "${GRADLE_TASK_PREFIX}publishAndReleaseToMavenCentral" \
             -Pmod_version="${RELEASE_MOD_VERSION}" \
             --build-cache \
             --no-daemon \
