@@ -3,6 +3,8 @@ package me.myogoo.myotus.data.recipe;
 import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.critereon.InventoryChangeTrigger;
 import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ItemLike;
 
 public final class RecipeJsonHas {
@@ -11,5 +13,9 @@ public final class RecipeJsonHas {
 
     public static Criterion<?> has(ItemLike item) {
         return InventoryChangeTrigger.TriggerInstance.hasItems(ItemPredicate.Builder.item().of(item).build());
+    }
+
+    public static Criterion<?> has(TagKey<Item> tag) {
+        return InventoryChangeTrigger.TriggerInstance.hasItems(ItemPredicate.Builder.item().of(tag).build());
     }
 }

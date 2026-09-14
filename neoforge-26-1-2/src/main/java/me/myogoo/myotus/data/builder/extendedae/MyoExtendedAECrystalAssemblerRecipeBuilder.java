@@ -27,6 +27,16 @@ public final class MyoExtendedAECrystalAssemblerRecipeBuilder {
         return this;
     }
 
+    public MyoExtendedAECrystalAssemblerRecipeBuilder energy(int energy) {
+        this.json.addProperty("energy", energy);
+        return this;
+    }
+
+    public MyoExtendedAECrystalAssemblerRecipeBuilder fluid(String fluid, int amount) {
+        this.json.add("input_fluid", ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(fluid), amount).toAmountJson());
+        return this;
+    }
+
     public MyoExtendedAECrystalAssemblerRecipeBuilder inputItem(Ingredient ingredient, int amount) {
         this.inputItems.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(ingredient), amount).toAmountJson());
         return this;
@@ -42,7 +52,7 @@ public final class MyoExtendedAECrystalAssemblerRecipeBuilder {
     }
 
     public MyoExtendedAECrystalAssemblerRecipeBuilder inputTag(String tag, int amount) {
-        this.inputItems.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.tag(tag), amount).toAmountJson());
+        this.inputItems.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient("#" + tag), amount).toAmountJson());
         return this;
     }
 

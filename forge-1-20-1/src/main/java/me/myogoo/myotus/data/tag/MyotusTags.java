@@ -11,6 +11,7 @@ public final class MyotusTags {
 
     public static final class Items {
         public static final TagKey<Item> AE2_INSCRIBER_PRESSES = itemTag("ae2", "inscriber_presses");
+        public static final TagKey<Item> AE2CS_BLANK_PRINT_PRESSES = itemTag("myotus", "ae2cs/blank_print_presses");
         public static final TagKey<Item> STORAGE_BLOCKS_ENDER_PEARL = itemTag("forge", "storage_blocks/ender_pearl");
 
         private Items() {

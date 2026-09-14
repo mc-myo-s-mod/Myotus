@@ -26,6 +26,11 @@ public final class MyoExtendedAECircuitCutterRecipeBuilder {
         return this;
     }
 
+    public MyoExtendedAECircuitCutterRecipeBuilder energy(int energy) {
+        this.json.addProperty("energy", energy);
+        return this;
+    }
+
     public MyoExtendedAECircuitCutterRecipeBuilder input(Ingredient ingredient) {
         JsonObject input = new JsonObject();
         input.add("ingredient", ExternalRecipeBuilder.ingredient(ingredient));

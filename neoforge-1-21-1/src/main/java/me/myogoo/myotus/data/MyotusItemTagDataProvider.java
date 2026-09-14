@@ -6,6 +6,7 @@ import me.myogoo.myotus.init.MyoItems;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.tags.ItemTagsProvider;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +24,8 @@ public class MyotusItemTagDataProvider extends ItemTagsProvider {
     @Override
     protected void addTags(HolderLookup.@NotNull Provider provider) {
         tag(MyotusTags.Items.AE2_INSCRIBER_PRESSES).add(MyoItems.COMPAT_PRESS.get());
+        tag(MyotusTags.Items.AE2CS_BLANK_PRINT_PRESSES)
+                .addOptional(ResourceLocation.fromNamespaceAndPath("ae2cs", "blank_print_press"));
         tag(MyotusTags.Items.STORAGE_BLOCKS_ENDER_PEARL).add(MyoItems.ENDER_PEARL_BLOCK.get());
     }
 }

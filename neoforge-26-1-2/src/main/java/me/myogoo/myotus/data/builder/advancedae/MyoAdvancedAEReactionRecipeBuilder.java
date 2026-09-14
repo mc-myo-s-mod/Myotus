@@ -15,7 +15,7 @@ public final class MyoAdvancedAEReactionRecipeBuilder {
 
     private MyoAdvancedAEReactionRecipeBuilder(Identifier id) {
         this.id = id;
-        this.json.addProperty("type", "advanced_ae:reaction");
+        this.json.addProperty("type", "advanced_ae:react");
     }
 
     public static MyoAdvancedAEReactionRecipeBuilder create(Identifier id) {
@@ -33,7 +33,7 @@ public final class MyoAdvancedAEReactionRecipeBuilder {
     }
 
     public MyoAdvancedAEReactionRecipeBuilder fluid(String fluid, int amount) {
-        this.json.add("input_fluid", ExternalRecipeBuilder.counted(ExternalRecipeBuilder.fluid(fluid), amount).toAmountJson());
+        this.json.add("input_fluid", ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(fluid), amount).toAmountJson());
         return this;
     }
 
@@ -52,12 +52,12 @@ public final class MyoAdvancedAEReactionRecipeBuilder {
     }
 
     public MyoAdvancedAEReactionRecipeBuilder inputTag(String tag, int amount) {
-        this.inputItems.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.tag(tag), amount).toAmountJson());
+        this.inputItems.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient("#" + tag), amount).toAmountJson());
         return this;
     }
 
     public MyoAdvancedAEReactionRecipeBuilder output(String item, int amount) {
-        this.json.add("output", ExternalRecipeBuilder.aeStack(item, amount));
+        this.json.add("itemOutput", ExternalRecipeBuilder.stack(item, amount));
         return this;
     }
 

@@ -6,6 +6,7 @@ import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.data.recipe.JsonRecipeProvider;
 import me.myogoo.myotus.data.recipe.RecipeJsonHas;
 import me.myogoo.myotus.data.recipe.crafting.MyoStonecuttingRecipeBuilder;
+import me.myogoo.myotus.data.tag.MyotusTags;
 import appeng.core.definitions.AEItems;
 import me.myogoo.myotus.init.MyoItems;
 import net.minecraft.data.PackOutput;
@@ -46,9 +47,9 @@ public final class AE2CrystalScienceRecipes extends JsonRecipeProvider {
 
     public static void buildStonecutting(RecipeOutput output) {
         MyoStonecuttingRecipeBuilder
-                .stonecutting(Ingredient.of(AEItems.BLANK_PATTERN.asItem()), RecipeCategory.MISC, MyoItems.COMPAT_PRESS.get())
+                .stonecutting(Ingredient.of(MyotusTags.Items.AE2CS_BLANK_PRINT_PRESSES), RecipeCategory.MISC, MyoItems.COMPAT_PRESS.get())
                 .modLoaded("ae2cs")
-                .unlockedBy("has_blank_pattern", RecipeJsonHas.has(AEItems.BLANK_PATTERN.asItem()))
+                .unlockedBy("has_blank_print_press", RecipeJsonHas.has(MyotusTags.Items.AE2CS_BLANK_PRINT_PRESSES))
                 .save(output, Myotus.makeId("ae2cs/stonecutting/blank_pattern"));
     }
 

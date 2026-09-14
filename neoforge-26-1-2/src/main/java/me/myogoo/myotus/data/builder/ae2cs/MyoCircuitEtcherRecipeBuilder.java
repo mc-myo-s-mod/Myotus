@@ -90,15 +90,11 @@ public final class MyoCircuitEtcherRecipeBuilder {
     }
 
     private static JsonObject countedIngredient(Ingredient ingredient, int count) {
-        JsonObject json = ExternalRecipeBuilder.ingredient(ingredient).getAsJsonObject().deepCopy();
-        json.addProperty("count", count);
-        return json;
+        return ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(ingredient), count).toCountJson();
     }
 
     private static JsonObject countedItem(String item, int count) {
-        JsonObject json = ExternalRecipeBuilder.item(item);
-        json.addProperty("count", count);
-        return json;
+        return ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(item), count).toCountJson();
     }
 
     private static JsonObject countedItem(ItemLike item, int count) {
@@ -106,8 +102,6 @@ public final class MyoCircuitEtcherRecipeBuilder {
     }
 
     private static JsonObject countedTag(String tag, int count) {
-        JsonObject json = ExternalRecipeBuilder.tag(tag);
-        json.addProperty("count", count);
-        return json;
+        return ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient("#" + tag), count).toCountJson();
     }
 }

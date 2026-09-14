@@ -3,6 +3,7 @@ package me.myogoo.myotus.data.recipe;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.JsonOps;
 import me.myogoo.myotus.api.annotation.MyoMod;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -95,7 +96,7 @@ public final class ExternalRecipeBuilder {
     }
 
     public static JsonElement ingredient(String item) {
-        return item(item);
+        return new JsonPrimitive(item);
     }
 
     public static JsonElement ingredient(ItemLike item) {

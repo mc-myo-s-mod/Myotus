@@ -15,6 +15,7 @@ import appeng.api.storage.ILinkStatus;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.MEStorage;
 import appeng.api.util.IConfigManager;
+import appeng.core.definitions.AEItems;
 import appeng.menu.ISubMenu;
 import appeng.menu.locator.MenuLocators;
 import appeng.menu.me.common.MEStorageMenu;
@@ -27,6 +28,7 @@ import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.GameTestInstance;
 import net.minecraft.gametest.framework.TestData;
@@ -34,13 +36,17 @@ import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.item.crafting.StonecutterRecipe;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.block.Rotation;
+import net.neoforged.fml.ModList;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,7 +96,9 @@ public final class MyoExperienceGameTests {
             test("ae2_storage_menu_applies_terminal_upgrade_mixin_contract", 40,
                     MyoExperienceGameTests::ae2StorageMenuAppliesTerminalUpgradeMixinContract),
             test("terminal_upgrades_survive_player_cloning", 20,
-                    MyoExperienceGameTests::terminalUpgradesSurvivePlayerCloning)
+                    MyoExperienceGameTests::terminalUpgradesSurvivePlayerCloning),
+            test("optional_integration_recipes_load", 20,
+                    MyoExperienceGameTests::optionalIntegrationRecipesLoad)
     );
 
     private MyoExperienceGameTests() {
@@ -102,6 +110,47 @@ public final class MyoExperienceGameTests {
 
     private static TestRegistration test(String path, int timeoutTicks, Consumer<GameTestHelper> action) {
         return new TestRegistration(Myotus.makeId(path), timeoutTicks, action);
+    }
+
+    public static void optionalIntegrationRecipesLoad(GameTestHelper helper) {
+        var server = helper.getLevel().getServer();
+        var recipes = server.getRecipeManager().recipeMap();
+        for (String modId : List.of("advanced_ae", "extendedae", "ae2cs", "ae2lt")) {
+            if (!ModList.get().isLoaded(modId)) {
+                continue;
+            }
+            var resources = server.getResourceManager().listResources("recipe/" + modId,
+                    id -> id.getNamespace().equals(Myotus.MODID) && id.getPath().endsWith(".json"));
+            boolean hasPearlRecipe = false;
+            boolean hasBlockRecipe = false;
+            for (Identifier resourceId : resources.keySet()) {
+                String path = resourceId.getPath().substring("recipe/".length(),
+                        resourceId.getPath().length() - ".json".length());
+                var recipeId = Myotus.makeId(path);
+                assertTrue(helper, recipes.byKey(ResourceKey.create(Registries.RECIPE, recipeId)) != null,
+                        "Installed integration must load recipe " + recipeId);
+                hasPearlRecipe |= path.endsWith("_charged_ender_pearl");
+                hasBlockRecipe |= path.endsWith("_charged_ender_pearl_block");
+            }
+            assertTrue(helper, hasPearlRecipe && hasBlockRecipe,
+                    "Installed integration must provide charged pearl and block recipes: " + modId);
+        }
+        if (ModList.get().isLoaded("ae2cs")) {
+            var holder = recipes.byKey(ResourceKey.create(Registries.RECIPE,
+                    Myotus.makeId("ae2cs/stonecutting/blank_pattern")));
+            assertTrue(helper, holder != null && holder.value() instanceof StonecutterRecipe,
+                    "AE2CS compat press recipe must be stonecutting");
+            var recipe = (StonecutterRecipe) holder.value();
+            var blankPress = server.registryAccess().lookupOrThrow(Registries.ITEM)
+                    .getOrThrow(ResourceKey.create(Registries.ITEM, Identifier.parse("ae2cs:blank_print_press")));
+            var input = new SingleRecipeInput(new ItemStack(blankPress));
+            assertTrue(helper, recipe.matches(input, helper.getLevel()), "AE2CS blank print press must be accepted");
+            assertTrue(helper, !recipe.input().test(AEItems.BLANK_PATTERN.stack()),
+                    "AE2 blank pattern must not be accepted");
+            assertTrue(helper, ItemStack.matches(recipe.assemble(input), new ItemStack(MyoItems.COMPAT_PRESS.get())),
+                    "Stonecutting must produce one compat press");
+        }
+        helper.succeed();
     }
 
     public static void exposesStableExperienceIntegrationIds(GameTestHelper helper) {

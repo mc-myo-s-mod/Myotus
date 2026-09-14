@@ -33,6 +33,14 @@ public final class MyoOverloadProcessingRecipeBuilder {
         return this;
     }
 
+    public MyoOverloadProcessingRecipeBuilder inputFluid(String fluid, int amount) {
+        JsonObject inputFluid = new JsonObject();
+        inputFluid.addProperty("id", fluid);
+        inputFluid.addProperty("amount", amount);
+        this.json.add("inputFluid", inputFluid);
+        return this;
+    }
+
     public MyoOverloadProcessingRecipeBuilder inputItem(Ingredient ingredient, int count) {
         this.inputs.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient(ingredient), count).toCountJson());
         return this;
@@ -48,7 +56,7 @@ public final class MyoOverloadProcessingRecipeBuilder {
     }
 
     public MyoOverloadProcessingRecipeBuilder inputTag(String tag, int count) {
-        this.inputs.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.tag(tag), count).toCountJson());
+        this.inputs.add(ExternalRecipeBuilder.counted(ExternalRecipeBuilder.ingredient("#" + tag), count).toCountJson());
         return this;
     }
 

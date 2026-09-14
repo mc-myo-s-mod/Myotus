@@ -1,6 +1,5 @@
 package me.myogoo.myotus.data.recipe.ae2lt;
 
-import me.myogoo.myotus.data.builder.ae2lt.MyoCrystalCatalyzerRecipeBuilder;
 import me.myogoo.myotus.data.builder.ae2lt.MyoOverloadProcessingRecipeBuilder;
 import me.myogoo.myotus.data.recipe.JsonRecipeProvider;
 import me.myogoo.myotus.init.MyoItems;
@@ -17,6 +16,30 @@ public final class AE2LightningTechRecipes extends JsonRecipeProvider {
     @Override
     protected void buildRecipes(JsonRecipeOutput output) {
         MyoOverloadProcessingRecipeBuilder
+                .create(id("ae2lt/overload_processing/ae2lt_charged_ender_pearl"))
+                .conditions(conditions("ae2lt"))
+                .priority(0)
+                .inputTag("c:ender_pearls", 16)
+                .inputFluid("minecraft:water", 250)
+                .result(MyoItems.CHARGED_ENDER_PEARL, 16)
+                .totalEnergy(400_000)
+                .lightningCost(1)
+                .lightningTier("high_voltage")
+                .save(output);
+
+        MyoOverloadProcessingRecipeBuilder
+                .create(id("ae2lt/overload_processing/ae2lt_charged_ender_pearl_block"))
+                .conditions(conditions("ae2lt"))
+                .priority(0)
+                .inputTag("c:storage_blocks/ender_pearl", 64)
+                .inputFluid("minecraft:water", 10_000)
+                .result(MyoItems.CHARGED_ENDER_PEARL_BLOCK, 64)
+                .totalEnergy(13_000_000)
+                .lightningCost(1)
+                .lightningTier("high_voltage")
+                .save(output);
+
+        MyoOverloadProcessingRecipeBuilder
                 .create(id("ae2lt/overload_processing/ae2lt_compat_processor"))
                 .conditions(conditions("ae2lt"))
                 .priority(0)
@@ -28,16 +51,6 @@ public final class AE2LightningTechRecipes extends JsonRecipeProvider {
                 .lightningCost(1)
                 .lightningTier("high_voltage")
                 .save(output);
-
-//        MyoCrystalCatalyzerRecipeBuilder
-//                .create(id("ae2lt/crystal_catalyzer/ae2lt_charged_ender_pearl"))
-//                .conditions(conditions("ae2lt"))
-//                .catalyst(MyoItems.ENDER_PEARL_BLOCK.get(), 1)
-//                .output(MyoItems.CHARGED_ENDER_PEARL.get(), 1)
-//                .energyPerCycle(100_000)
-//                .lightningCost(1)
-//                .lightningTier("high_voltage")
-//                .save(output);
     }
 
     @Override
