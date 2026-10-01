@@ -1,0 +1,80 @@
+plugins.withId('com.vanniktech.maven.publish') {
+    mavenPublishing {
+        coordinates(project.mod_group_id, project.mod_id, project.mod_version)
+
+        pom {
+            name = project.mod_id
+            description = 'Myotus is a terminal extension mod for Applied Energistics 2. This library provides hooks and utilities for other mods to extend Myotus\' functionality.'
+            url = 'https://github.com/mc-myo-s-mod/Myotus'
+
+            licenses {
+                license {
+                    name = 'GNU Lesser General Public License v3.0'
+                    url = 'https://www.gnu.org/licenses/lgpl-3.0.html'
+                }
+            }
+
+            developers {
+                developer {
+                    name = 'myogoo'
+                    url = 'https://github.com/myogoo'
+                }
+            }
+
+            scm {
+                connection = 'scm:git:git://github.com/mc-myo-s-mod/Myotus.git'
+                developerConnection = 'scm:git:ssh://github.com/mc-myo-s-mod/Myotus.git'
+                url = 'https://github.com/mc-myo-s-mod/Myotus'
+            }
+        }
+
+        publishToMavenCentral()
+        signAllPublications()
+    }
+
+    afterEvaluate {
+        publishing.publications.withType(org.gradle.api.publish.maven.MavenPublication).configureEach {
+            artifactId = project.mod_id
+            artifacts.clear()
+            artifact(tasks.named(project.name == 'forge-1-20-1' ? 'jarJar' : 'jar')) {
+                classifier = null
+            }
+            artifact(tasks.named('apiJar')) {
+                classifier = 'api'
+            }
+            artifact(tasks.named('sourcesJar')) {
+                classifier = 'sources'
+            }
+            artifact(tasks.named('plainJavadocJar')) {
+                classifier = 'javadoc'
+            }
+        }
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes('Specification-Title': mod_id,
+                'Specification-Vendor': mod_authors,
+                'Specification-Version': '1',
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version.toString(),
+                'Implementation-Vendor': mod_authors)
+    }
+}
+
+tasks.register('apiJar', Jar) {
+    archiveClassifier = 'api'
+    from sourceSets.main.output
+    include 'me/myogoo/myotus/api/**'
+    // Public API signatures expose these supporting value/icon types.
+    include 'me/myogoo/myotus/dto/MyoModDto.class'
+    include 'me/myogoo/myotus/dto/MyoModInfo.class'
+    include 'me/myogoo/myotus/client/gui/MyoIcon.class'
+    include 'me/myogoo/myotus/client/gui/widgets/button/CustomTabButton*.class'
+    include 'me/myogoo/myotus/client/gui/widgets/button/MyoCycleButton*.class'
+}
+
+tasks.named('assemble').configure {
+    dependsOn tasks.named('apiJar')
+}

@@ -1,0 +1,48 @@
+import javax.xml.parsers.DocumentBuilderFactory
+
+def verifyOptionalWirelessDependency = tasks.register('verifyOptionalWirelessDependency') {
+    group = 'verification'
+    description = 'Checks optional WT development dependencies stay out of the published POM.'
+    dependsOn 'generatePomFileForMavenPublication'
+
+    def wirelessEnabled = project.enable_ae2wt == 'true'
+    def runtimeArtifacts = configurations.getByName('runtimeClasspath').incoming.artifacts.resolvedArtifacts
+    def compileArtifacts = configurations.getByName('compileClasspath').incoming.artifacts.resolvedArtifacts
+    inputs.file(tasks.named('generatePomFileForMavenPublication').map { it.destination })
+            .withPropertyName('publicationPom')
+
+    doLast {
+        def wirelessArtifacts = ['ae2wtlib_api', 'ae2wtlib'] as Set
+        def resolvedWirelessArtifacts = { artifacts ->
+            artifacts.get()
+                    .collect { it.id.componentIdentifier }
+                    .findAll { it instanceof org.gradle.api.artifacts.component.ModuleComponentIdentifier && it.group == 'de.mari_023' && it.module in wirelessArtifacts }
+                    .collect { it.module }.toSet()
+        }
+
+        def runtimeWirelessArtifacts = resolvedWirelessArtifacts(runtimeArtifacts)
+        def expectedRuntimeArtifacts = wirelessEnabled ? wirelessArtifacts : [] as Set
+        assert runtimeWirelessArtifacts == expectedRuntimeArtifacts :
+                "WT runtime dependencies with enable_ae2wt=${wirelessEnabled}: expected ${expectedRuntimeArtifacts}, got ${runtimeWirelessArtifacts}"
+        assert 'ae2wtlib_api' in resolvedWirelessArtifacts(compileArtifacts) :
+                'WT API must remain available on compileClasspath.'
+
+        def parserFactory = DocumentBuilderFactory.newInstance()
+        parserFactory.setFeature('http://apache.org/xml/features/disallow-doctype-decl', true)
+        def pomFile = inputs.files.singleFile
+        def dependencies = parserFactory.newDocumentBuilder().parse(pomFile).getElementsByTagName('dependency')
+        for (int index = 0; index < dependencies.length; index++) {
+            def dependency = dependencies.item(index)
+            def groupId = dependency.getElementsByTagName('groupId').item(0)?.textContent?.trim()
+            def artifactId = dependency.getElementsByTagName('artifactId').item(0)?.textContent?.trim()
+            assert !(groupId == 'de.mari_023' && artifactId in wirelessArtifacts) :
+                    "Optional WT dependency leaked into ${pomFile}: ${groupId}:${artifactId}"
+        }
+
+        logger.lifecycle("Verified optional WT dependencies: enable_ae2wt=${wirelessEnabled}, POM contains no WT dependencies.")
+    }
+}
+
+tasks.named('check') {
+    dependsOn verifyOptionalWirelessDependency
+}

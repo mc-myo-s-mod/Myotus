@@ -14,7 +14,9 @@ These are build inputs from the linked `gradle.properties` files, not a claim th
 | [neoforge-1-21-1](neoforge-1-21-1/gradle.properties) | 1.21.1 | NeoForge 21.1.219 | 21 | 19.2.17 | 19.1.1 |
 | [neoforge-26-1-2](neoforge-26-1-2/gradle.properties) | 26.1.2 | NeoForge 26.1.2.97 | 25 | 26.1.10-beta | 26.1.0 |
 
-The root Gradle build includes `common`, Forge 1.20.1, and NeoForge 1.21.1. The 26.1.2 directory is a **separate Gradle build** that also uses `common`; a root `build` does not build it.
+The root Gradle 8.14 build includes `common`, Forge 1.20.1, NeoForge 1.21.1, and a NeoForge 26.1.2 proxy project. Root `build` builds all three mod versions; 26.1.2 tasks are forwarded to the module's Gradle 9.2.1 wrapper, which selects Java 25. Run the root build itself on Java 17 or 21, not Java 25.
+
+The Forge 1.20.1 and NeoForge 1.21.1 wrappers also work from their module directories: they use the parent settings and select that module's tasks. The 26.1.2 directory remains a native standalone Gradle build; keep it as a separate IntelliJ Gradle link for the real 26.1.2 source model. The root proxy is only a task entry point.
 
 ## Developer documentation
 
@@ -66,22 +68,22 @@ dependencies {
 }
 ```
 
-For NeoForge 1.21.1, use `19.1.1` and plain `runtimeOnly` without `fg.deobf`. For standalone 26.1.2, use `26.1.0` after publishing from that directory; see the [26.1.2 setup](openwiki/quickstart.md#neoforge-2612). Declare Myotus in the addon's loader metadata as well as in Gradle.
+For NeoForge 1.21.1, use `19.1.1` and plain `runtimeOnly` without `fg.deobf`. For NeoForge 26.1.2, use `26.1.0` after publishing through the root proxy or the native 26.1.2 build; see the [26.1.2 setup](openwiki/quickstart.md#neoforge-2612). Declare Myotus in the addon's loader metadata as well as in Gradle.
 
 The API classifier includes `api/**` and supporting DTO/icon/button types exposed by those signatures. It omits runtime implementation and loader metadata. Prefer `me.myogoo.myotus.api.*`; an implementation class being `public` does not make it a cross-version compatibility promise.
 
 ## Build
 
-On Windows, from this repository root:
+On Windows, from this repository root with Java 17 or 21:
 
 ```powershell
-cmd.exe /c "gradlew.bat :common:test :forge-1-20-1:build :neoforge-1-21-1:build --console=plain --no-configuration-cache"
+cmd.exe /c "gradlew.bat build --console=plain --no-configuration-cache"
 ```
 
-Build 26.1.2 separately, from `neoforge-26-1-2`, with Java 25:
+To run a specific 26.1.2 forwarded task from the root:
 
 ```powershell
-cmd.exe /c "gradlew.bat build --console=plain"
+cmd.exe /c "gradlew.bat :neoforge-26-1-2:runGameTestServer --console=plain --no-configuration-cache"
 ```
 
 Compilation and tests do not establish in-game behavior or TPS/FPS. Use the matching [client/server/GameTest checks](openwiki/workflows.md) for the code being changed.

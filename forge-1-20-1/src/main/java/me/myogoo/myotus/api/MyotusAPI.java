@@ -24,6 +24,7 @@ import me.myogoo.myotus.menu.TerminalUpgradeHelper;
 import me.myogoo.myotus.platform.AnnotationScanData;
 import me.myogoo.myotus.platform.mod.ForgeModList;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
+import me.myogoo.myotus.util.reflect.SafeClass;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.core.registries.Registries;
@@ -36,6 +37,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import org.objectweb.asm.Type;
 
 import java.lang.annotation.Annotation;
@@ -64,6 +66,7 @@ import java.util.function.Predicate;
 public final class MyotusAPI {
     private static IMyotusAPI instance;
     private static final InitializationTask INTEGRATIONS_INITIALIZER = new InitializationTask(() -> {
+        SafeClass.setDedicatedServer(FMLEnvironment.dist.isDedicatedServer());
         AnnotationScanner.setAnnotationProvider(AnnotationScanData::getAnnotations);
         ModIntegrationManager.setModList(ForgeModList.INSTANCE);
     });
