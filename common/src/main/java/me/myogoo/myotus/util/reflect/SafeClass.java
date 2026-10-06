@@ -2,13 +2,19 @@ package me.myogoo.myotus.util.reflect;
 
 import me.myogoo.myotus.util.MyoLogger;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
 
 import java.util.Optional;
 
 public final class SafeClass {
-    private static final boolean DEDICATED_SERVER = detectDedicatedServer();
+    private static volatile boolean dedicatedServer;
 
     private SafeClass() {
+    }
+
+    /** Configured by the loader before annotation and integration discovery. */
+    public static void setDedicatedServer(boolean value) {
+        dedicatedServer = value;
     }
 
     public static Class<?> forName(String name) {
@@ -19,7 +25,7 @@ public final class SafeClass {
         if (name == null || name.isBlank()) {
             return Optional.empty();
         }
-        if (DEDICATED_SERVER && isClientOnlyName(name)) {
+        if (dedicatedServer && isClientOnlyName(name)) {
             return Optional.empty();
         }
 
@@ -32,7 +38,7 @@ public final class SafeClass {
         } catch (ClassNotFoundException e) {
             MyoLogger.debug("Could not resolve class {}", name);
             return Optional.empty();
-        } catch (LinkageError | RuntimeException e) {
+        } catch (LinkageError | IllegalClassLoadError | RuntimeException e) {
             MyoLogger.debug("Could not safely load class {}", name, e);
             return Optional.empty();
         }
@@ -61,20 +67,5 @@ public final class SafeClass {
         return name.startsWith("com.mojang.blaze3d.")
                 || name.startsWith("net.minecraft.client.")
                 || name.contains(".client.");
-    }
-
-    private static boolean detectDedicatedServer() {
-        return isDedicatedServer("net.minecraftforge.fml.loading.FMLEnvironment")
-                || isDedicatedServer("net.neoforged.fml.loading.FMLEnvironment");
-    }
-
-    private static boolean isDedicatedServer(String environmentClassName) {
-        try {
-            Class<?> environmentClass = Class.forName(environmentClassName);
-            Object dist = environmentClass.getField("dist").get(null);
-            return "DEDICATED_SERVER".equals(String.valueOf(dist));
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            return false;
-        }
     }
 }

@@ -24,7 +24,10 @@ public class MyotusCommand {
         List<Class<?>> commandClasses = new ArrayList<>();
         Type myoCommandType = Type.getType(MyoCommand.class);
 
-        for (AnnotationScanner.ScannedAnnotation annotation : AnnotationScanner.find(myoCommandType)) {
+        for (AnnotationScanner.ScannedAnnotation annotation : AnnotationScanner.getAnnotations()) {
+            if (!annotation.annotationType().equals(myoCommandType)) {
+                continue;
+            }
             try {
                 Class<?> clazz = Class.forName(annotation.className(), false, MyotusCommand.class.getClassLoader());
                 commandClasses.add(clazz);

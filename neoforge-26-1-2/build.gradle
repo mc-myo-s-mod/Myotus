@@ -72,39 +72,6 @@ tasks.withType(org.gradle.api.publish.tasks.GenerateModuleMetadata).configureEac
     enabled = false
 }
 
-mavenPublishing {
-    coordinates(project.mod_group_id, project.mod_id, project.mod_version)
-
-    pom {
-        name = project.mod_id
-        description = "Myotus is a terminal extension mod for Applied Energistics 2. This library provides hooks and utilities for other mods to extend Myotus' functionality."
-        url = "https://github.com/mc-myo-s-mod/Myotus"
-
-        licenses {
-            license {
-                name = "GNU Lesser General Public License v3.0"
-                url = "https://www.gnu.org/licenses/lgpl-3.0.html"
-            }
-        }
-
-        developers {
-            developer {
-                name = "myogoo"
-                url = "https://github.com/myogoo"
-            }
-        }
-
-        scm {
-            connection = "scm:git:git://github.com/mc-myo-s-mod/Myotus.git"
-            developerConnection = "scm:git:ssh://github.com/mc-myo-s-mod/Myotus.git"
-            url = "https://github.com/mc-myo-s-mod/Myotus"
-        }
-    }
-
-    publishToMavenCentral()
-    signAllPublications()
-}
-
 def myotusRootDir = project.projectDir.parentFile
 
 neoForge {
@@ -183,8 +150,8 @@ dependencies {
 
     compileOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
     if (project.enable_ae2wt == "true") {
-        runtimeOnly "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
-        runtimeOnly "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"
+        modDevRuntimeDependencies "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
+        modDevRuntimeDependencies "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"
     }
 }
 
@@ -213,52 +180,5 @@ sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 neoForge.ideSyncTask syncMyotusCommonResources
 neoForge.ideSyncTask generateModMetadata
 
-tasks.named('jar', Jar).configure {
-    manifest {
-        attributes([
-                'Specification-Title'       : mod_id,
-                'Specification-Vendor'      : mod_authors,
-                'Specification-Version'     : '1',
-                'Implementation-Title'      : project.name,
-                'Implementation-Version'    : project.version.toString(),
-                'Implementation-Vendor'     : mod_authors,
-                'Implementation-Timestamp'  : new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
-}
-
-tasks.register('apiJar', Jar) {
-    archiveClassifier = 'api'
-    from sourceSets.main.output
-    include 'me/myogoo/myotus/api/**'
-    include 'me/myogoo/myotus/dto/MyoModDto.class'
-    include 'me/myogoo/myotus/dto/MyoModInfo.class'
-    include 'me/myogoo/myotus/client/gui/MyoIcon.class'
-    include 'me/myogoo/myotus/client/gui/widgets/button/CustomTabButton*.class'
-    include 'me/myogoo/myotus/client/gui/widgets/button/MyoCycleButton*.class'
-}
-
-tasks.named('assemble').configure {
-    dependsOn tasks.named('apiJar')
-}
-
-plugins.withId('com.vanniktech.maven.publish') {
-    afterEvaluate {
-        publishing.publications.withType(org.gradle.api.publish.maven.MavenPublication).configureEach {
-            artifactId = project.mod_id
-            artifacts.clear()
-            artifact(tasks.named('jar')) {
-                classifier = null
-            }
-            artifact(tasks.named('apiJar')) {
-                classifier = 'api'
-            }
-            artifact(tasks.named('sourcesJar')) {
-                classifier = 'sources'
-            }
-            artifact(tasks.named('plainJavadocJar')) {
-                classifier = 'javadoc'
-            }
-        }
-    }
-}
+apply from: new File(myotusRootDir, 'gradle/mod-publication.gradle')
+apply from: new File(myotusRootDir, 'gradle/verify-wt-publication.gradle')

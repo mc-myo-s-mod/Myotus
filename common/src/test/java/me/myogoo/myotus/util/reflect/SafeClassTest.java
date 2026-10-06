@@ -1,7 +1,13 @@
 package me.myogoo.myotus.util.reflect;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -33,5 +39,58 @@ class SafeClassTest {
         assertFalse(SafeClass.optionalType(null).isPresent());
         assertFalse(SafeClass.isPresent(MISSING_CLASS));
         assertFalse(SafeClass.isPresent((Type) null));
+    }
+
+    @Test
+    void loaderSideBlocksClientNamesBeforeClassLoading() {
+        var thread = Thread.currentThread();
+        var originalLoader = thread.getContextClassLoader();
+        var attemptedLoads = new ArrayList<String>();
+        var clientNames = List.of("net.minecraft.client.DoesNotExist", "com.mojang.blaze3d.DoesNotExist",
+                "example.client.DoesNotExist");
+        try {
+            thread.setContextClassLoader(new ClassLoader(originalLoader) {
+                @Override
+                public Class<?> loadClass(String name) throws ClassNotFoundException {
+                    attemptedLoads.add(name);
+                    return super.loadClass(name);
+                }
+            });
+            SafeClass.setDedicatedServer(true);
+            clientNames.forEach(name -> assertTrue(SafeClass.optionalName(name).isEmpty()));
+            assertTrue(attemptedLoads.isEmpty(), "Server must not ask the class loader for client classes");
+            assertEquals(String.class, SafeClass.forName(String.class.getName()));
+
+            SafeClass.setDedicatedServer(false);
+            clientNames.forEach(SafeClass::optionalName);
+            assertTrue(attemptedLoads.containsAll(clientNames), "Client may resolve client classes");
+        } finally {
+            SafeClass.setDedicatedServer(false);
+            thread.setContextClassLoader(originalLoader);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void blockedClassesReturnEmptyResults(boolean mixinFailure) {
+        var thread = Thread.currentThread();
+        var originalLoader = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(new ClassLoader(originalLoader) {
+                @Override
+                public Class<?> loadClass(String name) throws ClassNotFoundException {
+                    if (name.equals(MISSING_CLASS)) {
+                        if (mixinFailure) {
+                            throw new IllegalClassLoadError("Class belongs to a protected mixin package");
+                        }
+                        throw new NoClassDefFoundError(name);
+                    }
+                    return super.loadClass(name);
+                }
+            });
+            assertTrue(SafeClass.optionalName(MISSING_CLASS).isEmpty());
+        } finally {
+            thread.setContextClassLoader(originalLoader);
+        }
     }
 }

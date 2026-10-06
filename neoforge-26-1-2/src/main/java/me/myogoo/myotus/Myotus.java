@@ -15,6 +15,7 @@ import me.myogoo.myotus.platform.AnnotationScanData;
 import me.myogoo.myotus.platform.mod.NeoForgeModList;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import me.myogoo.myotus.util.mod.MyoModVersionMismatchException;
+import me.myogoo.myotus.util.reflect.SafeClass;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import net.minecraft.resources.Identifier;
 import net.minecraft.core.registries.Registries;
@@ -39,6 +40,7 @@ public class Myotus {
 
     public Myotus(IEventBus modEventBus, ModContainer modContainer) {
         MyotusAPI._setInstance(MyotusAPIImpl.INSTANCE);
+        SafeClass.setDedicatedServer(FMLEnvironment.getDist().isDedicatedServer());
         AnnotationScanner.setAnnotationProvider(AnnotationScanData::getAnnotations);
         try {
             ModIntegrationManager.setModList(NeoForgeModList.INSTANCE);
