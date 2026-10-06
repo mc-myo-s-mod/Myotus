@@ -2,6 +2,7 @@ package me.myogoo.myotus.util.reflect;
 
 import me.myogoo.myotus.util.MyoLogger;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
 
 import java.util.Optional;
 
@@ -37,7 +38,7 @@ public final class SafeClass {
         } catch (ClassNotFoundException e) {
             MyoLogger.debug("Could not resolve class {}", name);
             return Optional.empty();
-        } catch (LinkageError | RuntimeException e) {
+        } catch (LinkageError | IllegalClassLoadError | RuntimeException e) {
             MyoLogger.debug("Could not safely load class {}", name, e);
             return Optional.empty();
         }

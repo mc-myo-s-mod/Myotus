@@ -4,9 +4,11 @@ import me.myogoo.myotus.api.annotation.MyoMod;
 import me.myogoo.myotus.api.annotation.itemList.emi.EMI;
 import me.myogoo.myotus.api.annotation.itemList.jei.JEI;
 import me.myogoo.myotus.api.annotation.itemList.rei.REI;
+import me.myogoo.myotus.util.MyoLogger;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import me.myogoo.myotus.util.reflect.SafeClass;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
 
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
@@ -152,9 +154,17 @@ public final class AnnotationScanner {
 
     private static boolean isIntegrationAnnotation(Type annotationType) {
         Class<? extends Annotation> annotationClass = annotationClass(annotationType);
-        return annotationClass != null
-                && (annotationClass.isAnnotationPresent(MyoMod.class)
-                        || ModIntegrationManager.isRegistered(annotationClass));
+        if (annotationClass == null) {
+            return false;
+        }
+        try {
+            if (annotationClass.isAnnotationPresent(MyoMod.class)) {
+                return true;
+            }
+        } catch (LinkageError | IllegalClassLoadError e) {
+            MyoLogger.debug("Could not read annotation metadata for {}", annotationClass.getName(), e);
+        }
+        return ModIntegrationManager.isRegistered(annotationClass);
     }
 
     @SuppressWarnings("unchecked")
