@@ -158,6 +158,143 @@ var snapshots = MyotusAPI.terminalUpgrades().installedUpgrades(menu);
 
 `installedUpgrades` returns copied stacks; modifying them does not modify the terminal. Available cards are registry-discovered eligible card items excluding installed item types, not the player's inventory. ID queries return false/zero for missing items. These helpers describe Myotus upgrade slots; they do not install AE2 machine upgrades or automatically connect AE2 View Cell filtering on versions without that channel.
 
+### Terminal modules (1.21.1 development branch)
+
+The 1.21.1 card hierarchy separates behavior upgrades from GUI/native-slot modules:
+
+```text
+ITerminalCard
+├── ITerminalUpgradeCard  (behavior upgrades; existing implementations remain valid)
+└── ITerminalModuleCard   (terminal modules; not an upgrade-card subtype)
+```
+
+Both kinds use the existing terminal card inventory and the same server lifecycle callbacks. They are called **per open menu/viewer**, not once globally for a shared terminal. Items must not retain a player, menu, or live stack in their singleton instance. `ITerminalCard.isAvailable()` defaults to true; override it only for stable, side-consistent dependency availability, not per-player conditions. Unavailable cards cannot be inserted, do not count as active in `hasCard`/`countCard`, and receive no lifecycle or widget-factory calls. Installed-card snapshots still include them so cards restored from saves remain visible and recoverable; available-card tooltips exclude them.
+
+Use `MyotusAPI.terminalCards()` for `installedCards`, `installedCardItems`, `availableCards`, `availableCardTooltip`, `hasCard(menu, item/id)`, `countCard(menu, item/id)`, and `canInsertCard`. Legacy `terminalUpgrades()` methods and the old interface's three declared callbacks remain compatible; their queries still cover **both** card kinds. `IMyotusAPI` also exposes `terminalCards()` and `terminalModules()` as default methods.
+
+#### Common-side slot registration
+
+Define a module item using only the public API:
+
+```java
+public final class EnderChestModuleItem extends Item implements ITerminalModuleCard {
+    public EnderChestModuleItem() {
+        super(new Item.Properties().stacksTo(1));
+    }
+}
+```
+
+Register a unique AE2 slot semantic once, and register the provider in `FMLCommonSetupEvent.enqueueWork` on **both client and server**, after item registration:
+
+```java
+public static final SlotSemantic ENDER_CHEST = SlotSemantics.register("example_ender_chest_module", false);
+
+// MODULE is your DeferredItem<EnderChestModuleItem>.
+event.enqueueWork(() -> MyotusAPI.terminalModules().registerSlots(
+        MODULE.get(), ENDER_CHEST,
+        menu -> List.of(new Slot(menu.getPlayer().getEnderChestInventory(), 0, 0, 0))));
+```
+
+This example exposes the first slot of the player's persistent ender chest; it does not create a temporary inventory. No addon mixin is needed. The factory supplies native slots; Myotus creates guarded views of them, without copying their items into a second inventory. `MyotusAPI.terminalModules().slots(menu, MODULE.get())` returns an immutable list of those managed slots; `isInstalled(menu, MODULE.get())` checks live module presence. The slot list is empty before menu slot initialization or when no provider was registered.
+
+Do not return the same slot object from multiple providers, or return a slot already added to the terminal menu. Use the native slots of the inventory/capability your addon exposes, with backing storage and persistence owned by that inventory.
+
+Providers run once per concrete `MEStorageMenu` (including descendants), **even when the module card is absent**. Slot indices stay fixed for the lifetime of the menu. Factories must return a deterministic order/count on both sides and must not add/remove menu slots themselves. Registration order is normalized by item registry ID and frozen when the first terminal initializes. Duplicate items/semantics, reused slots and late registration are rejected.
+
+Myotus enforces live card presence for click, shift-click, drag and extraction paths, and locks the actual item backing an open wireless terminal while keeping it visible. Native equip/unequip, binding-curse and handler extraction rules remain delegated. Authoritative contents synchronization is allowed while a module is absent; do not mistake synchronization setters for player actions. The public `api.terminal.TerminalModuleSlot` wrapper is also available for specialized native-slot views; returning one with a matching menu/card avoids double wrapping.
+
+For capabilities with custom synchronization/layout, implement `api.terminal.ITerminalModuleProvider` instead of a lambda:
+
+| Hook | Contract |
+| --- | --- |
+| `createSlots(menu)` | Required; common-side native slot creation, including absent cards |
+| `beforeMenuOpen(player)` | Server-only layout synchronization before the open packet; runs regardless of installed cards |
+| `isLayoutValid(menu)` | Return false to close/reopen after a topology change; never renumber live slots |
+| `getCloneStack(nativeSlot)` | Optional creative clone behavior; called after generic access checks with the original native slot |
+
+Do not reference client classes from common providers. Custom action packets still need their own server-side installation and permission checks; this API is not a custom packet protocol or persistent-storage implementation.
+
+#### Client presentation
+
+Register the UI after item registration, on the client setup work queue only:
+
+```java
+event.enqueueWork(() -> MyotusAPI.Client.registerTerminalModule(
+        MODULE.get(),
+        (screen, initialStack) -> MyotusAPI.Client.terminalModulePanel(
+                (MEStorageMenu) screen.getMenu(), ENDER_CHEST)));
+```
+
+The standard `terminalModulePanel(menu, semantic)` provides a five-row scrolling native-slot panel with dragging, snapping, layering and exclusion zones. The overload accepting a client `ModConfigSpec.ConfigValue<List<Integer>>` stores the panel position in addon-owned config: an empty list resets placement, and `[x, y]` stores dialog-relative coordinates. It uses Myotus's shared animation/snap preferences.
+
+To include addon-owned positions in Myotus's reset button, call `MyotusAPI.Client.registerTerminalModulePosition(savedPosition)` for each value in client setup's `event.enqueueWork`, independently of widget creation. Registration does not read or save config, ignores repeated registration of the same value, and rejects null. Use a CLIENT config accepting `[]` or an integer pair without a restart requirement; it must be loaded when resetting. The reset button clears and saves registered values through their owning configs. Custom widgets must reread their saved position during layout to observe resets; passing a value to `terminalModulePanel` alone does not register it for this button.
+
+For movable GUI-only modules in NeoForge 1.21.1, extend `me.myogoo.myotus.api.client.AbstractTerminalModuleWidget` and omit slot registration. It requires no menu or slots and shares automatic placement, dragging, animation, snapping, front-to-back input, saved positions and stable exclusion zones with `TerminalEquipmentPanel`. The existing slot panel extends this base without changing its constructors or protected slot-layout hooks. Both classes are included in the `api` JAR.
+
+```java
+import me.myogoo.myotus.api.client.AbstractTerminalModuleWidget;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+
+public final class StatusModuleWidget extends AbstractTerminalModuleWidget {
+    public StatusModuleWidget() {
+        super(96, 28);
+    }
+
+    @Override
+    protected void drawPanelBackground(GuiGraphics graphics) {
+        var bounds = getBounds();
+        graphics.fill(getX(), getY(), getX() + bounds.getWidth(), getY() + bounds.getHeight(), 0xff363636);
+        graphics.fill(getX() + 8, getY() + 2, getX() + bounds.getWidth() - 8, getY() + 3, 0xffbbbbbb);
+        graphics.drawString(Minecraft.getInstance().font, "Status", getX() + 6, getY() + 10, 0xffffffff, false);
+    }
+}
+```
+
+Register it with `MyotusAPI.Client.registerTerminalModule(MODULE.get(), (screen, initialStack) -> new StatusModuleWidget())`. To persist its position, use `super(width, height, savedPosition)` and register that config value with the reset API described above. The default top five pixels form the drag handle; override `dragHandleHeight()` to change it. `updateContent()` runs after movement, including while hidden. Use `renderContent(...)` and `onContentMouseDown/Up/Drag/Wheel(...)` for custom content; the base manages the outer input and render entry points. Mouse coordinates and graphics positions are relative to the terminal dialog, not the panel origin. Keep drawing inside `getBounds()` and within the assigned Z-layer interval `[0, layerHeight)`. A content click returns `true` by default to prevent click-through; return `false` only to allow native screen input, such as a registered menu slot.
+
+Managed modules must not rely on vanilla children added through `populateScreen` to move, layer or receive input with the panel: those children belong to the whole screen. The original raw AE2 `ICompositeWidget` registration remains available for non-managed widgets using vanilla children and their own layout. In either case the factory receives the terminal's `AEBaseScreen<?>` and a copied initial card stack, and must return a fresh widget. Client registration accepts `ITerminalCard` (including legacy upgrade widgets), rejects other items and duplicate registrations. Keep client widget classes out of the item's common/server class.
+
+The widget attaches when the synchronized card appears and detaches when it is removed. Temporary `AESubScreen` settings/configuration screens never attach terminal panels even though they share the terminal menu; returning to the terminal retains its panel state. Component-only updates and screen resizing reuse the widget instance. Query current card state through `MyotusAPI.terminalCards()` and the screen's `MEStorageMenu`; the initial stack is not a live inventory reference.
+
+The 1.21.1 server config `myotus-server.toml` controls `[terminal].terminalUpgradeSlots` (default **5**, range **1–27**). Change it only while the server is stopped or the singleplayer world is closed, then restart; do not hot-edit it because menu slot counts must match on both sides. Five or fewer slots hide the scrollbar. With more slots, the mouse wheel or scrollbar scrolls only the upgrade column in a five-row viewport; view cells stay fixed. Scrolled-out upgrades within the configured limit remain functional.
+
+Backing storage still holds 27 slots. Lowering the configured limit preserves cards beyond it, but they become inaccessible and inactive until the limit is raised again. These saved cards still prevent inserting duplicate card types. Existing save keys, public `PlayerUpgradeContainer.SIZE`, and slots 0–4 are unchanged. **Remove cards from slots 5–26 before downgrading to an older five-slot build**, which cannot preserve those cards.
+
+The former built-in equipment and Curios feature modules, their recipes, and their feature-specific saved positions are owned by the separate AppliedTerminalModules addon. Myotus retains the generic terminal module API and shared panel, including addon-owned panel positions and the shared animation/snap preferences.
+
+### Module-targeted recipe transfer (NeoForge 1.21.1)
+
+Register a client-only `me.myogoo.myotus.api.client.ITerminalModuleRecipeTransfer` with
+`MyotusAPI.Client.registerTerminalModuleRecipeTransfer(MODULE.get(), transfer)` during client setup.
+This is separate from widget/slot registration; existing widget subclasses and ordinary recipe transfers are unchanged.
+
+| Method | Responsibility |
+| --- | --- |
+| `supports(menu, recipe)` | Recipe compatibility only; no mutations or packets. |
+| `getError(menu, recipe)` | Check current availability and ingredients; return a message to block transfer, or `null`. |
+| `transfer(menu, recipe, maxTransfer)` | Revalidate and send the addon's server request; return whether a request was sent. |
+
+Hold **Alt** while clicking JEI/EMI's recipe **+** button to use this path. Both Alt keys work with the default binding;
+the hold key is rebindable in Minecraft Controls under Myotus. **Ctrl takes precedence** and retains the native
+request-missing-ingredients behavior. Shift with the module hold key requests `maxTransfer`; an adapter may explicitly
+support only one recipe set. The bridge does not collect outputs or start autocrafting.
+
+Myotus chooses the last clicked compatible module on the underlying terminal screen. A sole compatible installed
+module is selected automatically. If several remain without a compatible selection, the tooltip asks the player to
+click a module first. Removing a card clears its selection. A selected target with missing ingredients does not fall
+through to a different module or the terminal's native grid. Multiple selectable targets should expose managed module
+widgets so the player can select them by clicking their panels.
+
+The API uses Minecraft `RecipeHolder<?>`, not JEI/EMI classes. Viewer-only synthetic recipes without a backing recipe
+are rejected. The card must implement `ITerminalModuleCard`; duplicate registrations are rejected. Registration must
+not retain a player, menu or screen. Dry runs never invoke `transfer`. The registered adapter owns any packet and
+server extraction; the server must independently validate the current container, installed card, recipe, slot rules,
+permissions and item conservation. Myotus only selects and dispatches a target, and adds no shared inventory packet.
+
+AppliedTerminalModules' crafting adapter is a working example: it delegates to the existing shared JEI/EMI preflight
+and server-validated one-set crafting transfer. JEI and EMI remain optional runtime mods.
+
 ## Experience API
 
 ### Pure math and plans

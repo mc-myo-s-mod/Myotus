@@ -71,6 +71,9 @@ tasks.register('apiJar', Jar) {
     include 'me/myogoo/myotus/dto/MyoModDto.class'
     include 'me/myogoo/myotus/dto/MyoModInfo.class'
     include 'me/myogoo/myotus/client/gui/MyoIcon.class'
+    if (project.name == 'neoforge-1-21-1') {
+        include 'me/myogoo/myotus/client/TerminalEquipmentPanel.class'
+    }
     include 'me/myogoo/myotus/client/gui/widgets/button/CustomTabButton*.class'
     include 'me/myogoo/myotus/client/gui/widgets/button/MyoCycleButton*.class'
 }

@@ -1,9 +1,10 @@
 package me.myogoo.myotus.menu;
 
 import me.myogoo.myotus.client.TranslateKey;
+import appeng.api.inventories.InternalInventory;
 import appeng.menu.me.common.MEStorageMenu;
 import me.myogoo.myotus.Myotus;
-import me.myogoo.myotus.api.ITerminalUpgradeCard;
+import me.myogoo.myotus.api.ITerminalCard;
 import me.myogoo.myotus.item.MyotusUpgradeCardItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -18,6 +19,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 /**
  * 터미널 업그레이드 슬롯에 꽂혀 있는 아이템을 조회하는 유틸리티.
@@ -155,6 +157,12 @@ public class TerminalUpgradeHelper {
             return false;
         }
 
+        // AE2's inventory iterator skips empty slots; duplicate checks need the actual slot indices.
+        if (installedStacks instanceof InternalInventory inventory) {
+            installedStacks = () -> IntStream.range(0, inventory.size())
+                    .mapToObj(inventory::getStackInSlot).iterator();
+        }
+
         int currentSlot = 0;
         for (ItemStack installedStack : installedStacks) {
             if (currentSlot != slot && installedStack.is(stack.getItem())) {
@@ -167,7 +175,7 @@ public class TerminalUpgradeHelper {
     }
 
     private static boolean isVisibleUpgradeCard(Item item) {
-        if (!(item instanceof ITerminalUpgradeCard)) {
+        if (!(item instanceof ITerminalCard card) || !card.isAvailable()) {
             return false;
         }
 

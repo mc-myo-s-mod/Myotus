@@ -85,6 +85,22 @@ class PlayerUpgradeContainerTest {
         assertEquals(original, target);
     }
 
+    @Test
+    void preservesLegacyAndScrolledSlotsWhenCloning() {
+        CompoundTag original = new CompoundTag();
+        ListTag items = inventory(0);
+        items.add(inventory(4).get(0));
+        items.add(inventory(PlayerUpgradeContainer.SIZE - 1).get(0));
+        original.put("host:example.ExpandedTerminal", items);
+        CompoundTag target = new CompoundTag();
+
+        PlayerUpgradeContainer.copyUpgrades(original, target);
+
+        assertEquals(original, target);
+        assertNotSame(original.get("host:example.ExpandedTerminal"),
+                target.get("host:example.ExpandedTerminal"));
+    }
+
     private static ListTag inventory(int slot) {
         CompoundTag item = new CompoundTag();
         item.putInt("Slot", slot);

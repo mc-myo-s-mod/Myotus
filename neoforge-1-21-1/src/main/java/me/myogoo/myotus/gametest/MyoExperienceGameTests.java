@@ -12,20 +12,38 @@ import appeng.api.storage.ILinkStatus;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.MEStorage;
 import appeng.api.util.IConfigManager;
+import appeng.blockentity.networking.CableBusBlockEntity;
+import appeng.core.definitions.AEBlocks;
+import appeng.core.definitions.AEParts;
 import appeng.menu.ISubMenu;
 import appeng.menu.locator.MenuLocators;
 import appeng.menu.me.common.MEStorageMenu;
+import appeng.parts.reporting.ItemTerminalPart;
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
 import me.myogoo.myotus.Myotus;
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.api.experience.ExperienceMath;
 import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
+import me.myogoo.myotus.config.MyotusConfig;
 import me.myogoo.myotus.init.MyoItems;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
+import me.myogoo.myotus.menu.TerminalUpgradeHost;
+import me.myogoo.myotus.menu.TerminalUpgradeStorageKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -35,9 +53,11 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static me.myogoo.myotus.api.experience.ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT;
 import static me.myogoo.myotus.api.experience.ExperienceMath.ExperienceSource.FLUID_XP;
@@ -264,7 +284,7 @@ public final class MyoExperienceGameTests {
         assertEquals(helper, 1.5, energy.stored(), "Planning must not consume backing AE power");
         assertEquals(helper, 2, storage.reportCalls, "Availability and planning should each request one full report");
 
-        var player = helper.makeMockServerPlayerInLevel();
+        var player = makeServerPlayer(helper);
         player.getAbilities().instabuild = false;
         player.giveExperiencePoints(165);
         assertTrue(helper, MyotusAPI.experience().canConsume(new TrackingEnergySource(100), storage,
@@ -284,7 +304,7 @@ public final class MyoExperienceGameTests {
         MutableStorage storage = new MutableStorage(water, 250);
         TrackingEnergySource energy = new TrackingEnergySource(2);
         ExperienceStorageAdapter fluid = fluidAdapter(water);
-        var player = helper.makeMockServerPlayerInLevel();
+        var player = makeServerPlayer(helper);
         player.getAbilities().instabuild = false;
         player.giveExperiencePoints(165);
         int initialScore = player.getScore();
@@ -328,7 +348,7 @@ public final class MyoExperienceGameTests {
         }
 
         assertTrue(helper, rejected, "An AE key matched by two source adapters must be rejected");
-        var player = helper.makeMockServerPlayerInLevel();
+        var player = makeServerPlayer(helper);
         player.getAbilities().instabuild = false;
         player.giveExperiencePoints(165);
         rejected = false;
@@ -347,15 +367,15 @@ public final class MyoExperienceGameTests {
     @SuppressWarnings("removal")
     @GameTest(template = "empty", timeoutTicks = 40)
     public static void ae2StorageMenuAppliesTerminalUpgradeMixinContract(GameTestHelper helper) {
-        var player = helper.makeMockServerPlayerInLevel();
+        var player = makeServerPlayer(helper);
         var host = new TestTerminalHost(player);
         var menu = new MEStorageMenu(MEStorageMenu.TYPE, 1, player.getInventory(), host);
         var upgradeSlots = menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT);
         var card = MyoItems.MYOTUS_UPGRADE_CARD.get();
         var cardStack = new ItemStack(card);
 
-        assertEquals(helper, PlayerUpgradeContainer.SIZE, upgradeSlots.size(),
-                "MEStorageMenu mixin should add all Myotus upgrade slots");
+        assertEquals(helper, MyotusConfig.SERVER.terminalUpgradeSlots.get().intValue(), upgradeSlots.size(),
+                "MEStorageMenu mixin should add the configured Myotus upgrade slots");
         assertTrue(helper, !upgradeSlots.getFirst().mayPlace(new ItemStack(Items.STICK)),
                 "A normal item must be rejected by the terminal upgrade slot");
         assertTrue(helper, upgradeSlots.getFirst().mayPlace(cardStack),
@@ -403,14 +423,119 @@ public final class MyoExperienceGameTests {
     }
 
     @GameTest(template = "empty", timeoutTicks = 20)
+    public static void scrolledTerminalUpgradePersistsAndDispatchesCallbacks(GameTestHelper helper) {
+        int originalSlotCount = MyotusConfig.SERVER.terminalUpgradeSlots.get();
+        MyotusConfig.SERVER.terminalUpgradeSlots.set(27);
+        // Simulate applying a world-restart config without restarting the GameTest server.
+        MyotusConfig.SERVER.terminalUpgradeSlots.clearCache();
+        try {
+            var player = makeServerPlayer(helper);
+            var host = new TestTerminalHost(player);
+            var card = new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get());
+            int lastSlot = 26;
+            String storageKey = TerminalUpgradeStorageKey.of(host);
+            new PlayerUpgradeContainer(player, storageKey).setItemDirect(lastSlot, card);
+
+            var menu = new TestStorageMenu(4, player.getInventory(), host);
+            var slots = menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT);
+            assertEquals(helper, 27, slots.size(), "Every configured upgrade slot must be registered");
+            assertTrue(helper, menu.initialized, "Subclass construction must finish before upgrade callbacks");
+            assertEquals(helper, 0, player.getInventory().countItem(Items.DIAMOND),
+                    "Constructing a subclass menu must not dispatch callbacks");
+            assertTrue(helper, ItemStack.matches(card, slots.get(lastSlot).getItem()),
+                    "The last upgrade slot must load from player storage");
+            assertTrue(helper, !slots.get(lastSlot).mayPlace(new ItemStack(Items.STICK)),
+                    "A normal item must be rejected in the last slot");
+            assertTrue(helper, !slots.getFirst().mayPlace(card.copy()),
+                    "A card in the last slot must block a duplicate in the first slot");
+            assertEquals(helper, 1, MyotusAPI.terminalUpgrades().installedUpgrades(menu).size(),
+                    "The installed-upgrade API must include a card beyond the first five slots");
+
+            broadcastForEmbeddedPlayer(helper, menu);
+            assertEquals(helper, 2, player.getInventory().countItem(Items.DIAMOND),
+                    "The last-slot card must receive open and tick callbacks");
+            assertEquals(helper, 2, upgradeCallbackCount(slots.get(lastSlot).getItem()),
+                    "Last-slot callback data must be saved on the card");
+
+            var reopened = new TestStorageMenu(5, player.getInventory(), host);
+            var reopenedCard = reopened.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).get(lastSlot).getItem();
+            assertEquals(helper, 2, upgradeCallbackCount(reopenedCard),
+                    "A subclass menu must reload the last slot's callback data");
+            assertEquals(helper, 2, player.getInventory().countItem(Items.DIAMOND),
+                    "Reopening must not call the card before the first broadcast");
+            broadcastForEmbeddedPlayer(helper, reopened);
+            assertEquals(helper, 4, player.getInventory().countItem(Items.DIAMOND),
+                    "A reopened last-slot card must still receive open and tick callbacks");
+
+            MyotusConfig.SERVER.terminalUpgradeSlots.set(5);
+            MyotusConfig.SERVER.terminalUpgradeSlots.clearCache();
+            var reduced = new TestStorageMenu(6, player.getInventory(), host);
+            assertEquals(helper, 5, reduced.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).size(),
+                    "Lowering the limit must reduce the menu to five slots");
+            assertTrue(helper, MyotusAPI.terminalUpgrades().installedUpgrades(reduced).isEmpty(),
+                    "Cards outside the configured limit must not remain active upgrades");
+            reduced.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).getFirst()
+                    .set(new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get()));
+            var preserved = new PlayerUpgradeContainer(player, storageKey).getStackInSlot(lastSlot);
+            assertEquals(helper, 4, upgradeCallbackCount(preserved),
+                    "Saving a reduced menu must preserve the hidden card and its data");
+
+            MyotusConfig.SERVER.terminalUpgradeSlots.set(27);
+            MyotusConfig.SERVER.terminalUpgradeSlots.clearCache();
+            var expanded = new TestStorageMenu(7, player.getInventory(), host);
+            assertTrue(helper, ItemStack.matches(preserved,
+                            expanded.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT).get(lastSlot).getItem()),
+                    "Raising the limit must restore access to the saved card");
+            helper.succeed();
+        } finally {
+            MyotusConfig.SERVER.terminalUpgradeSlots.set(originalSlotCount);
+            MyotusConfig.SERVER.terminalUpgradeSlots.clearCache();
+        }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void terminalPartKeepsAndDropsScrolledUpgrade(GameTestHelper helper) {
+        BlockPos pos = new BlockPos(0, 1, 0);
+        helper.setBlock(pos, AEBlocks.CABLE_BUS.block());
+        CableBusBlockEntity cableBus = helper.getBlockEntity(pos);
+        ItemTerminalPart part = cableBus.addPart(AEParts.TERMINAL.asItem(), Direction.NORTH, null);
+        assertTrue(helper, part != null, "An AE2 terminal part must be attached to the cable bus");
+        var card = new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get());
+        int lastSlot = 26;
+        var upgrades = ((TerminalUpgradeHost) part).myotus$getUpgradeInventory();
+        assertEquals(helper, 27, upgrades.size(),
+                "Placed terminal parts must have all upgrade slots");
+        upgrades.setItemDirect(lastSlot, card);
+
+        CompoundTag saved = new CompoundTag();
+        part.writeToNBT(saved, helper.getLevel().registryAccess());
+        part.clearContent();
+        assertTrue(helper, upgrades.getStackInSlot(lastSlot).isEmpty(),
+                "Clearing the placed part must remove its upgrade before NBT reload");
+        part.readFromNBT(saved, helper.getLevel().registryAccess());
+        var restoredUpgrades = ((TerminalUpgradeHost) part).myotus$getUpgradeInventory();
+        assertTrue(helper, ItemStack.matches(card, restoredUpgrades.getStackInSlot(lastSlot)),
+                "The placed part must reload its last upgrade slot from NBT");
+
+        List<ItemStack> drops = new ArrayList<>();
+        part.addAdditionalDrops(drops, false);
+        assertTrue(helper, drops.stream().anyMatch(stack -> ItemStack.matches(card, stack)),
+                "Breaking the part must drop its last-slot upgrade");
+        part.clearContent();
+        assertTrue(helper, restoredUpgrades.getStackInSlot(lastSlot).isEmpty(),
+                "Clearing the part after drops must remove its upgrade");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
     public static void terminalUpgradesSurvivePlayerCloning(GameTestHelper helper) {
         String currentKey = "host:example.CurrentTerminal";
         var legacyKeys = List.of(
                 "item:ae2wtlib:wireless_universal_terminal:12345678-abcd-1234-abcd-123456789012",
                 "item:example.WirelessHost:example:wireless_terminal:87654321-abcd-1234-abcd-123456789012");
         for (boolean keepEverything : new boolean[] {false, true}) {
-            var original = helper.makeMockServerPlayerInLevel();
-            var target = helper.makeMockServerPlayerInLevel();
+            var original = makeServerPlayer(helper);
+            var target = makeServerPlayer(helper);
             var card = new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get());
             card.set(DataComponents.CUSTOM_NAME, Component.literal("Persistent terminal card"));
             new PlayerUpgradeContainer(original, currentKey).setItemDirect(4, card.copy());
@@ -445,6 +570,18 @@ public final class MyoExperienceGameTests {
         return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
                 .copyTag()
                 .getInt("myotus_test_callbacks");
+    }
+
+    /** Native server player without a login: no unrelated mod handshake is required by menu tests. */
+    static ServerPlayer makeServerPlayer(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var cookie = CommonListenerCookie.createInitial(
+                new GameProfile(UUID.randomUUID(), "myotus-test-player"), false);
+        var player = new ServerPlayer(level.getServer(), level, cookie.gameProfile(), cookie.clientInformation());
+        var connection = new Connection(PacketFlow.SERVERBOUND);
+        new EmbeddedChannel(connection);
+        new ServerGamePacketListenerImpl(level.getServer(), connection, player, cookie);
+        return player;
     }
 
     private static void broadcastForEmbeddedPlayer(GameTestHelper helper, MEStorageMenu menu) {
@@ -592,6 +729,15 @@ public final class MyoExperienceGameTests {
             return ItemStack.EMPTY;
         }
 
+    }
+
+    private static final class TestStorageMenu extends MEStorageMenu {
+        private final boolean initialized;
+
+        private TestStorageMenu(int id, Inventory inventory, ITerminalHost host) {
+            super(MEStorageMenu.TYPE, id, inventory, host);
+            initialized = true;
+        }
     }
 
 }

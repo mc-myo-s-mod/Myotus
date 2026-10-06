@@ -9,7 +9,10 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.MEStorage;
 import appeng.api.storage.StorageHelper;
+import appeng.client.gui.AEBaseScreen;
+import appeng.client.gui.ICompositeWidget;
 import appeng.menu.me.common.MEStorageMenu;
+import appeng.menu.SlotSemantic;
 import com.mojang.blaze3d.platform.InputConstants;
 import me.myogoo.myotus.dto.MyoModDto;
 import me.myogoo.myotus.api.command.argument.MyoArgumentAdapter;
@@ -18,6 +21,13 @@ import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
 import me.myogoo.myotus.api.registrar.IConfigRegistrar;
 import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
+import me.myogoo.myotus.client.TerminalModuleWidgets;
+import me.myogoo.myotus.client.TerminalModuleRecipeTransfers;
+import me.myogoo.myotus.api.client.ITerminalModuleRecipeTransfer;
+import me.myogoo.myotus.client.TerminalEquipmentPanel;
+import me.myogoo.myotus.config.MyotusConfig;
+import me.myogoo.myotus.api.terminal.ITerminalModuleProvider;
+import me.myogoo.myotus.menu.TerminalModuleSlots;
 import me.myogoo.myotus.command.MyoCommandRegistrar;
 import me.myogoo.myotus.menu.TerminalUpgradeHelper;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
@@ -31,6 +41,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import net.minecraft.world.level.material.Fluid;
 import org.objectweb.asm.Type;
 
@@ -43,6 +55,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 /**
@@ -58,6 +71,8 @@ import java.util.function.Predicate;
 public final class MyotusAPI {
     private static final IntegrationsApi INTEGRATIONS = IntegrationsApi.INSTANCE;
     private static final TerminalUpgradesApi TERMINAL_UPGRADES = TerminalUpgradesApi.INSTANCE;
+    private static final TerminalCardsApi TERMINAL_CARDS = new TerminalCardsApi();
+    private static final TerminalModulesApi TERMINAL_MODULES = new TerminalModulesApi();
     private static final ExperienceApi EXPERIENCE = ExperienceApi.INSTANCE;
     private static final CommandsApi COMMANDS = CommandsApi.INSTANCE;
 
@@ -127,6 +142,16 @@ public final class MyotusAPI {
      */
     public static TerminalUpgradesApi terminalUpgrades() {
         return TERMINAL_UPGRADES;
+    }
+
+    /** Shared slot queries for both upgrade cards and module cards. */
+    public static TerminalCardsApi terminalCards() {
+        return TERMINAL_CARDS;
+    }
+
+    /** Common-side registration of permanent, synchronized module slots. */
+    public static TerminalModulesApi terminalModules() {
+        return TERMINAL_MODULES;
     }
 
     /**
@@ -211,9 +236,9 @@ public final class MyotusAPI {
     }
 
     /**
-     * Public API for terminal upgrade slot helpers.
+     * Compatibility API for terminal card slots, including both upgrades and modules.
      *
-     * <p>Prefer this entry point over importing Myotus internal menu classes.</p>
+     * <p>Existing method names and behavior are retained. New code should use {@link #terminalCards()}.</p>
      */
     public static final class TerminalUpgradesApi {
         private static final TerminalUpgradesApi INSTANCE = new TerminalUpgradesApi();
@@ -255,6 +280,82 @@ public final class MyotusAPI {
 
         public boolean canInsertUpgrade(Iterable<ItemStack> installedStacks, int slot, ItemStack stack) {
             return TerminalUpgradeHelper.canInsertUpgrade(installedStacks, slot, stack);
+        }
+    }
+
+    /** Queries return defensive stack snapshots; never mutate a menu through these results. */
+    public static final class TerminalCardsApi {
+        private TerminalCardsApi() {}
+
+        public List<ItemStack> installedCards(MEStorageMenu menu) {
+            return TerminalUpgradeHelper.getInstalledUpgrades(Objects.requireNonNull(menu, "menu"));
+        }
+
+        public Set<Item> installedCardItems(MEStorageMenu menu) {
+            return TerminalUpgradeHelper.getInstalledUpgradeItems(Objects.requireNonNull(menu, "menu"));
+        }
+
+        public List<ItemStack> availableCards(MEStorageMenu menu) {
+            return TerminalUpgradeHelper.getAvailableUpgradeCards(Objects.requireNonNull(menu, "menu"));
+        }
+
+        public List<Component> availableCardTooltip(MEStorageMenu menu) {
+            return TerminalUpgradeHelper.getAvailableUpgradeTooltip(Objects.requireNonNull(menu, "menu"));
+        }
+
+        public boolean hasCard(MEStorageMenu menu, Item card) {
+            return TerminalUpgradeHelper.hasUpgrade(Objects.requireNonNull(menu, "menu"),
+                    Objects.requireNonNull(card, "card"));
+        }
+
+        public boolean hasCard(MEStorageMenu menu, ResourceLocation itemId) {
+            return TerminalUpgradeHelper.hasUpgrade(Objects.requireNonNull(menu, "menu"),
+                    Objects.requireNonNull(itemId, "itemId"));
+        }
+
+        public int countCard(MEStorageMenu menu, Item card) {
+            return TerminalUpgradeHelper.countUpgrade(Objects.requireNonNull(menu, "menu"),
+                    Objects.requireNonNull(card, "card"));
+        }
+
+        public int countCard(MEStorageMenu menu, ResourceLocation itemId) {
+            return TerminalUpgradeHelper.countUpgrade(Objects.requireNonNull(menu, "menu"),
+                    Objects.requireNonNull(itemId, "itemId"));
+        }
+
+        public boolean canInsertCard(Iterable<ItemStack> installedStacks, int slot, ItemStack stack) {
+            return TerminalUpgradeHelper.canInsertUpgrade(Objects.requireNonNull(installedStacks, "installedStacks"),
+                    slot, Objects.requireNonNull(stack, "stack"));
+        }
+    }
+
+    /** Slot providers must be registered in common setup on both client and server. */
+    public static final class TerminalModulesApi {
+        private TerminalModulesApi() {}
+
+        /**
+         * Register once, after item registration and before any terminal opens (e.g. common setup's enqueueWork).
+         * Requires an {@link ITerminalModuleCard}. The provider runs for every terminal, even when the card is
+         * absent, so installing/removing cards never changes packet slot indices. Registration order is normalized
+         * by item registry ID; each provider must return the same slot order/count on both sides.
+         * Myotus wraps native slots to enforce live card presence and protect the open terminal's backing item.
+         *
+         * @throws IllegalArgumentException for invalid or duplicate registrations
+         * @throws IllegalStateException if terminal slot initialization has already begun
+         */
+        public void registerSlots(Item moduleCard, SlotSemantic semantic, ITerminalModuleProvider provider) {
+            TerminalModuleSlots.register(moduleCard, semantic, provider);
+        }
+
+        /** Immutable list of managed slots, or an empty list before initialization/for an unknown module. */
+        public List<Slot> slots(MEStorageMenu menu, Item moduleCard) {
+            return TerminalModuleSlots.slots(Objects.requireNonNull(menu, "menu"),
+                    Objects.requireNonNull(moduleCard, "moduleCard"));
+        }
+
+        public boolean isInstalled(MEStorageMenu menu, Item moduleCard) {
+            Objects.requireNonNull(moduleCard, "moduleCard");
+            return moduleCard instanceof ITerminalModuleCard && terminalCards().hasCard(menu, moduleCard);
         }
     }
 
@@ -1019,6 +1120,79 @@ public final class MyotusAPI {
      */
     public static final class Client {
         private Client() {
+        }
+
+        /**
+         * Adds a GUI widget to a terminal card. Register once on the client thread,
+         * for example in client setup's {@code enqueueWork}, after items have been registered.
+         *
+         * <p>The factory is called while the card is installed in any {@link AEBaseScreen} whose menu
+         * extends {@link MEStorageMenu}, excluding temporary {@code AESubScreen} settings screens.
+         * It receives a defensive initial stack snapshot and must return
+         * a new widget with dialog-relative bounds. The same widget survives resizing and card component
+         * changes; use the screen's menu to read current card data. Removal discards the widget and its
+         * screen children. Reinstallation creates a new widget. The widget may adjust its layout in
+         * {@link ICompositeWidget#populateScreen}.</p>
+         *
+         * <p>For a movable slotless module, extend
+         * {@link me.myogoo.myotus.api.client.AbstractTerminalModuleWidget}. It shares placement, dragging,
+         * snapping, position persistence and layering with the standard native-slot panel. Use its content
+         * hooks, not screen-global vanilla children, for movement-aware rendering and mouse input.</p>
+         *
+         * <p>This is presentation only: shared lifecycle behavior uses {@link ITerminalCard}, while native slots
+         * are registered through {@link #terminalModules()}. Existing upgrade-card widgets remain supported;
+         * new GUI/slot modules should implement {@link ITerminalModuleCard}.
+         * Any action packet must revalidate the installed card and action permissions on the server.</p>
+         *
+         * @throws IllegalArgumentException if the item is not a terminal card or already has a widget
+         * @throws NullPointerException if the card or factory is null
+         */
+        public static void registerTerminalModule(Item card,
+                BiFunction<AEBaseScreen<?>, ItemStack, ICompositeWidget> factory) {
+            TerminalModuleWidgets.register(card, factory);
+        }
+
+        /**
+         * Registers a viewer-neutral recipe transfer target for a module card on the client setup work queue,
+         * after item registration. Register once; the adapter must not retain a screen or menu.
+         * The last clicked compatible module is preferred, or the sole compatible module is used automatically.
+         * Multiple compatible modules without a matching selection require clicking the desired module first.
+         * This only routes explicit module transfers; server validation remains the addon's responsibility.
+         */
+        public static void registerTerminalModuleRecipeTransfer(Item card, ITerminalModuleRecipeTransfer transfer) {
+            TerminalModuleRecipeTransfers.register(card, transfer);
+        }
+
+        /**
+         * Includes an addon-owned position in Myotus's reset-positions action, even without an active panel.
+         * Register on the client setup work queue, independently of widget creation. Repeated registration
+         * of the same value is ignored; registration does not read or save the value.
+         *
+         * <p>Use a client config value accepting an empty list (automatic placement) or two integers
+         * (dialog-relative x/y), without a restart requirement. Its config must be loaded when resetting.
+         * Reset sets every registered value to an empty list and saves it through its owning config.
+         * Custom widgets must reread the value during layout to observe resets.</p>
+         *
+         * @throws NullPointerException if savedPosition is null
+         */
+        public static void registerTerminalModulePosition(ModConfigSpec.ConfigValue<List<Integer>> savedPosition) {
+            MyotusConfig.CLIENT.registerTerminalModulePosition(savedPosition);
+        }
+
+        /** Standard five-row native-slot panel with scrolling, dragging, snapping, layering and exclusion zones. */
+        public static ICompositeWidget terminalModulePanel(MEStorageMenu menu, SlotSemantic semantic) {
+            return new TerminalEquipmentPanel(Objects.requireNonNull(menu, "menu"),
+                    Objects.requireNonNull(semantic, "semantic"));
+        }
+
+        /**
+         * Standard panel with addon-owned client position storage. Use an empty list for automatic placement,
+         * or two integers (dialog-relative x/y); resetting the config value to an empty list resets placement.
+         */
+        public static ICompositeWidget terminalModulePanel(MEStorageMenu menu, SlotSemantic semantic,
+                ModConfigSpec.ConfigValue<List<Integer>> savedPosition) {
+            return new TerminalEquipmentPanel(Objects.requireNonNull(menu, "menu"),
+                    Objects.requireNonNull(semantic, "semantic"), Objects.requireNonNull(savedPosition, "savedPosition"));
         }
 
         public static final class Widgets {

@@ -6,6 +6,20 @@ plugins {
 }
 
 def myotusRootDir = rootProject.layout.projectDirectory.asFile
+def moduleGuideSources = project.file('src/main/resources/assets/myotus/ae2guide').absolutePath
+
+def prepareMultiplayerTest = tasks.register('prepareMultiplayerTest', Copy) {
+    doNotTrackState('Runtime directories contain live settings and locked world files.')
+    from 'src/multiplayer'
+    into 'run-multiplayer'
+    // Seed isolated test profiles without overwriting their later settings or worlds.
+    eachFile { details ->
+        if (new File(destinationDir, details.relativePath.pathString).exists()) {
+            details.exclude()
+        }
+    }
+    includeEmptyDirs = false
+}
 
 neoForge {
     version = project.neo_version
@@ -22,7 +36,7 @@ neoForge {
 
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
 
-            systemProperty("guideme.ae2.guide.sources", "${new File(myotusRootDir, "common/src/main/resources").absolutePath}/assets/${mod_id}/ae2guide")
+            systemProperty("guideme.ae2.guide.sources", moduleGuideSources)
             systemProperty("guideme.ae2.guide.sourcesNamespace", mod_id)
 
         }
@@ -32,6 +46,29 @@ neoForge {
             gameDirectory = project.file('run-server')
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        multiplayerServer {
+            server()
+            gameDirectory = project.file('run-multiplayer/server')
+            programArgument '--nogui'
+            jvmArgument '-Xmx2G'
+            taskBefore prepareMultiplayerTest
+        }
+
+        [1, 2].each { index ->
+            create("multiplayerClient${index}") {
+                client()
+                gameDirectory = project.file("run-multiplayer/client${index}")
+                def playerName = "MyotusTester${index}".toString()
+                programArguments.addAll '--username', playerName,
+                        '--uuid', UUID.nameUUIDFromBytes("OfflinePlayer:${playerName}".getBytes('UTF-8')).toString(),
+                        '--quickPlayMultiplayer', '127.0.0.1:25575', '--width', '960', '--height', '640'
+                jvmArgument '-Xmx2G'
+                systemProperty 'guideme.ae2.guide.sources', moduleGuideSources
+                systemProperty 'guideme.ae2.guide.sourcesNamespace', mod_id
+                taskBefore prepareMultiplayerTest
+            }
         }
 
         gameTestServer {
@@ -51,7 +88,7 @@ neoForge {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'myotus.startupVersionMismatchTest', (findProperty('myotusStartupVersionMismatchTest') ?: 'false').toString()
 
-            logLevel = org.slf4j.event.Level.DEBUG
+            logLevel = name.startsWith('multiplayer') ? org.slf4j.event.Level.INFO : org.slf4j.event.Level.DEBUG
         }
     }
 
@@ -60,10 +97,23 @@ neoForge {
             sourceSet(sourceSets.main)
         }
     }
+
+    unitTest {
+        enable()
+        testedMod = mods.myotus
+    }
+}
+
+tasks.named('runMultiplayerServer', JavaExec).configure {
+    standardInput = System.in
 }
 
 dependencies {
     implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
+
+    // Optional recipe-viewer bridges; neither viewer is required at runtime.
+    compileOnly 'mezz.jei:jei-1.21.1-neoforge:19.19.3.224'
+    compileOnly 'dev.emi:emi-neoforge:1.1.22+1.21.1'
 
     compileOnly "org.appliedenergistics:guideme:${Guideme_version}:api"
     runtimeOnly "org.appliedenergistics:guideme:${Guideme_version}"
@@ -72,6 +122,17 @@ dependencies {
     if (project.enable_ae2wt == "true") {
         modDevRuntimeDependencies "de.mari_023:ae2wtlib_api:${project.AE2WTLib_version}"
         modDevRuntimeDependencies "de.mari_023:ae2wtlib:${project.AE2WTLib_version}"
+    }
+}
+
+repositories {
+    maven {
+        url = 'https://maven.blamejared.com/'
+        content { includeGroup 'mezz.jei' }
+    }
+    maven {
+        url = 'https://maven.terraformersmc.com/'
+        content { includeGroup 'dev.emi' }
     }
 }
 

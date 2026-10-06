@@ -65,6 +65,14 @@ public interface IMyotusAPI {
         return MyotusAPI.terminalUpgrades();
     }
 
+    default MyotusAPI.TerminalCardsApi terminalCards() {
+        return MyotusAPI.terminalCards();
+    }
+
+    default MyotusAPI.TerminalModulesApi terminalModules() {
+        return MyotusAPI.terminalModules();
+    }
+
     default MyotusAPI.CommandsApi commands() {
         return MyotusAPI.commands();
     }

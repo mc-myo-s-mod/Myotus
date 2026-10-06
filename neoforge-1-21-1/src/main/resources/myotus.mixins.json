@@ -4,12 +4,18 @@
   "package": "me.myogoo.myotus.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "ae2.AEBaseMenuAccessor",
     "ae2.AbstractTerminalPartMixin",
     "ae2.AEBaseMenuMixin",
     "ae2.MEStorageMenuMixin",
-    "minecraft.AbstractContainerMenuMixin"
+    "minecraft.AbstractContainerMenuMixin",
+    "minecraft.ServerPlayerMixin"
   ],
   "client": [
+    "jei.RecipesGuiAccessor",
+    "jei.RecipeTransferUtilMixin",
+    "emi.RecipeFillButtonWidgetMixin",
+    "ae2.AEBaseScreenMixin",
     "ae2wtlib.ScrollingUpgradesPanelAccessor",
     "ae2.MEStorageScreenMixin",
     "ae2.ScreenStyleAccessor",
