@@ -1,7 +1,10 @@
 package me.myogoo.myotus.util.reflect;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +66,30 @@ class SafeClassTest {
             assertTrue(attemptedLoads.containsAll(clientNames), "Client may resolve client classes");
         } finally {
             SafeClass.setDedicatedServer(false);
+            thread.setContextClassLoader(originalLoader);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void blockedClassesReturnEmptyResults(boolean mixinFailure) {
+        var thread = Thread.currentThread();
+        var originalLoader = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(new ClassLoader(originalLoader) {
+                @Override
+                public Class<?> loadClass(String name) throws ClassNotFoundException {
+                    if (name.equals(MISSING_CLASS)) {
+                        if (mixinFailure) {
+                            throw new IllegalClassLoadError("Class belongs to a protected mixin package");
+                        }
+                        throw new NoClassDefFoundError(name);
+                    }
+                    return super.loadClass(name);
+                }
+            });
+            assertTrue(SafeClass.optionalName(MISSING_CLASS).isEmpty());
+        } finally {
             thread.setContextClassLoader(originalLoader);
         }
     }

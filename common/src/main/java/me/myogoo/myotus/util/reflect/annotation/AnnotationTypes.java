@@ -1,6 +1,8 @@
 package me.myogoo.myotus.util.reflect.annotation;
 
+import me.myogoo.myotus.util.MyoLogger;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
 
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
@@ -53,7 +55,15 @@ public final class AnnotationTypes {
             return false;
         }
 
-        for (Annotation annotation : actual.getAnnotations()) {
+        Annotation[] annotations;
+        try {
+            annotations = actual.getAnnotations();
+        } catch (LinkageError | IllegalClassLoadError e) {
+            // Metadata can reference classes that a mod's class loader forbids loading.
+            MyoLogger.debug("Could not read annotation metadata for {}", actual.getName(), e);
+            return false;
+        }
+        for (Annotation annotation : annotations) {
             Class<? extends Annotation> metaType = annotation.annotationType();
             if (metaType.getPackageName().equals(Annotation.class.getPackageName())) {
                 continue;
