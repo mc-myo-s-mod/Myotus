@@ -16,8 +16,8 @@ public final class AdvancedAERecipes extends JsonRecipeProvider {
 
     @Override
     protected void buildRecipes(JsonRecipeOutput output) {
-        reaction("advanced_ae/reaction_chamer/aae_charged_ender_pearl", "forge:ender_pearls", 64, 1_300_000, 1_000,
-                MyoItems.CHARGED_ENDER_PEARL.get(), 64)
+        reaction("advanced_ae/reaction_chamer/aae_charged_ender_pearl", "forge:ender_pearls", 16, 400_000, 250,
+                MyoItems.CHARGED_ENDER_PEARL.get(), 16)
                 .save(output);
 
         reaction("advanced_ae/reaction_chamer/aae_charged_ender_pearl_block", "forge:storage_blocks/ender_pearl", 64,
