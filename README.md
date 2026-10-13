@@ -10,13 +10,15 @@ These are build inputs from the linked `gradle.properties` files, not a claim th
 
 | Module | Minecraft | Loader build | Java | AE2 build | Myotus version |
 | --- | --- | --- | --- | --- | --- |
-| [forge-1-20-1](forge-1-20-1/gradle.properties) | 1.20.1 | Forge 47.4.17 | 17 | 15.4.10 | 15.1.0 |
-| [neoforge-1-21-1](neoforge-1-21-1/gradle.properties) | 1.21.1 | NeoForge 21.1.219 | 21 | 19.2.17 | 19.1.1 |
-| [neoforge-26-1-2](neoforge-26-1-2/gradle.properties) | 26.1.2 | NeoForge 26.1.2.97 | 25 | 26.1.10-beta | 26.1.0 |
+| [forge-1-20-1](forge-1-20-1/gradle.properties) | 1.20.1 | Forge 47.4.17 | 17 | 15.4.10 | 15.1.1 |
+| [neoforge-1-21-1](neoforge-1-21-1/gradle.properties) | 1.21.1 | NeoForge 21.1.219 | 21 | 19.2.17 | 19.2.1-SNAPSHOT |
+| [neoforge-26-1-2](neoforge-26-1-2/gradle.properties) | 26.1.2 | NeoForge 26.1.2.97 | 25 | 26.1.10-beta | 26.0.1 |
 
 The root Gradle 8.14 build includes `common`, Forge 1.20.1, NeoForge 1.21.1, and a NeoForge 26.1.2 proxy project. Root `build` builds all three mod versions; 26.1.2 tasks are forwarded to the module's Gradle 9.2.1 wrapper, which selects Java 25. Run the root build itself on Java 17 or 21, not Java 25.
 
 The Forge 1.20.1 and NeoForge 1.21.1 wrappers also work from their module directories: they use the parent settings and select that module's tasks. The 26.1.2 directory remains a native standalone Gradle build; keep it as a separate IntelliJ Gradle link for the real 26.1.2 source model. The root proxy is only a task entry point.
+
+Shared code without Minecraft dependencies lives in `common/src/main/java`. Shared code that uses Minecraft or AE2 types lives in `common/src/minecraft/java` and is compiled by each loader module against its own dependencies. Shared NeoForge resources live in `common/src/neoforge/resources`; Forge retains its version-specific resource paths. Loader resources override common resources by whole file.
 
 ## Developer documentation
 
@@ -43,7 +45,9 @@ boolean payable = plan.canPay(); // true: 30 player + 40 fluid + 5 Applied Exper
 | `MyotusAPI.integrations()` | Query registered and active `@MyoMod` integrations |
 | `MyotusAPI.configTabs()` | Register client-only `MyoConfigTab` definitions |
 | `MyotusAPI.creativeTabs()` | Register item/stack suppliers for the shared creative tab |
-| `MyotusAPI.terminalUpgrades()` / `ITerminalUpgradeCard` | Inspect cards and implement server-side menu callbacks |
+| `MyotusAPI.terminalCards()` / `ITerminalCard` | 1.21.1 card queries and server-side menu callbacks |
+| `MyotusAPI.terminalUpgrades()` / `ITerminalUpgradeCard` | Retained legacy API; deprecated on 1.21.1, still active on 1.20.1 and 26.1.2 |
+| `MyotusAPI.terminalModules()` / `MyotusAPI.Client.registerTerminalModule` | 1.21.1-only permanent module slots, client widgets, and recipe-transfer targets |
 | `MyotusAPI.experience()` / `api.experience` | XP math, pure plans, powered ME extraction, and server-side payment |
 | `MyotusAPI.commands()` / `api.annotation.commands` | Command argument adapters and command declarations |
 | `api.recipe` / `api.datagen` | Table recipe adapters and loader-specific resource conditions |
@@ -51,6 +55,8 @@ boolean payable = plan.canPay(); // true: 30 player + 40 fluid + 5 Applied Exper
 | `MyotusAPI.network()` / `api.wt.AddTerminalEvent` | Forge 1.20.1-only networking and AE2WTLib registration hooks |
 
 Register runtime contributions after Myotus initialization. `tryGet()` reports current state; it does not defer a callback until initialization. Keep config tabs, widgets, and optional-mod class references in appropriately isolated code. See the [lifecycle rules](openwiki/architecture.md#bootstrap-and-registration-order).
+
+On 1.21.1, existing `ITerminalUpgradeCard` implementations and `terminalUpgrades()` calls remain supported with their original signatures and behavior. New integrations should use `ITerminalCard` and `terminalCards()`. The legacy declarations use `@Deprecated(forRemoval = true)` to signal removal in a future version. No removal version is set, and their implementations remain available in this version. The replacement card API and module slots are not ported to 1.20.1 or 26.1.2.
 
 ## Compile against a local build
 
@@ -63,12 +69,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly "me.myogoo:myotus:15.1.0:api"
-    runtimeOnly fg.deobf("me.myogoo:myotus:15.1.0")
+    compileOnly "me.myogoo:myotus:15.1.1:api"
+    runtimeOnly fg.deobf("me.myogoo:myotus:15.1.1")
 }
 ```
 
-For NeoForge 1.21.1, use `19.1.1` and plain `runtimeOnly` without `fg.deobf`. For NeoForge 26.1.2, use `26.1.0` after publishing through the root proxy or the native 26.1.2 build; see the [26.1.2 setup](openwiki/quickstart.md#neoforge-2612). Declare Myotus in the addon's loader metadata as well as in Gradle.
+For this checkout's NeoForge 1.21.1 module APIs, use the locally published `19.2.1-SNAPSHOT` and plain `runtimeOnly` without `fg.deobf`. For NeoForge 26.1.2, use `26.0.1` after publishing through the root proxy or the native 26.1.2 build; see the [26.1.2 setup](openwiki/quickstart.md#neoforge-2612). Declare Myotus in the addon's loader metadata as well as in Gradle.
 
 The API classifier includes `api/**` and supporting DTO/icon/button types exposed by those signatures. It omits runtime implementation and loader metadata. Prefer `me.myogoo.myotus.api.*`; an implementation class being `public` does not make it a cross-version compatibility promise.
 
@@ -87,6 +93,18 @@ cmd.exe /c "gradlew.bat :neoforge-26-1-2:runGameTestServer --console=plain --no-
 ```
 
 Compilation and tests do not establish in-game behavior or TPS/FPS. Use the matching [client/server/GameTest checks](openwiki/workflows.md) for the code being changed.
+
+GameTests run from the development-only `gameTest` source set and `myotus_gametest` mod. `runGameTestServer` loads them automatically; normal mod, API, and source JARs do not include their classes or test structures.
+
+Development example recipes and their advancements (`dev_*.json`) also stay out of packaged JARs. Datagen and local development runs keep the examples and their `myotus:dev` condition.
+
+The 1.21.1 widget-dispatch regression runs in a real client and exits after its checks:
+
+```powershell
+cmd.exe /c "gradlew.bat :neoforge-1-21-1:runClient -Pwidget_smoke=true --console=plain"
+```
+
+It checks transformed AE2 widget dispatch, overlapping modules, consumed clicks, visibility, and per-screen selection. The smoke sources and temporary card registrations are excluded when building without `widget_smoke`. Native child controls retain AE2's input handling; module selection follows visible, in-bounds composite-widget dispatch.
 
 ## License
 

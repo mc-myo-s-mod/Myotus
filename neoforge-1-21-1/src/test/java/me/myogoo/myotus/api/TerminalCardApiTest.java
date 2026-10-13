@@ -62,7 +62,7 @@ class TerminalCardApiTest {
     }
 
     @Test
-    void insertionRejectsDuplicatesButAllowsTheCurrentSlotAndUnavailableCards() {
+    void insertionRejectsDuplicatesAndUnavailableCardsButAllowsTheCurrentSlot() {
         Item module = moduleCard(true);
         ItemStack installedModule = stack(module);
         when(installedModule.is(module)).thenReturn(true);
@@ -100,6 +100,16 @@ class TerminalCardApiTest {
         ItemStack candidate = stack(module);
         assertEquals(upgrades.canInsertUpgrade(installed, 0, candidate),
                 cards.canInsertCard(installed, 0, candidate));
+    }
+
+    @Test
+    void legacyQueriesRejectNonCardsBeforeAccessingTheMenu() {
+        var upgrades = MyotusAPI.terminalUpgrades();
+        Item ordinaryItem = mock(Item.class);
+        assertFalse(upgrades.hasUpgrade(null, (Item) null));
+        assertEquals(0, upgrades.countUpgrade(null, (Item) null));
+        assertFalse(upgrades.hasUpgrade(null, ordinaryItem));
+        assertEquals(0, upgrades.countUpgrade(null, ordinaryItem));
     }
 
     @Test

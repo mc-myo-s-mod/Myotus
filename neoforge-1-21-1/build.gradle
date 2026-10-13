@@ -8,6 +8,24 @@ plugins {
 def myotusRootDir = rootProject.layout.projectDirectory.asFile
 def moduleGuideSources = project.file('src/main/resources/assets/myotus/ae2guide').absolutePath
 
+if (findProperty('widget_smoke') == 'true') {
+    sourceSets.main.java.srcDir 'src/smoke/java'
+}
+
+sourceSets {
+    gameTest {
+        resources.srcDir rootProject.file('common/src/gameTest/resources')
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
+configurations {
+    gameTestImplementation.extendsFrom implementation
+    gameTestCompileOnly.extendsFrom compileOnly
+    gameTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
 def prepareMultiplayerTest = tasks.register('prepareMultiplayerTest', Copy) {
     doNotTrackState('Runtime directories contain live settings and locked world files.')
     from 'src/multiplayer'
@@ -23,16 +41,27 @@ def prepareMultiplayerTest = tasks.register('prepareMultiplayerTest', Copy) {
 
 neoForge {
     version = project.neo_version
+    addModdingDependenciesTo sourceSets.gameTest
 
     parchment {
         mappingsVersion = project.parchment_mappings_version
         minecraftVersion = project.parchment_minecraft_version
     }
 
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+        myotus_gametest {
+            sourceSet(sourceSets.gameTest)
+        }
+    }
+
     runs {
         client {
             client()
             gameDirectory = project.file('run-client')
+            systemProperty 'myotus.widgetSmoke', findProperty('widget_smoke') ?: 'false'
 
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
 
@@ -75,6 +104,8 @@ neoForge {
             type = "gameTestServer"
             gameDirectory = project.file('run-gametest')
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            loadedMods = [mods.myotus, mods.myotus_gametest]
+            sourceSet = sourceSets.gameTest
         }
 
         data {
@@ -85,16 +116,11 @@ neoForge {
         }
 
         configureEach {
+            if (name != 'gameTestServer') loadedMods = [mods.myotus]
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'myotus.startupVersionMismatchTest', (findProperty('myotusStartupVersionMismatchTest') ?: 'false').toString()
 
             logLevel = name.startsWith('multiplayer') ? org.slf4j.event.Level.INFO : org.slf4j.event.Level.DEBUG
-        }
-    }
-
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
         }
     }
 
@@ -113,6 +139,7 @@ dependencies {
 
     // Optional recipe-viewer bridges; neither viewer is required at runtime.
     compileOnly 'mezz.jei:jei-1.21.1-neoforge:19.19.3.224'
+    testRuntimeOnly 'mezz.jei:jei-1.21.1-neoforge:19.19.3.224'
     compileOnly 'dev.emi:emi-neoforge:1.1.22+1.21.1'
 
     compileOnly "org.appliedenergistics:guideme:${Guideme_version}:api"

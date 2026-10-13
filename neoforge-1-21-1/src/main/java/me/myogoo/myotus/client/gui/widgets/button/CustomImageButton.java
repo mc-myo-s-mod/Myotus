@@ -73,6 +73,9 @@ public class CustomImageButton extends Button implements ITooltip {
             if (this.halfSize) {
                 this.width = 8;
                 this.height = 8;
+            } else {
+                this.width = 16;
+                this.height = 16;
             }
 
             var yOffset = isHovered() ? 1 : 0;

@@ -139,7 +139,9 @@ public final class MyotusAPI {
      * Returns the API for terminal upgrade slot helpers.
      *
      * @return the terminal upgrade API
+     * @deprecated Use {@link #terminalCards()}; this facade retains the legacy contract.
      */
+    @Deprecated(forRemoval = true)
     public static TerminalUpgradesApi terminalUpgrades() {
         return TERMINAL_UPGRADES;
     }
@@ -239,7 +241,10 @@ public final class MyotusAPI {
      * Compatibility API for terminal card slots, including both upgrades and modules.
      *
      * <p>Existing method names and behavior are retained. New code should use {@link #terminalCards()}.</p>
+     *
+     * @deprecated Use {@link TerminalCardsApi} and its card-named query methods.
      */
+    @Deprecated(forRemoval = true)
     public static final class TerminalUpgradesApi {
         private static final TerminalUpgradesApi INSTANCE = new TerminalUpgradesApi();
 

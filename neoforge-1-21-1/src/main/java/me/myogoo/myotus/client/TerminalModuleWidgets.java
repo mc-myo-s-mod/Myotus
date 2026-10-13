@@ -32,6 +32,23 @@ public final class TerminalModuleWidgets {
 
     private record ActiveWidget(String id, WidgetStyle style, ICompositeWidget widget) {}
 
+    /** Internal link from an AE2 container to its owning screen's module selection. */
+    public interface ContainerAccess {
+        void myotus$setModuleWidgets(TerminalModuleWidgets modules);
+    }
+
+    public void recordDispatchedClick(ICompositeWidget widget, Point mouse) {
+        if (!widget.isVisible() || !mouse.isIn(widget.getBounds())) {
+            return;
+        }
+        for (var entry : activeWidgets.entrySet()) {
+            if (entry.getValue().widget() == widget) {
+                lastClickedModuleCard = entry.getKey();
+                return;
+            }
+        }
+    }
+
     /** Selection belongs to this screen and is discarded when the selected card is removed. */
     public @Nullable Item getLastClickedModuleCard() {
         return lastClickedModuleCard;

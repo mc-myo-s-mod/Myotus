@@ -33,7 +33,9 @@ import net.minecraft.world.item.ItemStack;
  *     }
  * }
  * }</pre>
+ * @deprecated Implement {@link ITerminalCard}; existing upgrade cards remain supported.
  */
+@Deprecated(forRemoval = true)
 public interface ITerminalUpgradeCard extends ITerminalCard {
 
     /**

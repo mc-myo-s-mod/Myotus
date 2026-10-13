@@ -15,6 +15,20 @@ plugins {
 
 apply plugin: 'org.spongepowered.mixin'
 
+sourceSets {
+    gameTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+        resources.srcDir rootProject.file('common/src/gameTest/resources')
+    }
+}
+
+configurations {
+    gameTestImplementation.extendsFrom implementation
+    gameTestCompileOnly.extendsFrom compileOnly
+    gameTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
 
@@ -52,6 +66,11 @@ minecraft {
         gameTestServer {
             workingDirectory project.file('run-gametest')
             property 'forge.enabledGameTestNamespaces', mod_id
+            mods {
+                myotus_gametest {
+                    source sourceSets.gameTest
+                }
+            }
         }
 
         data {

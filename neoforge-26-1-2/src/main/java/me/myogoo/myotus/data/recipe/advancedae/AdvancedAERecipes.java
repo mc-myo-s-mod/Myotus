@@ -4,7 +4,6 @@ import me.myogoo.myotus.data.builder.advancedae.MyoAdvancedAEReactionRecipeBuild
 import me.myogoo.myotus.data.recipe.JsonRecipeProvider;
 import me.myogoo.myotus.init.MyoItems;
 import net.minecraft.data.PackOutput;
-import net.minecraft.world.level.ItemLike;
 
 import static me.myogoo.myotus.data.recipe.ExternalRecipeBuilder.conditions;
 
@@ -40,14 +39,4 @@ public final class AdvancedAERecipes extends JsonRecipeProvider {
         return "Myotus Advanced AE recipes";
     }
 
-    private static MyoAdvancedAEReactionRecipeBuilder reaction(String path, String inputTag, int inputAmount,
-                                                               int energy, int waterAmount, ItemLike outputItem) {
-        return MyoAdvancedAEReactionRecipeBuilder
-                .create(id(path))
-                .conditions(conditions("advanced_ae"))
-                .energy(energy)
-                .fluid("minecraft:water", waterAmount)
-                .inputTag(inputTag, inputAmount)
-                .output(outputItem, 64);
-    }
 }

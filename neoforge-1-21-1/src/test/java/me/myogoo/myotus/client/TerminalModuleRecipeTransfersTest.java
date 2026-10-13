@@ -100,6 +100,38 @@ class TerminalModuleRecipeTransfersTest {
     }
 
     @Test
+    void ordinaryCompositeWidgetsSelectBetweenMultipleTransferTargets() {
+        var fixture = new Fixture();
+        var first = card();
+        var second = card();
+        var firstTarget = fixture.target(first);
+        var secondTarget = fixture.target(second);
+        var ordinaryWidgets = new java.util.ArrayList<ICompositeWidget>();
+        int x = 0;
+        for (var card : List.of(first, second)) {
+            var widget = mock(ICompositeWidget.class);
+            when(widget.isVisible()).thenReturn(true);
+            when(widget.getBounds()).thenReturn(new Rect2i(x, 0, 30, 30));
+            TerminalModuleWidgets.register(card, (screen, stack) -> widget);
+            ordinaryWidgets.add(widget);
+            x += 40;
+        }
+        fixture.update(first, second);
+        try (var helper = mockStatic(TerminalUpgradeHelper.class)) {
+            helper.when(() -> TerminalUpgradeHelper.getInstalledUpgradeItems(fixture.menu))
+                    .thenReturn(Set.of(first, second));
+            assertNull(fixture.modules.onMouseDown(new Point(5, 5), 0));
+            fixture.modules.recordDispatchedClick(ordinaryWidgets.get(0), new Point(5, 5));
+            assertSame(first, fixture.route(false).target());
+            assertNull(fixture.modules.onMouseDown(new Point(45, 5), 0));
+            fixture.modules.recordDispatchedClick(ordinaryWidgets.get(1), new Point(45, 5));
+            assertSame(second, fixture.route(true).target());
+            verify(firstTarget, never()).transfer(any(), any(), anyBoolean());
+            verify(secondTarget).transfer(fixture.menu, fixture.recipe, true);
+        }
+    }
+
+    @Test
     void multipleTargetsRequireSelectionAndRemovalClearsItEvenAfterReinstallation() {
         var fixture = new Fixture();
         var first = card();

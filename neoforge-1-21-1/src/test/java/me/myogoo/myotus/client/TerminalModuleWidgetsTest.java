@@ -35,6 +35,34 @@ import static org.mockito.Mockito.withSettings;
 
 class TerminalModuleWidgetsTest {
     @Test
+    void ordinaryWidgetSelectionRespectsVisibilityAndFrontPanelsWithoutHandlingInputTwice() {
+        Item ordinaryCard = card();
+        Item panelCard = card();
+        ICompositeWidget ordinary = widget();
+        when(ordinary.getBounds()).thenReturn(new Rect2i(-20, 0, 50, 30));
+        when(ordinary.isVisible()).thenReturn(true);
+        var panel = panel(0);
+        TerminalModuleWidgets.register(ordinaryCard, (screen, stack) -> ordinary);
+        TerminalModuleWidgets.register(panelCard, (screen, stack) -> panel);
+        var modules = new TerminalModuleWidgets();
+        modules.update(null, List.of(stack(ordinaryCard), stack(panelCard)),
+                new LinkedHashMap<>(), new LinkedHashMap<>());
+        Point exposed = new Point(-10, 10);
+        assertNull(modules.onMouseDown(exposed, 0));
+        assertNull(modules.getLastClickedModuleCard());
+        modules.recordDispatchedClick(ordinary, exposed);
+        assertSame(ordinaryCard, modules.getLastClickedModuleCard());
+        verify(ordinary, never()).onMouseDown(exposed, 0);
+        modules.onMouseDown(new Point(10, 10), 0);
+        assertSame(panelCard, modules.getLastClickedModuleCard());
+        when(ordinary.isVisible()).thenReturn(false);
+        assertNull(modules.onMouseDown(exposed, 0));
+        modules.recordDispatchedClick(ordinary, exposed);
+        modules.recordDispatchedClick(panel, new Point(100, 100));
+        assertSame(panelCard, modules.getLastClickedModuleCard());
+    }
+
+    @Test
     void slotlessModuleSharesLayeringCaptureAndBlocksCoveredNativeSlots() {
         var equipment = panel(0);
         var slotless = mock(AbstractTerminalModuleWidget.class);

@@ -33,6 +33,7 @@ def loaderResourceDirs = [file('src/main/resources'), file('src/generated/resour
 def generatedCommonResourcesDir = layout.buildDirectory.dir('generated/resources/myotusCommon')
 def syncMyotusCommonResources = tasks.register('syncMyotusCommonResources', Sync) {
     from '../common/src/main/resources'
+    from '../common/src/neoforge/resources'
     into generatedCommonResourcesDir
     inputs.files(loaderResourceDirs.collect { fileTree(it) })
             .withPropertyName('loaderResourceOverrides').withPathSensitivity(PathSensitivity.RELATIVE)
@@ -44,12 +45,24 @@ def syncMyotusCommonResources = tasks.register('syncMyotusCommonResources', Sync
 sourceSets {
     main {
         java.srcDir '../common/src/main/java'
+        java.srcDir '../common/src/minecraft/java'
         resources.srcDir files(generatedCommonResourcesDir).builtBy(syncMyotusCommonResources)
         resources.srcDir 'src/generated/resources'
     }
     test {
         java.srcDir '../common/src/test/java'
     }
+    gameTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+        resources.srcDir '../common/src/gameTest/resources'
+    }
+}
+
+configurations {
+    gameTestImplementation.extendsFrom implementation
+    gameTestCompileOnly.extendsFrom compileOnly
+    gameTestRuntimeOnly.extendsFrom runtimeOnly
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -76,6 +89,16 @@ def myotusRootDir = project.projectDir.parentFile
 
 neoForge {
     version = project.neo_version
+    addModdingDependenciesTo sourceSets.gameTest
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+        myotus_gametest {
+            sourceSet(sourceSets.gameTest)
+        }
+    }
 
     if (project.hasProperty('parchment_mappings_version') && project.hasProperty('parchment_minecraft_version')) {
         parchment {
@@ -107,6 +130,9 @@ neoForge {
             type = "gameTestServer"
             gameDirectory = project.file('run-gametest')
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            loadedMods = [mods.myotus, mods.myotus_gametest]
+            sourceSet = sourceSets.gameTest
+            programArguments.addAll '--tests', 'myotus:*'
         }
 
         data {
@@ -117,6 +143,7 @@ neoForge {
         }
 
         configureEach {
+            if (name != 'gameTestServer') loadedMods = [mods.myotus]
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'myotus.startupVersionMismatchTest', (findProperty('myotusStartupVersionMismatchTest') ?: 'false').toString()
 
@@ -124,11 +151,6 @@ neoForge {
         }
     }
 
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
-    }
 }
 
 dependencies {

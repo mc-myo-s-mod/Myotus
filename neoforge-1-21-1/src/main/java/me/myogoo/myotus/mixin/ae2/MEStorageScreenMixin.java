@@ -4,7 +4,6 @@ import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.me.common.TerminalSettingsScreen;
 import appeng.client.gui.style.ScreenStyle;
-import appeng.client.gui.widgets.Scrollbar;
 import appeng.menu.AEBaseMenu;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -15,10 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -27,11 +23,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = MEStorageScreen.class, remap = false)
 public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
-    @Shadow
-    @Final
-    private Scrollbar scrollbar;
-    @Unique
-    private static final String MYOTUS$AE2WTLIB_UPGRADES_ID = "scrollingUpgrades";
 
     public MEStorageScreenMixin(AEBaseMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
@@ -66,13 +57,4 @@ public class MEStorageScreenMixin extends AEBaseScreen<AEBaseMenu> {
         }
     }
 
-    @Unique
-    private int myotus$getVisibleRowsForNextInit() {
-        var terminalStyle = this.style.getTerminalStyle();
-        if (terminalStyle == null) {
-            return 2;
-        }
-        int availableHeight = this.height - 2 * this.config.getTerminalMargin();
-        return Math.max(2, this.config.getTerminalStyle().getRows(terminalStyle.getPossibleRows(availableHeight)));
-    }
 }

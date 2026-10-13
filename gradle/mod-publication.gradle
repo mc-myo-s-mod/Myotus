@@ -52,6 +52,11 @@ plugins.withId('com.vanniktech.maven.publish') {
     }
 }
 
+tasks.withType(Jar).configureEach {
+    // Keep datagen examples in development runs without shipping their recipes or advancements.
+    exclude 'data/myotus/**/dev_*.json'
+}
+
 tasks.named('jar', Jar).configure {
     manifest {
         attributes('Specification-Title': mod_id,

@@ -310,6 +310,7 @@ public abstract class AEBaseScreenMixin extends AbstractContainerScreen<AEBaseMe
         if (!(menu instanceof MEStorageMenu storageMenu)) {
             return false;
         }
+        ((TerminalModuleWidgets.ContainerAccess) widgets).myotus$setModuleWidgets(myotus$terminalModules);
         return myotus$terminalModules.update((AEBaseScreen<?>) (Object) this,
                 TerminalUpgradeHelper.getInstalledUpgrades(storageMenu),
                 ((WidgetContainerAccessor) widgets).myotus$getCompositeWidgets(),
