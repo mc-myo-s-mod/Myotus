@@ -21,7 +21,8 @@ import java.util.regex.Pattern;
 @EventBusSubscriber(modid = Myotus.MODID)
 public class PlayerUpgradeContainer extends AppEngInternalInventory implements InternalInventoryHost {
 
-    public static final int SIZE = 5;
+    // Storage capacity stays fixed so lowering the configured menu limit cannot discard saved cards.
+    public static final int SIZE = 27;
 
     private static final Pattern STORAGE_KEY_PATTERN = Pattern.compile(
             "(?:item:(?:ae2wtlib:wireless_universal_terminal|[\\p{javaJavaIdentifierPart}.]+:[a-z0-9_.-]+:[a-z0-9/._-]+):"

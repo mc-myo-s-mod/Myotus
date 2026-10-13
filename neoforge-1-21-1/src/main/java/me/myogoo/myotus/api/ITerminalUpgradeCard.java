@@ -4,11 +4,11 @@ import appeng.menu.me.common.MEStorageMenu;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Implemented by items that can be inserted into the terminal upgrade slot.
+ * Legacy type for items that can be inserted into the terminal upgrade slot.
  *
- * <p>Only items implementing this interface are accepted by the terminal upgrade
- * slot filter. Every callback has a default no-op implementation, so card items
- * only need to override the hooks they actually use.</p>
+ * <p>Items implementing this interface remain accepted by the terminal upgrade
+ * slot filter. Every callback has a default implementation, so card items only
+ * need to override the hooks they actually use.</p>
  *
  * <p>Items implementing this interface are also discovered automatically for the
  * empty upgrade-slot tooltip. Each terminal can only install one copy of a
@@ -33,8 +33,10 @@ import net.minecraft.world.item.ItemStack;
  *     }
  * }
  * }</pre>
+ * @deprecated Implement {@link ITerminalCard}; existing upgrade cards remain supported.
  */
-public interface ITerminalUpgradeCard {
+@Deprecated(forRemoval = true)
+public interface ITerminalUpgradeCard extends ITerminalCard {
 
     /**
      * Called when a terminal containing this card begins its first server menu update, after the concrete
@@ -46,7 +48,9 @@ public interface ITerminalUpgradeCard {
      * @param menu currently open terminal menu
      * @param stack the card stack installed in the slot
      */
-    default void onTerminalOpen(MEStorageMenu menu, ItemStack stack) {}
+    default void onTerminalOpen(MEStorageMenu menu, ItemStack stack) {
+        ITerminalCard.super.onTerminalOpen(menu, stack);
+    }
 
     /**
      * Called when a terminal containing this card is closed.
@@ -58,7 +62,9 @@ public interface ITerminalUpgradeCard {
      * @param menu terminal menu being closed
      * @param stack the card stack installed in the slot
      */
-    default void onTerminalClose(MEStorageMenu menu, ItemStack stack) {}
+    default void onTerminalClose(MEStorageMenu menu, ItemStack stack) {
+        ITerminalCard.super.onTerminalClose(menu, stack);
+    }
 
     /**
      * Called once per server tick while the card is installed in an open terminal.
@@ -69,5 +75,7 @@ public interface ITerminalUpgradeCard {
      * @param menu currently open terminal menu
      * @param stack the card stack installed in the slot
      */
-    default void onTerminalTick(MEStorageMenu menu, ItemStack stack) {}
+    default void onTerminalTick(MEStorageMenu menu, ItemStack stack) {
+        ITerminalCard.super.onTerminalTick(menu, stack);
+    }
 }

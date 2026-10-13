@@ -9,10 +9,13 @@ import appeng.menu.me.common.MEStorageMenu;
 import appeng.menu.slot.AppEngSlot;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.util.inv.AppEngInternalInventory;
-import me.myogoo.myotus.api.ITerminalUpgradeCard;
+import me.myogoo.myotus.api.ITerminalCard;
+import me.myogoo.myotus.config.MyotusConfig;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
 import me.myogoo.myotus.menu.TerminalUpgradeHost;
+import me.myogoo.myotus.menu.TerminalModuleMenu;
+import me.myogoo.myotus.menu.TerminalModuleSlots;
 import me.myogoo.myotus.menu.TerminalUpgradeSlotFilter;
 import me.myogoo.myotus.menu.TerminalUpgradeStorageKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,7 +30,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = MEStorageMenu.class, remap = false)
-public abstract class MEStorageMenuMixin extends AEBaseMenu {
+public abstract class MEStorageMenuMixin extends AEBaseMenu implements TerminalModuleMenu {
+
+    @Unique
+    private final TerminalModuleSlots.State myotus$moduleSlots = new TerminalModuleSlots.State();
+
+    @Override
+    public TerminalModuleSlots.State myotus$getModuleSlots() {
+        return myotus$moduleSlots;
+    }
 
     // Tracks the last observed upgrade stack per slot to dispatch insert/remove lifecycle callbacks.
     @Unique
@@ -51,9 +62,16 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         }
     }
 
-    @Inject(method = "broadcastChanges", at = @At("HEAD"))
+    @Inject(method = "broadcastChanges", at = @At("HEAD"), cancellable = true)
     private void myotus$onBroadcastChanges(CallbackInfo ci) {
         if (this.getPlayer().level().isClientSide()) {
+            return;
+        }
+
+        if (!TerminalModuleSlots.isLayoutValid((MEStorageMenu) (Object) this)) {
+            // Slot IDs stay fixed while open; reopen after a module changes its native slot layout.
+            getPlayer().closeContainer();
+            ci.cancel();
             return;
         }
 
@@ -84,10 +102,10 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
                 continue;
             }
 
-            if (!prevStack.isEmpty() && prevStack.getItem() instanceof ITerminalUpgradeCard oldCard) {
+            if (!prevStack.isEmpty() && prevStack.getItem() instanceof ITerminalCard oldCard && oldCard.isAvailable()) {
                 oldCard.onTerminalClose(menu, prevStack.copy());
             }
-            if (!nowStack.isEmpty() && nowStack.getItem() instanceof ITerminalUpgradeCard newCard) {
+            if (!nowStack.isEmpty() && nowStack.getItem() instanceof ITerminalCard newCard && newCard.isAvailable()) {
                 ItemStack before = nowStack.copy();
                 newCard.onTerminalOpen(menu, nowStack);
                 myotus$persistCallbackChanges(slot, before);
@@ -112,7 +130,8 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
                             TerminalUpgradeSlotFilter.INSTANCE);
         }
 
-        for (int i = 0; i < PlayerUpgradeContainer.SIZE; i++) {
+        int slotCount = Math.min(MyotusConfig.SERVER.terminalUpgradeSlots.get(), upgradeInv.size());
+        for (int i = 0; i < slotCount; i++) {
             var slot = new AppEngSlot(upgradeInv, i);
             slot.setIcon(RestrictedInputSlot.PlacableItemType.UPGRADES.icon);
             slot.setNotDraggable();
@@ -125,7 +144,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         MEStorageMenu menu = (MEStorageMenu) (Object) this;
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
             ItemStack stack = slot.getItem();
-            if (!stack.isEmpty() && stack.getItem() instanceof ITerminalUpgradeCard card) {
+            if (!stack.isEmpty() && stack.getItem() instanceof ITerminalCard card && card.isAvailable()) {
                 ItemStack before = stack.copy();
                 card.onTerminalOpen(menu, stack);
                 myotus$persistCallbackChanges(slot, before);
@@ -140,7 +159,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
         MEStorageMenu menu = (MEStorageMenu) (Object) this;
         for (Slot slot : this.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT)) {
             ItemStack stack = slot.getItem();
-            if (!stack.isEmpty() && stack.getItem() instanceof ITerminalUpgradeCard card) {
+            if (!stack.isEmpty() && stack.getItem() instanceof ITerminalCard card && card.isAvailable()) {
                 ItemStack before = stack.copy();
                 card.onTerminalTick(menu, stack);
                 myotus$persistCallbackChanges(slot, before);

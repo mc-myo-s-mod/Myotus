@@ -4,7 +4,6 @@ import com.mojang.logging.LogUtils;
 
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.data.MyotusDataGenerators;
-import me.myogoo.myotus.gametest.MyoExperienceGameTests;
 import me.myogoo.myotus.impl.MyotusAPIImpl;
 import me.myogoo.myotus.init.MyoBlocks;
 import me.myogoo.myotus.init.MyoCondition;
@@ -18,15 +17,12 @@ import me.myogoo.myotus.util.mod.MyoModVersionMismatchException;
 import me.myogoo.myotus.util.reflect.SafeClass;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import net.minecraft.resources.Identifier;
-import net.minecraft.core.registries.Registries;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModLoadingException;
 import net.neoforged.fml.ModLoadingIssue;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.event.RegisterGameTestsEvent;
-import net.neoforged.neoforge.registries.RegisterEvent;
 import org.slf4j.Logger;
 
 @Mod(Myotus.MODID)
@@ -59,14 +55,6 @@ public class Myotus {
         MyoBlocks.BLOCKS.register(modEventBus);
         MyoItems.ITEMS.register(modEventBus);
         modEventBus.addListener(MyotusDataGenerators::onGatherData);
-        modEventBus.addListener((RegisterEvent event) -> {
-            if (event.getRegistryKey() == Registries.TEST_INSTANCE_TYPE) {
-                event.register(Registries.TEST_INSTANCE_TYPE, MyoExperienceGameTests.TEST_INSTANCE_TYPE_ID,
-                        () -> MyoExperienceGameTests.CODEC);
-            }
-        });
-        modEventBus.addListener((RegisterGameTestsEvent event) ->
-                MyoExperienceGameTests.registerAll(event::registerTest));
         MyoConfig.initialize(modContainer);
     }
 

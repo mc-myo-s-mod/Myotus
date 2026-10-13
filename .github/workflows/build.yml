@@ -45,6 +45,7 @@ jobs:
         include:
           - module: forge-1-20-1
             minecraft: 1.20.1
+            required_tests: 17
             java_version: |
               17
               21
@@ -53,6 +54,7 @@ jobs:
             gradle_task_prefix: ":forge-1-20-1:"
           - module: neoforge-1-21-1
             minecraft: 1.21.1
+            required_tests: 26
             java_version: |
               17
               21
@@ -61,6 +63,7 @@ jobs:
             gradle_task_prefix: ":neoforge-1-21-1:"
           - module: neoforge-26-1-2
             minecraft: 26.1.2
+            required_tests: 18
             java_version: 25
             gradle_wrapper: ./neoforge-26-1-2/gradlew
             gradle_project_directory: neoforge-26-1-2
@@ -99,6 +102,16 @@ jobs:
             "${{ matrix.gradle_task_prefix }}build" \
             --no-daemon \
             --stacktrace
+
+      - name: Run server regression tests
+        run: |
+          set -euo pipefail
+          "${{ matrix.gradle_wrapper }}" \
+            --project-dir "${{ matrix.gradle_project_directory }}" \
+            "${{ matrix.gradle_task_prefix }}runGameTestServer" \
+            --no-daemon \
+            --stacktrace --console=plain 2>&1 | tee gametest.log
+          grep -F "All ${{ matrix.required_tests }} required tests passed" gametest.log
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7

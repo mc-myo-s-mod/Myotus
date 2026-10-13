@@ -149,6 +149,9 @@ configure(modProjects) {
 
     def syncMyotusCommonResources = tasks.register('syncMyotusCommonResources', Sync) {
         from commonResourcesSourceDir
+        if (project.name == 'neoforge-1-21-1') {
+            from rootProject.file('common/src/neoforge/resources')
+        }
         into generatedCommonResourcesDir
         inputs.files(loaderResourceDirs.collect { fileTree(it) })
                 .withPropertyName('loaderResourceOverrides').withPathSensitivity(PathSensitivity.RELATIVE)
@@ -167,6 +170,7 @@ configure(modProjects) {
     sourceSets {
         main {
             java.srcDir generatedCommonJavaSources
+            java.srcDir rootProject.file('common/src/minecraft/java')
             if (project.findProperty('myotusStartupVersionMismatchTest') == 'true') {
                 java.srcDir rootProject.file('common/src/startupTest/java')
             }

@@ -61,8 +61,18 @@ public interface IMyotusAPI {
         return MyotusAPI.experience();
     }
 
+    /** @deprecated Use {@link #terminalCards()}; the legacy facade remains supported. */
+    @Deprecated(forRemoval = true)
     default MyotusAPI.TerminalUpgradesApi terminalUpgrades() {
         return MyotusAPI.terminalUpgrades();
+    }
+
+    default MyotusAPI.TerminalCardsApi terminalCards() {
+        return MyotusAPI.terminalCards();
+    }
+
+    default MyotusAPI.TerminalModulesApi terminalModules() {
+        return MyotusAPI.terminalModules();
     }
 
     default MyotusAPI.CommandsApi commands() {

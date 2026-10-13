@@ -32,7 +32,6 @@ public class MyoItems {
     public static final DeferredItem<MyotusUpgradeCardItem> MYOTUS_UPGRADE_CARD = registerDevItem(
             "myotus_upgrade_card", () -> new MyotusUpgradeCardItem(new Item.Properties().stacksTo(1)));
 
-
     private static <T extends Item> DeferredItem<T> registerItem(String name, Supplier<T> item) {
         DeferredItem<T> registeredItem = ITEMS.register(name, item);
         MyotusAPI.creativeTabs().registerCreativeTabItem(registeredItem);

@@ -24,5 +24,15 @@
   "gui.myotus.config.upgrade_terminal_panel.show": "显示终端升级面板",
   "gui.myotus.config.upgrade_terminal_panel.hide": "隐藏终端升级面板",
   "gui.myotus.upgrade_slot.empty_tooltip.header": "可安装的终端升级：",
-  "gui.myotus.upgrade_slot.empty_tooltip.none": "已安装所有终端升级。"
+  "gui.myotus.upgrade_slot.empty_tooltip.none": "已安装所有终端升级。",
+  "gui.myotus.terminal_module.no_slots": "没有可用的模块槽位",
+  "key.myotus.transfer_to_module": "选择配方转移的目标模块（按住）",
+  "myotus.recipe_transfer.unavailable": "模块配方转移当前不可用",
+  "myotus.recipe_transfer.server_recipe_required": "此转移需要服务器端配方",
+  "myotus.recipe_transfer.no_target": "已安装的模块均不支持此配方",
+  "myotus.recipe_transfer.select_module": "请先点击终端中的目标模块",
+  "myotus.recipe_transfer.target": "转移至%s",
+  "gui.myotus.terminal_module.reset_positions": "重置位置",
+  "gui.myotus.terminal_module.animate_movement": "启用面板移动动画",
+  "gui.myotus.terminal_module.snap_movement": "吸附面板边缘"
 }

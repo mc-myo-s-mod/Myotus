@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import appeng.client.gui.Icon;
 import appeng.client.gui.style.TextureTransform;
+import appeng.client.gui.widgets.Scrollbar;
 import appeng.menu.slot.AppEngSlot;
 import me.myogoo.myotus.config.MyotusConfig;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
@@ -33,6 +34,8 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     private static final int SLOT_SIZE = 18;
     private static final int PADDING = 5;
     private static final int SLOT_COUNT = 5;
+    private static final int SCROLLBAR_WIDTH = 7;
+    private static final int SCROLLBAR_INSET = 2;
 
     private static final int PANEL_HEIGHT = PADDING + (SLOT_SIZE * SLOT_COUNT) + PADDING;
 
@@ -50,6 +53,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
 
     private final List<Slot> viewCellSlots;
     private final List<Slot> upgradeSlots;
+    private final Scrollbar scrollbar = new Scrollbar(Scrollbar.SMALL);
 
     private final MEStorageMenu menu;
     private final boolean isAe2WtlibScreen;
@@ -59,6 +63,9 @@ public class TerminalUpgradePanel implements ICompositeWidget {
         this.isAe2WtlibScreen = isAe2WtlibScreen;
         this.viewCellSlots = menu.getSlots(SlotSemantics.VIEW_CELL);
         this.upgradeSlots = menu.getSlots(MyoSlotSemantics.MYO_UPGRADE_SLOT);
+        scrollbar.setCaptureMouseWheel(false);
+        scrollbar.setHeight(SLOT_COUNT * SLOT_SIZE - 2);
+        scrollbar.setRange(0, Math.max(0, upgradeSlots.size() - SLOT_COUNT), 1);
         setPosition(new Point(terminalScreenWidth, 0));
         configureUpgradeSlots(menu);
         hideSlots();
@@ -81,6 +88,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     public void setVisible(boolean visible) {
         this.visible = visible;
         if (!visible) {
+            scrollbar.onMouseUp(Point.ZERO, 0);
             hideSlots(); // 닫힐 때 슬롯 숨김
         } else {
             slotsHidden = false;
@@ -110,6 +118,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     public void setPosition(Point position) {
         this.x = position.getX();
         this.y = position.getY();
+        positionScrollbar();
     }
 
     @Override
@@ -125,6 +134,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     @Override
     public void populateScreen(Consumer<AbstractWidget> addWidget, Rect2i bounds, AEBaseScreen<?> screen) {
         this.screenOrigin = Point.fromTopLeft(bounds);
+        positionScrollbar();
     }
 
     @Override
@@ -134,6 +144,8 @@ public class TerminalUpgradePanel implements ICompositeWidget {
             return;
         }
         slotsHidden = false;
+        scrollbar.setRange(0, Math.max(0, upgradeSlots.size() - SLOT_COUNT), 1);
+        positionScrollbar();
 
         int slotStartX = this.x + (isAe2WtlibScreen ? 5 : 1);
         int slotStartY = this.y + PADDING;
@@ -141,6 +153,7 @@ public class TerminalUpgradePanel implements ICompositeWidget {
         boolean showViewCell = showViewCellSlots();
 
         if (showViewCell) {
+            hideViewCellSlots();
             for (int i = 0; i < Math.min(SLOT_COUNT, viewCellSlots.size()); i++) {
                 Slot slot = viewCellSlots.get(i);
                 slot.x = slotStartX;
@@ -152,10 +165,17 @@ public class TerminalUpgradePanel implements ICompositeWidget {
 
         // 오른쪽 열 (UpgradeSlot) - 틈 없이 바로 붙게 설정
         int rightColX = slotStartX + (showViewCell ? MyoSlotBlitter.SLOT : 0);
-        for (int i = 0; i < Math.min(SLOT_COUNT, upgradeSlots.size()); i++) {
+        int firstVisibleSlot = scrollbar.getCurrentScroll();
+        for (int i = 0; i < upgradeSlots.size(); i++) {
             Slot slot = upgradeSlots.get(i);
-            slot.x = rightColX;
-            slot.y = slotStartY + i * MyoSlotBlitter.SLOT + 1;
+            int row = i - firstVisibleSlot;
+            if (row >= 0 && row < SLOT_COUNT) {
+                slot.x = rightColX;
+                slot.y = slotStartY + row * MyoSlotBlitter.SLOT + 1;
+            } else {
+                slot.x = -10000;
+                slot.y = -10000;
+            }
         }
     }
 
@@ -208,7 +228,28 @@ public class TerminalUpgradePanel implements ICompositeWidget {
 
         }
 
+        if (scrolling()) {
+            Rect2i track = scrollbar.getBounds();
+            guiGraphics.fill(screenOrigin.getX() + track.getX(), screenOrigin.getY() + track.getY(),
+                    screenOrigin.getX() + track.getX() + SCROLLBAR_WIDTH,
+                    screenOrigin.getY() + track.getY() + track.getHeight(), 0xff363636);
+        }
+
         guiGraphics.pose().popPose();
+    }
+
+    @Override
+    public void drawForegroundLayer(GuiGraphics guiGraphics, Rect2i bounds, Point mouse) {
+        if (visible && scrolling()) {
+            scrollbar.drawForegroundLayer(guiGraphics, bounds, mouse);
+        }
+    }
+
+    @Override
+    public void tick() {
+        if (scrolling()) {
+            scrollbar.tick();
+        }
     }
 
     @Override
@@ -218,6 +259,9 @@ public class TerminalUpgradePanel implements ICompositeWidget {
         }
 
         if (mousePos.isIn(getBounds())) {
+            if (scrolling() && mousePos.isIn(scrollbar.getBounds())) {
+                return scrollbar.onMouseDown(mousePos, button);
+            }
             if (isOverSlot(mousePos)) {
                 return false;
             }
@@ -225,6 +269,26 @@ public class TerminalUpgradePanel implements ICompositeWidget {
         }
 
         return false;
+    }
+
+    @Override
+    public boolean wantsAllMouseUpEvents() {
+        return true;
+    }
+
+    @Override
+    public boolean onMouseUp(Point mousePos, int button) {
+        return scrollbar.onMouseUp(mousePos, button);
+    }
+
+    @Override
+    public boolean onMouseDrag(Point mousePos, int button) {
+        return scrolling() && scrollbar.onMouseDrag(mousePos, button);
+    }
+
+    @Override
+    public boolean onMouseWheel(Point mousePos, double delta) {
+        return visible && scrolling() && mousePos.isIn(getBounds()) && scrollbar.onMouseWheel(mousePos, delta);
     }
 
     private boolean isOverSlot(Point mousePos) {
@@ -258,7 +322,20 @@ public class TerminalUpgradePanel implements ICompositeWidget {
     }
 
     public int getPanelWidth() {
-        return (showViewCellSlots() ? (SLOT_SIZE * 2) : SLOT_SIZE) + (PADDING * 2);
+        return getSlotPanelWidth() + (scrolling() ? SCROLLBAR_WIDTH - SCROLLBAR_INSET : 0);
+    }
+
+    private int getSlotPanelWidth() {
+        int leftPadding = isAe2WtlibScreen ? PADDING : MyoSlotBlitter.LEFT_PADDING;
+        return leftPadding + (showViewCellSlots() ? (SLOT_SIZE * 2) : SLOT_SIZE) + PADDING;
+    }
+
+    private boolean scrolling() {
+        return upgradeSlots.size() > SLOT_COUNT;
+    }
+
+    private void positionScrollbar() {
+        scrollbar.setPosition(new Point(x + getSlotPanelWidth() - SCROLLBAR_INSET, y + PADDING + 1));
     }
 
     private boolean showViewCellSlots() {
@@ -329,6 +406,10 @@ public class TerminalUpgradePanel implements ICompositeWidget {
 
         static void slot(GuiGraphics guiGraphics, int x, int y) {
             BACKGROUND.src(LEFT_PADDING, 5, SLOT, SLOT).dest(x, y).blit(guiGraphics);
+        }
+
+        static void equipmentSlot(GuiGraphics guiGraphics, int x, int y) {
+            BACKGROUND.src(0, 5, SLOT, SLOT).dest(x, y).blit(guiGraphics);
         }
     }
 }
