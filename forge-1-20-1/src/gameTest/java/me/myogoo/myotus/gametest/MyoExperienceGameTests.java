@@ -23,22 +23,34 @@ import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
 import me.myogoo.myotus.init.MyoItems;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
+import me.myogoo.myotus.menu.TerminalUpgradeStorageKey;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestGenerator;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestFunction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +65,89 @@ public final class MyoExperienceGameTests {
     private static final long FLUID_UNITS_PER_EXPERIENCE = 250;
 
     private MyoExperienceGameTests() {
+    }
+
+    @GameTestGenerator
+    public static List<TestFunction> wirelessRecipeTests() {
+        if (!ModList.get().isLoaded("ae2wtlib")) return List.of();
+        return List.of(new TestFunction("defaultBatch",
+                "myoexperiencegametests.wirelessrecipespreservebothinputsacrossupgradeandrepeatedopen",
+                "myotus:empty", Rotation.NONE, 20, 0, true,
+                MyoExperienceGameTests::wirelessRecipesPreserveBothInputsAcrossUpgradeAndRepeatedOpen));
+    }
+
+    private static void wirelessRecipesPreserveBothInputsAcrossUpgradeAndRepeatedOpen(GameTestHelper helper) {
+        var player = makeMenuPlayer(helper);
+        ItemStack crafting = wirelessItem(helper, "ae2:wireless_crafting_terminal");
+        ItemStack encoding = wirelessItem(helper, "ae2wtlib:wireless_pattern_encoding_terminal");
+        ItemStack access = wirelessItem(helper, "ae2wtlib:wireless_pattern_access_terminal");
+        List<String> originalKeys = new ArrayList<>();
+        for (ItemStack terminal : List.of(crafting, encoding, access)) {
+            String key = TerminalUpgradeStorageKey.of(new TestTerminalHost(player, terminal));
+            originalKeys.add(key);
+            new PlayerUpgradeContainer(player, key).setItemDirect(0,
+                    new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get()));
+        }
+        List<ItemStack> beforeInputs = List.of(crafting.copy(), encoding.copy(), access.copy());
+        CompoundTag beforePlayer = player.getPersistentData().copy();
+        ItemStack combined = assembleWireless(helper, crafting, encoding, "Combine");
+        assertTrue(helper, ItemStack.matches(combined, assembleWireless(helper, crafting, encoding, "Combine")),
+                "Actual Combine recipe previews must produce identical NBT");
+        ItemStack upgraded = assembleWireless(helper, combined, access, "Upgrade");
+        assertTrue(helper, ItemStack.matches(upgraded, assembleWireless(helper, combined, access, "Upgrade")),
+                "Actual Upgrade recipe previews must produce identical NBT");
+        assertEquals(helper, beforePlayer, player.getPersistentData(),
+                "Both real recipes must leave player storage untouched until opening");
+        assertTrue(helper, ItemStack.matches(beforeInputs.get(0), crafting)
+                        && ItemStack.matches(beforeInputs.get(1), encoding)
+                        && ItemStack.matches(beforeInputs.get(2), access),
+                "Recipe assembly must not modify input stacks");
+
+        var host = new TestTerminalHost(player, upgraded);
+        var migrated = new PlayerUpgradeContainer(player, host);
+        assertTrue(helper, migrated.getStackInSlot(0).is(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "Opening the actual recipe result must install a source card");
+        assertEquals(helper, 2, player.getInventory().countItem(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "The duplicate cards from all three inputs must be returned without loss");
+        for (String key : originalKeys) {
+            assertTrue(helper, !player.getPersistentData().contains(key), "Consumed source must be removed: " + key);
+        }
+        CompoundTag afterMigration = player.getPersistentData().copy();
+        var reopened = new PlayerUpgradeContainer(player, host);
+        assertTrue(helper, reopened.getStackInSlot(0).is(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "Reopening must load the saved destination card");
+        assertEquals(helper, afterMigration, player.getPersistentData(), "Reopening must not reimport sources");
+        assertEquals(helper, 2, player.getInventory().countItem(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "Reopening must not return duplicate cards again");
+        helper.succeed();
+    }
+
+    private static ItemStack wirelessItem(GameTestHelper helper, String id) {
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(id)));
+        assertTrue(helper, !stack.isEmpty(), "Required wireless terminal is registered: " + id);
+        return stack;
+    }
+
+    private static ItemStack assembleWireless(GameTestHelper helper, ItemStack first, ItemStack second,
+            String recipeClass) {
+        var input = new TransientCraftingContainer(new AbstractContainerMenu(null, -1) {
+            @Override
+            public ItemStack quickMoveStack(Player player, int slot) {
+                return ItemStack.EMPTY;
+            }
+
+            @Override
+            public boolean stillValid(Player player) {
+                return true;
+            }
+        }, 2, 1);
+        input.setItem(0, first);
+        input.setItem(1, second);
+        var recipe = helper.getLevel().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, input,
+                helper.getLevel()).orElseThrow();
+        assertEquals(helper, "de.mari_023.ae2wtlib.wut.recipe." + recipeClass, recipe.getClass().getName(),
+                "The test must exercise the real AE2WTLib recipe and Mixin");
+        return recipe.assemble(input, helper.getLevel().registryAccess());
     }
 
     @GameTest(template = "empty", timeoutTicks = 20)
@@ -462,7 +557,7 @@ public final class MyoExperienceGameTests {
         return stack.hasTag() ? stack.getTag().getInt("myotus_test_callbacks") : 0;
     }
 
-    private static ServerPlayer makeMenuPlayer(GameTestHelper helper) {
+    static ServerPlayer makeMenuPlayer(GameTestHelper helper) {
         ServerPlayer player = new ServerPlayer(helper.getLevel().getServer(), helper.getLevel(),
                 new GameProfile(UUID.randomUUID(), "myotus-menu-gametest"));
         Connection connection = new Connection(PacketFlow.SERVERBOUND) {
@@ -601,7 +696,7 @@ public final class MyoExperienceGameTests {
         }
     }
 
-    private static final class TestTerminalHost extends ItemMenuHost implements ITerminalHost {
+    static final class TestTerminalHost extends ItemMenuHost implements ITerminalHost {
         private final MEStorage storage;
         private final IConfigManager configManager = new ConfigManager(() -> {
         });
@@ -609,6 +704,11 @@ public final class MyoExperienceGameTests {
         private TestTerminalHost(Player player, MEStorage storage) {
             super(player, null, new ItemStack(Items.COMPASS));
             this.storage = storage;
+        }
+
+        TestTerminalHost(Player player, ItemStack stack) {
+            super(player, null, stack);
+            this.storage = new MutableStorage();
         }
 
         @Override

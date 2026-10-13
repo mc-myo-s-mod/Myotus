@@ -8,6 +8,7 @@
     "ae2.AbstractTerminalPartMixin",
     "ae2.AEBaseMenuMixin",
     "ae2wtlib.AE2wtlibMixin",
+    "ae2wtlib.WUTRecipeMixin",
     "ae2.MEStorageMenuMixin",
     "minecraft.AbstractContainerMenuMixin"
   ],

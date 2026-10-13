@@ -26,7 +26,10 @@ import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
 import me.myogoo.myotus.init.MyoItems;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
+import me.myogoo.myotus.menu.TerminalUpgradeStorageKey;
+import me.myogoo.myotus.menu.WirelessTerminalUpgradeTransfer;
 import net.minecraft.core.Holder;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -35,13 +38,19 @@ import net.minecraft.gametest.framework.TestData;
 import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.item.crafting.StonecutterRecipe;
 import net.minecraft.world.level.material.Fluids;
@@ -51,6 +60,7 @@ import net.neoforged.fml.ModList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -99,6 +109,14 @@ public final class MyoExperienceGameTests {
                     MyoExperienceGameTests::ae2StorageMenuAppliesTerminalUpgradeMixinContract),
             test("terminal_upgrades_survive_player_cloning", 20,
                     MyoExperienceGameTests::terminalUpgradesSurvivePlayerCloning),
+            test("wireless_terminal_recipes_preserve_upgrade_sources", 20,
+                    MyoExperienceGameTests::wirelessTerminalRecipesPreserveUpgradeSources),
+            test("wireless_upgrade_migration_reopen_and_clone", 20,
+                    MyoExperienceGameTests::wirelessUpgradeMigrationReopenAndClone),
+            test("wireless_upgrade_full_inventory_preserves_raw_remainders", 20,
+                    MyoExperienceGameTests::wirelessUpgradeFullInventoryPreservesRawRemainders),
+            test("wireless_upgrade_legacy_identity_and_destination_protection", 20,
+                    MyoExperienceGameTests::wirelessUpgradeLegacyIdentityAndDestinationProtection),
             test("optional_integration_recipes_load", 20,
                     MyoExperienceGameTests::optionalIntegrationRecipesLoad)
     );
@@ -107,7 +125,10 @@ public final class MyoExperienceGameTests {
     }
 
     public static void registerAll(BiConsumer<Identifier, GameTestInstance> register) {
-        TESTS.forEach(test -> test.register(register));
+        TESTS.stream()
+                .filter(test -> !test.id().getPath().startsWith("wireless_")
+                        || ModList.get().isLoaded("ae2wtlib"))
+                .forEach(test -> test.register(register));
     }
 
     private static TestRegistration test(String path, int timeoutTicks, Consumer<GameTestHelper> action) {
@@ -153,6 +174,187 @@ public final class MyoExperienceGameTests {
                     "Stonecutting must produce one compat press");
         }
         helper.succeed();
+    }
+
+    public static void wirelessTerminalRecipesPreserveUpgradeSources(GameTestHelper helper) {
+        if (!ModList.get().isLoaded("ae2wtlib")) {
+            helper.succeed();
+            return;
+        }
+        ItemStack crafting = wirelessTestTerminal(helper, "ae2:wireless_crafting_terminal",
+                "12345678-abcd-1234-abcd-123456789012");
+        ItemStack encoding = wirelessTestTerminal(helper, "ae2wtlib:wireless_pattern_encoding_terminal",
+                "87654321-abcd-1234-abcd-123456789012");
+        ItemStack combined = assembleWirelessRecipe(helper, "Combine", crafting, encoding);
+        var combinedData = combined.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        var combinedSources = combinedData.getListOrEmpty("myotus_terminal_upgrade_sources");
+        assertEquals(helper, 2, combinedSources.size(), "Combine must retain both terminal identities");
+        assertTrue(helper, combinedSources.contains(StringTag.valueOf(
+                "ae2:wireless_crafting_terminal:12345678-abcd-1234-abcd-123456789012")),
+                "Combine must retain the crafting terminal identity");
+        assertTrue(helper, combinedSources.contains(StringTag.valueOf(
+                "ae2wtlib:wireless_pattern_encoding_terminal:87654321-abcd-1234-abcd-123456789012")),
+                "Combine must retain the encoding terminal identity");
+
+        ItemStack access = wirelessTestTerminal(helper, "ae2wtlib:wireless_pattern_access_terminal",
+                "11111111-abcd-1234-abcd-123456789012");
+        ItemStack upgraded = assembleWirelessRecipe(helper, "Upgrade", combined, access);
+        var upgradedData = upgraded.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        var upgradedSources = upgradedData.getListOrEmpty("myotus_terminal_upgrade_sources");
+        assertEquals(helper, 4, upgradedSources.size(), "Upgrade must retain ancestors and both current inputs");
+        assertTrue(helper, upgradedSources.containsAll(combinedSources), "Upgrade must retain inherited sources");
+        assertTrue(helper, upgradedSources.contains(StringTag.valueOf(
+                "ae2wtlib:wireless_universal_terminal:"
+                        + combinedData.read("myotus_terminal_storage_uuid", UUIDUtil.CODEC).orElseThrow())),
+                "Upgrade must retain the input WUT's own storage identity");
+        helper.succeed();
+    }
+
+    private static ItemStack wirelessTestTerminal(GameTestHelper helper, String id, String uuid) {
+        var item = helper.getLevel().registryAccess().lookupOrThrow(Registries.ITEM)
+                .getOrThrow(ResourceKey.create(Registries.ITEM, Identifier.parse(id)));
+        ItemStack stack = new ItemStack(item);
+        CompoundTag data = new CompoundTag();
+        data.store("myotus_terminal_storage_uuid", UUIDUtil.CODEC, UUID.fromString(uuid));
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(data));
+        return stack;
+    }
+
+    public static void wirelessUpgradeMigrationReopenAndClone(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        ItemStack first = wirelessTestTerminal(helper, "ae2:wireless_crafting_terminal",
+                "12345678-abcd-1234-abcd-123456789012");
+        ItemStack second = wirelessTestTerminal(helper, "ae2wtlib:wireless_pattern_encoding_terminal",
+                "87654321-abcd-1234-abcd-123456789012");
+        var firstHost = new TestTerminalHost(player, first);
+        var secondHost = new TestTerminalHost(player, second);
+        String firstKey = TerminalUpgradeStorageKey.of(firstHost);
+        String secondKey = TerminalUpgradeStorageKey.of(secondHost);
+        var card = new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get());
+        new PlayerUpgradeContainer(player, firstKey).setItemDirect(4, card.copy());
+        new PlayerUpgradeContainer(player, secondKey).setItemDirect(0, card.copy());
+        ItemStack result = assembleWirelessRecipe(helper, "Combine", first, second);
+        var host = new TestTerminalHost(player, result);
+        String key = TerminalUpgradeStorageKey.of(host);
+        var destination = new PlayerUpgradeContainer(player, host);
+        assertTrue(helper, destination.getStackInSlot(0).getCount() == 1, "Source card must be installed");
+        assertEquals(helper, 1, player.getInventory().countItem(card.getItem()),
+                "Duplicate from the second source must be returned");
+        assertTrue(helper, !player.getPersistentData().contains(firstKey)
+                && !player.getPersistentData().contains(secondKey), "Both source inventories must be consumed");
+        new PlayerUpgradeContainer(player, host);
+        new PlayerUpgradeContainer(player, host);
+        assertEquals(helper, 1, player.getInventory().countItem(card.getItem()), "Reopening must not duplicate cards");
+        var clone = helper.makeMockServerPlayerInLevel();
+        clone.restoreFrom(player, true);
+        int before = clone.getInventory().countItem(card.getItem());
+        var reopened = new PlayerUpgradeContainer(clone, new TestTerminalHost(clone, result));
+        assertTrue(helper, ItemStack.matches(card, reopened.getStackInSlot(0)), "Clone must retain migrated contents");
+        assertEquals(helper, before, clone.getInventory().countItem(card.getItem()), "Clone must not reimport sources");
+        assertTrue(helper, clone.getPersistentData().contains(key), "Destination must never be consumed as a source");
+        helper.succeed();
+    }
+
+    public static void wirelessUpgradeFullInventoryPreservesRawRemainders(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        ItemStack first = wirelessTestTerminal(helper, "ae2:wireless_crafting_terminal",
+                "12345678-abcd-1234-abcd-123456789012");
+        String sourceKey = TerminalUpgradeStorageKey.of(new TestTerminalHost(player, first));
+        var source = new PlayerUpgradeContainer(player, sourceKey);
+        var card = new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get());
+        source.setItemDirect(0, card.copy());
+        source.setItemDirect(1, card.copy());
+        CompoundTag unknown = new CompoundTag();
+        unknown.putInt("Slot", 4);
+        unknown.putString("id", "missing_addon:upgrade_card");
+        unknown.putInt("count", 1);
+        unknown.putString("opaque", "preserve exactly");
+        player.getPersistentData().getListOrEmpty(sourceKey).add(unknown.copy());
+        for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
+            player.getInventory().setItem(slot, new ItemStack(Items.COBBLESTONE, 64));
+        }
+        ItemStack result = wirelessTestTerminal(helper, "ae2wtlib:wireless_universal_terminal",
+                "11111111-abcd-1234-abcd-123456789012");
+        WirelessTerminalUpgradeTransfer.prepareResult(result, List.of(first));
+        var destination = new PlayerUpgradeContainer(player, new TestTerminalHost(player, result));
+        var remaining = player.getPersistentData().getListOrEmpty(sourceKey);
+        assertTrue(helper, remaining.size() == 2 && remaining.contains(unknown),
+                "Full inventory must retain duplicate and unknown raw entry");
+        assertTrue(helper, destination.getStackInSlot(0).getCount() == 1
+                && destination.getStackInSlot(1).isEmpty(), "Duplicate card filter must stay enforced");
+        assertEquals(helper, 0, player.getInventory().countItem(card.getItem()), "Full inventory must not receive cards");
+        var clone = helper.makeMockServerPlayerInLevel();
+        clone.restoreFrom(player, true);
+        assertTrue(helper, remaining.equals(clone.getPersistentData().get(sourceKey)), "Clone must preserve raw remainder");
+        clone.getInventory().setItem(0, ItemStack.EMPTY);
+        new PlayerUpgradeContainer(clone, new TestTerminalHost(clone, result));
+        assertEquals(helper, 1, clone.getInventory().countItem(card.getItem()), "Retry returns duplicate after space is freed");
+        assertTrue(helper, clone.getPersistentData().getListOrEmpty(sourceKey).size() == 1
+                && clone.getPersistentData().getListOrEmpty(sourceKey).contains(unknown), "Unknown raw data stays intact");
+        helper.succeed();
+    }
+
+    public static void wirelessUpgradeLegacyIdentityAndDestinationProtection(GameTestHelper helper) {
+        String uuid = "12345678-abcd-1234-abcd-123456789012";
+        String sourceKey = "item:example.LegacyHost:ae2:wireless_crafting_terminal:" + uuid;
+        var player = helper.makeMockServerPlayerInLevel();
+        var card = new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get());
+        new PlayerUpgradeContainer(player, sourceKey).setItemDirect(0, card.copy());
+        String unrelated = "item:example.OtherHost:ae2:wireless_crafting_terminal:87654321-abcd-1234-abcd-123456789012";
+        new PlayerUpgradeContainer(player, unrelated).setItemDirect(0, card.copy());
+        ItemStack legacy = wirelessTestTerminal(helper, "ae2wtlib:wireless_universal_terminal", uuid);
+        var destination = new PlayerUpgradeContainer(player, new TestTerminalHost(player, legacy));
+        assertTrue(helper, ItemStack.matches(card, destination.getStackInSlot(0)), "Own UUID must recover legacy key");
+        assertTrue(helper, !player.getPersistentData().contains(sourceKey)
+                && player.getPersistentData().contains(unrelated), "Only exact matching legacy identity is consumed");
+        CompoundTag before = player.getPersistentData().copy();
+        new PlayerUpgradeContainer(player, new TestTerminalHost(player, legacy));
+        assertTrue(helper, before.equals(player.getPersistentData()), "Destination must not consume itself on reopen");
+
+        var inheritedPlayer = helper.makeMockServerPlayerInLevel();
+        new PlayerUpgradeContainer(inheritedPlayer, sourceKey).setItemDirect(0, card.copy());
+        ItemStack upgraded = wirelessTestTerminal(helper, "ae2wtlib:wireless_universal_terminal",
+                "11111111-abcd-1234-abcd-123456789012");
+        WirelessTerminalUpgradeTransfer.prepareResult(upgraded, List.of(legacy));
+        var inherited = new PlayerUpgradeContainer(inheritedPlayer, new TestTerminalHost(inheritedPlayer, upgraded));
+        assertTrue(helper, ItemStack.matches(card, inherited.getStackInSlot(0))
+                && !inheritedPlayer.getPersistentData().contains(sourceKey), "Inherited WUT UUID must recover old generic key");
+
+        var blocked = helper.makeMockServerPlayerInLevel();
+        new PlayerUpgradeContainer(blocked, sourceKey).setItemDirect(0, card.copy());
+        var blockedHost = new TestTerminalHost(blocked, upgraded);
+        ListTag missing = new ListTag();
+        CompoundTag entry = new CompoundTag();
+        entry.putString("id", "missing_addon:card");
+        entry.putInt("count", 1);
+        entry.putInt("Slot", 0);
+        missing.add(entry);
+        blocked.getPersistentData().put(TerminalUpgradeStorageKey.of(blockedHost), missing);
+        before = blocked.getPersistentData().copy();
+        new PlayerUpgradeContainer(blocked, blockedHost);
+        assertTrue(helper, before.equals(blocked.getPersistentData()), "Undecodable destination must block migration overwrite");
+        helper.succeed();
+    }
+
+    private static ItemStack assembleWirelessRecipe(GameTestHelper helper, String kind,
+            ItemStack first, ItemStack second) {
+        ItemStack firstBefore = first.copy();
+        ItemStack secondBefore = second.copy();
+        var input = CraftingInput.of(2, 1, List.of(first, second));
+        var recipe = helper.getLevel().getServer().getRecipeManager().recipeMap()
+                .getRecipesFor(RecipeType.CRAFTING, input, helper.getLevel())
+                .filter(holder -> holder.value().getClass().getName()
+                        .equals("de.mari_023.ae2wtlib.wut.recipe." + kind))
+                .findFirst().orElseThrow(() -> new AssertionError("Missing WT " + kind + " recipe")).value();
+        ItemStack result = recipe.assemble(input);
+        ItemStack repeated = recipe.assemble(input);
+        assertTrue(helper, ItemStack.matches(result, repeated), kind + " preview must be deterministic");
+        assertTrue(helper, ItemStack.matches(firstBefore, first) && ItemStack.matches(secondBefore, second),
+                kind + " must not mutate recipe inputs");
+        assertTrue(helper, result.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag()
+                .read("myotus_terminal_storage_uuid", UUIDUtil.CODEC).isPresent(),
+                kind + " mixin must assign a stable output storage identity");
+        return result;
     }
 
     public static void exposesStableExperienceIntegrationIds(GameTestHelper helper) {
@@ -736,7 +938,11 @@ public final class MyoExperienceGameTests {
         private final IConfigManager configManager = IConfigManager.builder(() -> {}).build();
 
         private TestTerminalHost(Player player) {
-            super(Items.STICK, player, MenuLocators.forStack(new ItemStack(Items.STICK)));
+            this(player, new ItemStack(Items.STICK));
+        }
+
+        private TestTerminalHost(Player player, ItemStack stack) {
+            super(stack.getItem(), player, MenuLocators.forStack(stack));
         }
 
         @Override

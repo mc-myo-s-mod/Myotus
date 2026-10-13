@@ -2,6 +2,9 @@ package me.myogoo.myotus.menu;
 
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
+import appeng.api.implementations.menuobjects.ItemMenuHost;
+import appeng.api.storage.ITerminalHost;
+import me.myogoo.myotus.config.MyotusConfig;
 import me.myogoo.myotus.Myotus;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -49,7 +52,7 @@ public class PlayerUpgradeContainer extends AppEngInternalInventory implements I
         }
     }
 
-    private static boolean isUpgradeInventory(Tag value) {
+    static boolean isUpgradeInventory(Tag value) {
         if (!(value instanceof ListTag items) || items.size() > SIZE) {
             return false;
         }
@@ -67,12 +70,25 @@ public class PlayerUpgradeContainer extends AppEngInternalInventory implements I
     }
 
     public PlayerUpgradeContainer(ServerPlayer player, String storageKey) {
+        this(player, storageKey, null);
+    }
+
+    public PlayerUpgradeContainer(ServerPlayer player, ITerminalHost host) {
+        this(player, TerminalUpgradeStorageKey.of(host), host);
+    }
+
+    private PlayerUpgradeContainer(ServerPlayer player, String storageKey, ITerminalHost host) {
         super(null, SIZE, 1, TerminalUpgradeSlotFilter.INSTANCE); // host=null 로 시작하여 로드 중 save 이벤트 방지
         this.player = player;
         this.storageKey = storageKey;
 
         if (player.getPersistentData().contains(storageKey)) {
             readFromNBT(player.getPersistentData(), storageKey, player.registryAccess());
+        }
+
+        if (host instanceof ItemMenuHost<?> itemHost && TerminalUpgradeStorageKey.isWut(itemHost.getItemStack())) {
+            WirelessTerminalUpgradeTransfer.migrate(player, itemHost.getItemStack(), storageKey, this,
+                    Math.min(MyotusConfig.SERVER.terminalUpgradeSlots.get(), SIZE));
         }
 
         setHost(this); // 로드 완료 후 호스트 등록 → 이후 변경 시 자동 저장

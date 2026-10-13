@@ -14,7 +14,6 @@ import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
 import me.myogoo.myotus.menu.TerminalUpgradeHost;
 import me.myogoo.myotus.menu.TerminalUpgradeSlotFilter;
-import me.myogoo.myotus.menu.TerminalUpgradeStorageKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
@@ -107,7 +106,7 @@ public abstract class MEStorageMenuMixin extends AEBaseMenu {
             upgradeInv = upgradeHost.myotus$getUpgradeInventory();
         } else {
             upgradeInv = (this.getPlayer() instanceof ServerPlayer serverPlayer)
-                    ? new PlayerUpgradeContainer(serverPlayer, TerminalUpgradeStorageKey.of(host))
+                    ? new PlayerUpgradeContainer(serverPlayer, host)
                     : new AppEngInternalInventory(null, PlayerUpgradeContainer.SIZE, 1,
                             TerminalUpgradeSlotFilter.INSTANCE);
         }

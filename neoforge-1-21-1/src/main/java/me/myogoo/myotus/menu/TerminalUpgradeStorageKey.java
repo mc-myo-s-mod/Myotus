@@ -19,7 +19,7 @@ import java.util.UUID;
  * its own upgrade inventory.
  */
 public final class TerminalUpgradeStorageKey {
-    private static final String STACK_UUID_TAG = "myotus_terminal_storage_uuid";
+    static final String STACK_UUID_TAG = "myotus_terminal_storage_uuid";
     private static final ResourceLocation WUT_ITEM_ID = ResourceLocation.fromNamespaceAndPath("ae2wtlib",
             "wireless_universal_terminal");
 
@@ -80,7 +80,7 @@ public final class TerminalUpgradeStorageKey {
         return "item:" + WUT_ITEM_ID + ":" + storageId;
     }
 
-    private static boolean isWut(ItemStack stack) {
+    static boolean isWut(ItemStack stack) {
         return !stack.isEmpty() && WUT_ITEM_ID.equals(BuiltInRegistries.ITEM.getKey(stack.getItem()));
     }
 }
