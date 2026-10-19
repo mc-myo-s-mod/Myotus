@@ -28,6 +28,20 @@ import static org.mockito.Mockito.when;
 
 class ExperienceApiExtractionTest {
     @Test
+    void perKeyAdaptersRequireAKeyAndPositiveRates() {
+        AEKey key = mock(AEKey.class);
+        var adapter = new ExperienceStorageAdapter(FLUID_XP, candidate -> true, candidate -> 20L);
+        assertTrue(adapter.hasVariableConversion());
+        assertEquals(20, adapter.storageUnitsPerExperience(key));
+        assertThrows(IllegalStateException.class, adapter::storageUnitsPerExperience);
+        assertThrows(IllegalStateException.class, () -> adapter.toExperience(20));
+        assertThrows(IllegalStateException.class, () -> adapter.toStorageUnits(1));
+        assertThrows(NullPointerException.class, () -> adapter.storageUnitsPerExperience(null));
+        var invalid = new ExperienceStorageAdapter(FLUID_XP, candidate -> true, candidate -> 0L);
+        assertThrows(IllegalArgumentException.class, () -> invalid.storageUnitsPerExperience(key));
+    }
+
+    @Test
     void storedReportsVisibleStoredAmountWithoutClaimingExtractability() {
         AEKey key = appliedExperiencedKey();
         MutableStorage storage = new MutableStorage(key, 100);

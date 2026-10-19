@@ -1,6 +1,7 @@
 package me.myogoo.myotus.init;
 
 import me.myogoo.myotus.config.MyotusClientConfig;
+import me.myogoo.myotus.config.MyotusServerConfig;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 
@@ -8,5 +9,7 @@ public class MyoConfig {
     public static void initialize(ModLoadingContext context) {
         context.registerConfig(ModConfig.Type.CLIENT, MyotusClientConfig.CLIENT.get(),
                 "myotus-client.toml");
+        context.registerConfig(ModConfig.Type.SERVER, MyotusServerConfig.SERVER.get(),
+                "myotus-server.toml");
     }
 }

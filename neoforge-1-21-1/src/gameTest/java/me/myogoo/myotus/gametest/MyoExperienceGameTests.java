@@ -6,6 +6,7 @@ import appeng.api.implementations.menuobjects.ItemMenuHost;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ILinkStatus;
@@ -669,6 +670,134 @@ public final class MyoExperienceGameTests {
             assertTrue(helper, message != null && message.contains("may not be sent to the client"),
                     "Unexpected MEStorageMenu broadcast failure: " + error);
         }
+    }
+
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void mixedFluidRatesPreserveExactDebitsAndRemainders(GameTestHelper helper) {
+        AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+        AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+        var adapter = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key.equals(water) || key.equals(lava), key -> key.equals(water) ? 20L : 1L);
+        var storage = new MutableStorage(water, 40, lava, 3);
+        assertEquals(helper, 5L, MyotusAPI.experience().stored(storage, adapter),
+                "Different rates must be converted before adding raw XP");
+        assertTrue(helper, MyotusAPI.experience().extractExact(new TrackingEnergySource(100), storage,
+                IActionSource.empty(), 5, adapter), "Mixed rates should pay their full raw XP balance");
+        assertEquals(helper, 0L, storage.stored(water), "Two XP must debit forty mB of the twenty-rate fluid");
+        assertEquals(helper, 0L, storage.stored(lava), "Three XP must debit three mB of the one-rate fluid");
+
+        var partial = new MutableStorage(water, 19, lava, 1);
+        var energy = new TrackingEnergySource(100);
+        assertEquals(helper, 1L, MyotusAPI.experience().stored(partial, adapter),
+                "Nineteen mB must not inflate the one-rate fluid balance");
+        assertTrue(helper, !MyotusAPI.experience().extractExact(energy, partial, IActionSource.empty(), 2, adapter),
+                "Insufficient mixed XP must fail before any modulation");
+        assertEquals(helper, 19L, partial.stored(water), "Failed payment must preserve partial fluid");
+        assertEquals(helper, 1L, partial.stored(lava), "Failed payment must preserve complete fluid");
+        assertEquals(helper, 100.0, energy.stored(), "Failed payment must preserve energy");
+        assertTrue(helper, MyotusAPI.experience().extractExact(energy, partial, IActionSource.empty(), 1, adapter),
+                "The one-rate fluid must remain independently spendable");
+        assertEquals(helper, 19L, partial.stored(water), "Successful payment must preserve incomplete XP");
+        assertEquals(helper, 0L, partial.stored(lava), "Only the complete XP group should be consumed");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void fluidRemaindersPoolOnlyWithinEqualRates(GameTestHelper helper) {
+        AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+        AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+        var sameRate = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key.equals(water) || key.equals(lava), key -> 20L);
+        var pooled = new MutableStorage(water, 10, lava, 10);
+        assertEquals(helper, 1L, MyotusAPI.experience().stored(pooled, sameRate),
+                "Two half units with the same rate must still pool");
+        assertTrue(helper, MyotusAPI.experience().extractExact(new TrackingEnergySource(100), pooled,
+                IActionSource.empty(), 1, sameRate), "Equal-rate remainders must pay one complete XP");
+        assertEquals(helper, 0L, pooled.stored(water), "Equal-rate pooling must debit the first remainder");
+        assertEquals(helper, 0L, pooled.stored(lava), "Equal-rate pooling must debit the second remainder");
+
+        var differentRates = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key.equals(water) || key.equals(lava), key -> key.equals(water) ? 20L : 2L);
+        var separate = new MutableStorage(water, 10, lava, 1);
+        var energy = new TrackingEnergySource(100);
+        assertEquals(helper, 0L, MyotusAPI.experience().stored(separate, differentRates),
+                "Fractional XP from different rates must not pool");
+        assertTrue(helper, !MyotusAPI.experience().extractExact(energy, separate, IActionSource.empty(),
+                1, differentRates), "Different-rate fractions must not pay a complete XP");
+        assertEquals(helper, 10L, separate.stored(water), "Unavailable first fraction must remain stored");
+        assertEquals(helper, 1L, separate.stored(lava), "Unavailable second fraction must remain stored");
+        assertEquals(helper, 100.0, energy.stored(), "Unavailable fractions must not consume energy");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void mixedRateSimulationReleasesIncompleteEnergyReservations(GameTestHelper helper) {
+        AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+        AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+        for (AEFluidKey expensive : List.of(water, lava)) {
+            AEFluidKey cheap = expensive.equals(water) ? lava : water;
+            var adapter = new ExperienceStorageAdapter(FLUID_XP,
+                    key -> key.equals(water) || key.equals(lava), key -> key.equals(expensive) ? 250L : 125L);
+            var storage = new MutableStorage(expensive, 250, cheap, 125);
+            var energy = new TrackingEnergySource(1.5);
+            assertEquals(helper, 1L, MyotusAPI.experience().extractable(energy, storage, IActionSource.empty(), adapter),
+                    "An underpowered group must release its reservation for the affordable group");
+            assertTrue(helper, !MyotusAPI.experience().extractExact(energy, storage, IActionSource.empty(), 2, adapter),
+                    "Rate groups must not reuse the same energy budget");
+            assertEquals(helper, 250L, storage.stored(expensive), "Simulation must preserve expensive fluid");
+            assertEquals(helper, 125L, storage.stored(cheap), "Simulation must preserve cheap fluid");
+            assertEquals(helper, 1.5, energy.stored(), "Simulation and failed preflight must preserve energy");
+            assertTrue(helper, MyotusAPI.experience().extractExact(energy, storage, IActionSource.empty(), 1, adapter),
+                    "The affordable rate group should pay even after an incomplete first group");
+            assertEquals(helper, 250L, storage.stored(expensive), "Underpowered fluid must remain untouched");
+            assertEquals(helper, 0L, storage.stored(cheap), "Affordable fluid must supply one XP");
+            assertEquals(helper, 0.5, energy.stored(), "Only one AE should be spent on the complete group");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void configuredFluidRatesRecognizeTagsAndExplicitIds(GameTestHelper helper) {
+        var config = MyotusConfig.SERVER;
+        int originalRate = config.defaultFluidMbPerExperience.get();
+        var originalOverrides = config.fluidMbPerExperienceOverrides.get();
+        try {
+            config.defaultFluidMbPerExperience.set(20);
+            config.fluidMbPerExperienceOverrides.set(List.of("minecraft:lava=1", "minecraft:stick=1"));
+            config.defaultFluidMbPerExperience.clearCache();
+            config.fluidMbPerExperienceOverrides.clearCache();
+            AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+            AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+            assertTrue(helper, MyotusAPI.experience().isXpFluid(water), "The test-only XP tag must contain water");
+            assertTrue(helper, !MyotusAPI.experience().isXpFluid(lava), "The exception fixture must lack an XP tag");
+            assertTrue(helper, !MyotusAPI.experience().matchesSource(AEItemKey.of(Items.STICK), FLUID_XP),
+                    "A listed ID must not recognize a non-fluid key");
+            var snapshot = MyotusAPI.experience().configuredFluidStorage();
+            var storage = new MutableStorage(water, 40, lava, 1);
+            assertEquals(helper, 3L, MyotusAPI.experience().stored(storage, FLUID_XP),
+                    "Default calls must combine tagged twenty-rate fluid with an untagged one-rate exception");
+            assertTrue(helper, MyotusAPI.experience().extractExact(new TrackingEnergySource(100), storage,
+                    IActionSource.empty(), 3, FLUID_XP), "Default extraction must use server-configured rates");
+            assertEquals(helper, 0L, storage.stored(water), "Default extraction must debit the tagged fluid exactly");
+            assertEquals(helper, 0L, storage.stored(lava), "Default extraction must debit the exception exactly");
+
+            config.defaultFluidMbPerExperience.set(40);
+            config.fluidMbPerExperienceOverrides.set(List.of("minecraft:lava=2"));
+            config.defaultFluidMbPerExperience.clearCache();
+            config.fluidMbPerExperienceOverrides.clearCache();
+            var changed = new MutableStorage(water, 40, lava, 2);
+            assertEquals(helper, 2L, MyotusAPI.experience().stored(changed, FLUID_XP),
+                    "A new default API call must snapshot changed server settings");
+            assertEquals(helper, 4L, MyotusAPI.experience().stored(changed, snapshot),
+                    "An existing configured adapter must retain its original immutable rates");
+        } finally {
+            config.defaultFluidMbPerExperience.set(originalRate);
+            config.fluidMbPerExperienceOverrides.set(originalOverrides);
+            config.defaultFluidMbPerExperience.clearCache();
+            config.fluidMbPerExperienceOverrides.clearCache();
+        }
+        helper.succeed();
     }
 
     private static ExperienceStorageAdapter fluidAdapter(AEFluidKey key) {
