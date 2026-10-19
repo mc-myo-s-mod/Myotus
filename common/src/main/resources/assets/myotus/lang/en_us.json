@@ -34,5 +34,6 @@
   "gui.myotus.config.upgrade_terminal_panel.show": "Show Upgrade Terminal Panel",
   "gui.myotus.config.upgrade_terminal_panel.hide": "Hide Upgrade Terminal Panel",
   "gui.myotus.upgrade_slot.empty_tooltip.header": "Installable terminal upgrades:",
-  "gui.myotus.upgrade_slot.empty_tooltip.none": "All terminal upgrades are already installed."
+  "gui.myotus.upgrade_slot.empty_tooltip.none": "All terminal upgrades are already installed.",
+  "message.myotus.terminal_upgrades_pending": "Some terminal upgrades remain safely stored. Free inventory space or restore missing add-ons, then reopen this terminal."
 }

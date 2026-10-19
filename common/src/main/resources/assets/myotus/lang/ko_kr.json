@@ -34,5 +34,6 @@
   "gui.myotus.config.upgrade_terminal_panel.show": "업그레이드 터미널 패널 표시",
   "gui.myotus.config.upgrade_terminal_panel.hide": "업그레이드 터미널 패널 숨기기",
   "gui.myotus.upgrade_slot.empty_tooltip.header": "설치 가능한 터미널 업그레이드:",
-  "gui.myotus.upgrade_slot.empty_tooltip.none": "모든 터미널 업그레이드가 이미 설치되어 있습니다."
+  "gui.myotus.upgrade_slot.empty_tooltip.none": "모든 터미널 업그레이드가 이미 설치되어 있습니다.",
+  "message.myotus.terminal_upgrades_pending": "일부 터미널 업그레이드는 원래 저장소에 안전하게 보관되어 있습니다. 인벤토리를 비우거나 누락된 애드온을 복원한 후 터미널을 다시 여세요."
 }

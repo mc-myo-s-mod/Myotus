@@ -37,6 +37,8 @@ import org.objectweb.asm.Type;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -305,6 +307,19 @@ public final class MyotusAPI {
         /** Creates a fluid adapter for Myotus' recognized XP-fluid tags using an explicit conversion. */
         public ExperienceStorageAdapter taggedFluidStorage(long storageUnitsPerExperience) {
             return fluidStorage(this::isXpFluid, storageUnitsPerExperience);
+        }
+
+        /**
+         * Snapshots the server's default fluid conversion and registry-ID exceptions.
+         * Exceptions also recognize untagged fluids. Fractions pool only between fluids with the same rate.
+         * Obtain a fresh adapter after server configuration changes; explicit-rate adapters are unaffected.
+         */
+        public ExperienceStorageAdapter configuredFluidStorage() {
+            var rates = me.myogoo.myotus.config.MyotusConfig.getExperienceFluidRates();
+            return new ExperienceStorageAdapter(ExperienceMath.ExperienceSource.FLUID_XP,
+                    key -> key instanceof AEFluidKey
+                            && (rates.overrides().containsKey(key.getId().toString()) || isXpFluid(key)),
+                    key -> rates.rate(key.getId().toString()));
         }
 
         public List<ExperienceMath.ExperienceSource> anvilSourcePriority(long fluidXp) {
@@ -688,14 +703,16 @@ public final class MyotusAPI {
         }
 
         private List<ExperienceStorageAdapter> defaultStorageAdapters() {
-            return List.of(APPLIED_EXPERIENCED_STORAGE);
+            return List.of(APPLIED_EXPERIENCED_STORAGE, configuredFluidStorage());
         }
 
         private ExperienceStorageAdapter defaultStorageAdapter(ExperienceMath.ExperienceSource source) {
             Objects.requireNonNull(source, "source");
-            return source == ExperienceMath.ExperienceSource.APPLIED_EXPERIENCED_AMOUNT
-                    ? APPLIED_EXPERIENCED_STORAGE
-                    : null;
+            return switch (source) {
+                case APPLIED_EXPERIENCED_AMOUNT -> APPLIED_EXPERIENCED_STORAGE;
+                case FLUID_XP -> configuredFluidStorage();
+                case PLAYER -> null;
+            };
         }
 
         private List<ExperienceMath.ExperienceSource> orderedUniqueSources(
@@ -727,6 +744,14 @@ public final class MyotusAPI {
             Objects.requireNonNull(adapter, "adapter");
             if (storage == null) {
                 return 0;
+            }
+            if (adapter.hasVariableConversion()) {
+                storage = snapshotStorage(storage);
+                long experience = 0;
+                for (var group : adaptersByRate(storage, adapter)) {
+                    experience = Math.addExact(experience, stored(storage, group));
+                }
+                return experience;
             }
             long storageUnits = 0;
             KeyCounter availableStacks = storage.getAvailableStacks();
@@ -825,6 +850,9 @@ public final class MyotusAPI {
             Objects.requireNonNull(actionSource, "actionSource");
             storage = snapshotStorage(storage);
 
+            if (adapter.hasVariableConversion()) {
+                return extractByRate(energySource, storage, actionSource, amount, adapter, actionable);
+            }
             long requestedStorageUnits = adapter.toStorageUnits(amount);
             if (actionable == Actionable.MODULATE) {
                 long simulatedStorageUnits = extractStorageUnits(energySource, storage, actionSource,
@@ -838,6 +866,51 @@ public final class MyotusAPI {
             long extractedStorageUnits = extractStorageUnits(energySource, storage, actionSource,
                     requestedStorageUnits, adapter, actionable);
             return adapter.toExperience(extractedStorageUnits);
+        }
+
+        private List<ExperienceStorageAdapter> adaptersByRate(MEStorage storage, ExperienceStorageAdapter adapter) {
+            var keysByRate = new LinkedHashMap<Long, Set<AEKey>>();
+            for (var entry : storage.getAvailableStacks()) {
+                if (entry.getLongValue() > 0 && adapter.matches(entry.getKey())) {
+                    long rate = adapter.storageUnitsPerExperience(entry.getKey());
+                    keysByRate.computeIfAbsent(rate, ignored -> new LinkedHashSet<>()).add(entry.getKey());
+                }
+            }
+            var groups = new ArrayList<ExperienceStorageAdapter>();
+            keysByRate.forEach((rate, keys) ->
+                    groups.add(new ExperienceStorageAdapter(adapter.source(), keys::contains, rate)));
+            return groups;
+        }
+
+        private long extractByRate(IEnergySource energySource, MEStorage storage, IActionSource actionSource,
+                long amount, ExperienceStorageAdapter adapter, Actionable actionable) {
+            IEnergySource extractionEnergy = actionable == Actionable.SIMULATE
+                    && !(energySource instanceof CumulativeSimulatingEnergySource)
+                            ? new CumulativeSimulatingEnergySource(energySource) : energySource;
+            long extracted = 0;
+            for (var group : adaptersByRate(storage, adapter)) {
+                long requested = Math.min(amount - extracted, stored(storage, group));
+                if (requested == 0) {
+                    continue;
+                }
+                long groupExtracted;
+                if (extractionEnergy instanceof CumulativeSimulatingEnergySource simulation) {
+                    double checkpoint = simulation.checkpoint();
+                    groupExtracted = extract(simulation, storage, actionSource, requested, group, actionable);
+                    simulation.restore(checkpoint);
+                    // Incomplete XP must not reserve energy needed by the next rate group.
+                    if (groupExtracted > 0) {
+                        groupExtracted = extract(simulation, storage, actionSource, groupExtracted, group, actionable);
+                    }
+                } else {
+                    groupExtracted = extract(extractionEnergy, storage, actionSource, requested, group, actionable);
+                }
+                extracted = Math.addExact(extracted, groupExtracted);
+                if (extracted == amount) {
+                    break;
+                }
+            }
+            return extracted;
         }
 
         private long extractStorageUnits(IEnergySource energySource, MEStorage storage, IActionSource actionSource,
@@ -874,6 +947,7 @@ public final class MyotusAPI {
             return Objects.requireNonNull(adapter, "adapter").matches(Objects.requireNonNull(key, "key"));
         }
 
+        /** Checks XP-fluid tags only; use matchesSource(key, FLUID_XP) to include configured IDs. */
         public boolean isXpFluid(AEKey key) {
             if (!(key instanceof AEFluidKey fluidKey)) {
                 return false;

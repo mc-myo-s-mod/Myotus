@@ -10,15 +10,44 @@ These are build inputs from the linked `gradle.properties` files, not a claim th
 
 | Module | Minecraft | Loader build | Java | AE2 build | Myotus version |
 | --- | --- | --- | --- | --- | --- |
-| [forge-1-20-1](forge-1-20-1/gradle.properties) | 1.20.1 | Forge 47.4.17 | 17 | 15.4.10 | 15.1.1 |
+| [forge-1-20-1](forge-1-20-1/gradle.properties) | 1.20.1 | Forge 47.4.17 | 17 | 15.4.10 | 15.1.2-SNAPSHOT |
 | [neoforge-1-21-1](neoforge-1-21-1/gradle.properties) | 1.21.1 | NeoForge 21.1.219 | 21 | 19.2.17 | 19.2.1-SNAPSHOT |
-| [neoforge-26-1-2](neoforge-26-1-2/gradle.properties) | 26.1.2 | NeoForge 26.1.2.97 | 25 | 26.1.10-beta | 26.0.1 |
+| [neoforge-26-1-2](neoforge-26-1-2/gradle.properties) | 26.1.2 | NeoForge 26.1.2.97 | 25 | 26.1.10-beta | 26.0.2-SNAPSHOT |
 
 The root Gradle 8.14 build includes `common`, Forge 1.20.1, NeoForge 1.21.1, and a NeoForge 26.1.2 proxy project. Root `build` builds all three mod versions; 26.1.2 tasks are forwarded to the module's Gradle 9.2.1 wrapper, which selects Java 25. Run the root build itself on Java 17 or 21, not Java 25.
 
 The Forge 1.20.1 and NeoForge 1.21.1 wrappers also work from their module directories: they use the parent settings and select that module's tasks. The 26.1.2 directory remains a native standalone Gradle build; keep it as a separate IntelliJ Gradle link for the real 26.1.2 source model. The root proxy is only a task entry point.
 
 Shared code without Minecraft dependencies lives in `common/src/main/java`. Shared code that uses Minecraft or AE2 types lives in `common/src/minecraft/java` and is compiled by each loader module against its own dependencies. Shared NeoForge resources live in `common/src/neoforge/resources`; Forge retains its version-specific resource paths. Loader resources override common resources by whole file.
+
+## Experience-fluid conversion
+
+The default `MyotusAPI.experience()` storage/payment overloads use XP-fluid tags and
+`myotus-server.toml` (restart the world/server after editing). Forge 1.20.1 stores it
+in the world's `serverconfig` directory. These NeoForge versions use `config` by default,
+with an existing world-specific `serverconfig` file taking precedence:
+
+```toml
+[experience]
+defaultFluidMbPerExperience = 20
+fluidMbPerExperienceOverrides = ["create_enchantment_industry:experience=1"]
+```
+
+Amounts are mB per **raw XP point**, not levels. Sophisticated Core and Mob Grinding
+Utils use 20; Create: Enchantment Industry's normal experience fluid uses 1.
+An override also recognizes an untagged fluid by exact registry ID. Later duplicate
+IDs win; an empty list removes all exceptions. Other modpack-specific rates belong
+in this list, not in addon-side hardcoded fluid adapters.
+
+Existing `fluidStorage(matcher, rate)` and `taggedFluidStorage(rate)` retain their
+explicit fixed rates. Addons needing an explicit adapter list can obtain a fresh
+`configuredFluidStorage()` snapshot. Equal-rate fluids can combine partial amounts;
+different-rate fractions are not pooled, and incomplete XP remains in storage.
+The new configuration is server-authoritative and synchronized to clients.
+
+Source references: [Sophisticated Core](https://github.com/P3pp3rF1y/SophisticatedCore/blob/1.21.x/src/main/java/net/p3pp3rf1y/sophisticatedcore/util/XpHelper.java),
+[Mob Grinding Utils](https://github.com/vadis365/Mob-Grinding-Utils/blob/MC1.20.1-forge/MobGrindingUtils/MobGrindingUtils/src/main/java/mob_grinding_utils/tile/TileEntityXPTap.java),
+[Create: Enchantment Industry](https://github.com/DragonsPlusMinecraft/CreateEnchantmentIndustry/blob/1.21.1/6.0.0-dev/src/main/java/plus/dragons/createenchantmentindustry/common/fluids/experience/ExperienceHelper.java).
 
 ## Developer documentation
 

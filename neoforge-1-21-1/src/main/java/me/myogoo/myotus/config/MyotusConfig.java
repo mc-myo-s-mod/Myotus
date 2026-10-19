@@ -15,9 +15,18 @@ public final class MyotusConfig {
     private MyotusConfig() {
     }
 
+    public static ExperienceFluidRates getExperienceFluidRates() {
+        return SERVER.spec.isLoaded()
+                ? ExperienceFluidRates.parse(SERVER.defaultFluidMbPerExperience.get(),
+                        SERVER.fluidMbPerExperienceOverrides.get())
+                : ExperienceFluidRates.defaults();
+    }
+
     public static final class Server {
         private final ModConfigSpec spec;
         public final ModConfigSpec.IntValue terminalUpgradeSlots;
+        public final ModConfigSpec.IntValue defaultFluidMbPerExperience;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> fluidMbPerExperienceOverrides;
 
         private Server() {
             var builder = new ModConfigSpec.Builder();
@@ -28,6 +37,19 @@ public final class MyotusConfig {
                             "Cards beyond this limit remain saved but inactive; raise the limit to access them again.")
                     .worldRestart()
                     .defineInRange("terminalUpgradeSlots", 5, 1, PlayerUpgradeContainer.SIZE);
+            builder.pop();
+            builder.push("experience");
+            defaultFluidMbPerExperience = builder
+                    .comment("Default mB required for one raw XP point from recognized experience fluids.")
+                    .worldRestart()
+                    .defineInRange("defaultFluidMbPerExperience", ExperienceFluidRates.DEFAULT_RATE, 1, Integer.MAX_VALUE);
+            fluidMbPerExperienceOverrides = builder
+                    .comment("Fluid ID overrides in the form namespace:fluid=positive_mB_per_XP.",
+                            "Listed fluids are recognized even without an experience-fluid tag.",
+                            "Later entries for the same ID win. An empty list removes all exceptions.")
+                    .worldRestart()
+                    .defineListAllowEmpty("fluidMbPerExperienceOverrides", ExperienceFluidRates.DEFAULT_OVERRIDES,
+                            ExperienceFluidRates::isValidOverride);
             builder.pop();
             spec = builder.build();
         }

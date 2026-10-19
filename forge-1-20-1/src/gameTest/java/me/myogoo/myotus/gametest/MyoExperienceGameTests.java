@@ -6,6 +6,7 @@ import appeng.api.implementations.menuobjects.ItemMenuHost;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ITerminalHost;
@@ -20,25 +21,38 @@ import me.myogoo.myotus.api.ITerminalUpgradeCard;
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.api.experience.ExperienceMath;
 import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
+import me.myogoo.myotus.config.MyotusServerConfig;
 import me.myogoo.myotus.init.MyoItems;
 import me.myogoo.myotus.menu.MyoSlotSemantics;
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
+import me.myogoo.myotus.menu.TerminalUpgradeStorageKey;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestGenerator;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestFunction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +67,89 @@ public final class MyoExperienceGameTests {
     private static final long FLUID_UNITS_PER_EXPERIENCE = 250;
 
     private MyoExperienceGameTests() {
+    }
+
+    @GameTestGenerator
+    public static List<TestFunction> wirelessRecipeTests() {
+        if (!ModList.get().isLoaded("ae2wtlib")) return List.of();
+        return List.of(new TestFunction("defaultBatch",
+                "myoexperiencegametests.wirelessrecipespreservebothinputsacrossupgradeandrepeatedopen",
+                "myotus:empty", Rotation.NONE, 20, 0, true,
+                MyoExperienceGameTests::wirelessRecipesPreserveBothInputsAcrossUpgradeAndRepeatedOpen));
+    }
+
+    private static void wirelessRecipesPreserveBothInputsAcrossUpgradeAndRepeatedOpen(GameTestHelper helper) {
+        var player = makeMenuPlayer(helper);
+        ItemStack crafting = wirelessItem(helper, "ae2:wireless_crafting_terminal");
+        ItemStack encoding = wirelessItem(helper, "ae2wtlib:wireless_pattern_encoding_terminal");
+        ItemStack access = wirelessItem(helper, "ae2wtlib:wireless_pattern_access_terminal");
+        List<String> originalKeys = new ArrayList<>();
+        for (ItemStack terminal : List.of(crafting, encoding, access)) {
+            String key = TerminalUpgradeStorageKey.of(new TestTerminalHost(player, terminal));
+            originalKeys.add(key);
+            new PlayerUpgradeContainer(player, key).setItemDirect(0,
+                    new ItemStack(MyoItems.MYOTUS_UPGRADE_CARD.get()));
+        }
+        List<ItemStack> beforeInputs = List.of(crafting.copy(), encoding.copy(), access.copy());
+        CompoundTag beforePlayer = player.getPersistentData().copy();
+        ItemStack combined = assembleWireless(helper, crafting, encoding, "Combine");
+        assertTrue(helper, ItemStack.matches(combined, assembleWireless(helper, crafting, encoding, "Combine")),
+                "Actual Combine recipe previews must produce identical NBT");
+        ItemStack upgraded = assembleWireless(helper, combined, access, "Upgrade");
+        assertTrue(helper, ItemStack.matches(upgraded, assembleWireless(helper, combined, access, "Upgrade")),
+                "Actual Upgrade recipe previews must produce identical NBT");
+        assertEquals(helper, beforePlayer, player.getPersistentData(),
+                "Both real recipes must leave player storage untouched until opening");
+        assertTrue(helper, ItemStack.matches(beforeInputs.get(0), crafting)
+                        && ItemStack.matches(beforeInputs.get(1), encoding)
+                        && ItemStack.matches(beforeInputs.get(2), access),
+                "Recipe assembly must not modify input stacks");
+
+        var host = new TestTerminalHost(player, upgraded);
+        var migrated = new PlayerUpgradeContainer(player, host);
+        assertTrue(helper, migrated.getStackInSlot(0).is(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "Opening the actual recipe result must install a source card");
+        assertEquals(helper, 2, player.getInventory().countItem(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "The duplicate cards from all three inputs must be returned without loss");
+        for (String key : originalKeys) {
+            assertTrue(helper, !player.getPersistentData().contains(key), "Consumed source must be removed: " + key);
+        }
+        CompoundTag afterMigration = player.getPersistentData().copy();
+        var reopened = new PlayerUpgradeContainer(player, host);
+        assertTrue(helper, reopened.getStackInSlot(0).is(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "Reopening must load the saved destination card");
+        assertEquals(helper, afterMigration, player.getPersistentData(), "Reopening must not reimport sources");
+        assertEquals(helper, 2, player.getInventory().countItem(MyoItems.MYOTUS_UPGRADE_CARD.get()),
+                "Reopening must not return duplicate cards again");
+        helper.succeed();
+    }
+
+    private static ItemStack wirelessItem(GameTestHelper helper, String id) {
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(id)));
+        assertTrue(helper, !stack.isEmpty(), "Required wireless terminal is registered: " + id);
+        return stack;
+    }
+
+    private static ItemStack assembleWireless(GameTestHelper helper, ItemStack first, ItemStack second,
+            String recipeClass) {
+        var input = new TransientCraftingContainer(new AbstractContainerMenu(null, -1) {
+            @Override
+            public ItemStack quickMoveStack(Player player, int slot) {
+                return ItemStack.EMPTY;
+            }
+
+            @Override
+            public boolean stillValid(Player player) {
+                return true;
+            }
+        }, 2, 1);
+        input.setItem(0, first);
+        input.setItem(1, second);
+        var recipe = helper.getLevel().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, input,
+                helper.getLevel()).orElseThrow();
+        assertEquals(helper, "de.mari_023.ae2wtlib.wut.recipe." + recipeClass, recipe.getClass().getName(),
+                "The test must exercise the real AE2WTLib recipe and Mixin");
+        return recipe.assemble(input, helper.getLevel().registryAccess());
     }
 
     @GameTest(template = "empty", timeoutTicks = 20)
@@ -462,7 +559,7 @@ public final class MyoExperienceGameTests {
         return stack.hasTag() ? stack.getTag().getInt("myotus_test_callbacks") : 0;
     }
 
-    private static ServerPlayer makeMenuPlayer(GameTestHelper helper) {
+    static ServerPlayer makeMenuPlayer(GameTestHelper helper) {
         ServerPlayer player = new ServerPlayer(helper.getLevel().getServer(), helper.getLevel(),
                 new GameProfile(UUID.randomUUID(), "myotus-menu-gametest"));
         Connection connection = new Connection(PacketFlow.SERVERBOUND) {
@@ -472,6 +569,134 @@ public final class MyoExperienceGameTests {
         };
         new ServerGamePacketListenerImpl(helper.getLevel().getServer(), connection, player);
         return player;
+    }
+
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void mixedFluidRatesPreserveExactDebitsAndRemainders(GameTestHelper helper) {
+        AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+        AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+        var adapter = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key.equals(water) || key.equals(lava), key -> key.equals(water) ? 20L : 1L);
+        var storage = new MutableStorage(water, 40, lava, 3);
+        assertEquals(helper, 5L, MyotusAPI.experience().stored(storage, adapter),
+                "Different rates must be converted before adding raw XP");
+        assertTrue(helper, MyotusAPI.experience().extractExact(new TrackingEnergySource(100), storage,
+                IActionSource.empty(), 5, adapter), "Mixed rates should pay their full raw XP balance");
+        assertEquals(helper, 0L, storage.stored(water), "Two XP must debit forty mB of the twenty-rate fluid");
+        assertEquals(helper, 0L, storage.stored(lava), "Three XP must debit three mB of the one-rate fluid");
+
+        var partial = new MutableStorage(water, 19, lava, 1);
+        var energy = new TrackingEnergySource(100);
+        assertEquals(helper, 1L, MyotusAPI.experience().stored(partial, adapter),
+                "Nineteen mB must not inflate the one-rate fluid balance");
+        assertTrue(helper, !MyotusAPI.experience().extractExact(energy, partial, IActionSource.empty(), 2, adapter),
+                "Insufficient mixed XP must fail before any modulation");
+        assertEquals(helper, 19L, partial.stored(water), "Failed payment must preserve partial fluid");
+        assertEquals(helper, 1L, partial.stored(lava), "Failed payment must preserve complete fluid");
+        assertEquals(helper, 100.0, energy.stored(), "Failed payment must preserve energy");
+        assertTrue(helper, MyotusAPI.experience().extractExact(energy, partial, IActionSource.empty(), 1, adapter),
+                "The one-rate fluid must remain independently spendable");
+        assertEquals(helper, 19L, partial.stored(water), "Successful payment must preserve incomplete XP");
+        assertEquals(helper, 0L, partial.stored(lava), "Only the complete XP group should be consumed");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void fluidRemaindersPoolOnlyWithinEqualRates(GameTestHelper helper) {
+        AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+        AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+        var sameRate = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key.equals(water) || key.equals(lava), key -> 20L);
+        var pooled = new MutableStorage(water, 10, lava, 10);
+        assertEquals(helper, 1L, MyotusAPI.experience().stored(pooled, sameRate),
+                "Two half units with the same rate must still pool");
+        assertTrue(helper, MyotusAPI.experience().extractExact(new TrackingEnergySource(100), pooled,
+                IActionSource.empty(), 1, sameRate), "Equal-rate remainders must pay one complete XP");
+        assertEquals(helper, 0L, pooled.stored(water), "Equal-rate pooling must debit the first remainder");
+        assertEquals(helper, 0L, pooled.stored(lava), "Equal-rate pooling must debit the second remainder");
+
+        var differentRates = new ExperienceStorageAdapter(FLUID_XP,
+                key -> key.equals(water) || key.equals(lava), key -> key.equals(water) ? 20L : 2L);
+        var separate = new MutableStorage(water, 10, lava, 1);
+        var energy = new TrackingEnergySource(100);
+        assertEquals(helper, 0L, MyotusAPI.experience().stored(separate, differentRates),
+                "Fractional XP from different rates must not pool");
+        assertTrue(helper, !MyotusAPI.experience().extractExact(energy, separate, IActionSource.empty(),
+                1, differentRates), "Different-rate fractions must not pay a complete XP");
+        assertEquals(helper, 10L, separate.stored(water), "Unavailable first fraction must remain stored");
+        assertEquals(helper, 1L, separate.stored(lava), "Unavailable second fraction must remain stored");
+        assertEquals(helper, 100.0, energy.stored(), "Unavailable fractions must not consume energy");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void mixedRateSimulationReleasesIncompleteEnergyReservations(GameTestHelper helper) {
+        AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+        AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+        for (AEFluidKey expensive : List.of(water, lava)) {
+            AEFluidKey cheap = expensive.equals(water) ? lava : water;
+            var adapter = new ExperienceStorageAdapter(FLUID_XP,
+                    key -> key.equals(water) || key.equals(lava), key -> key.equals(expensive) ? 250L : 125L);
+            var storage = new MutableStorage(expensive, 250, cheap, 125);
+            var energy = new TrackingEnergySource(1.5);
+            assertEquals(helper, 1L, MyotusAPI.experience().extractable(energy, storage, IActionSource.empty(), adapter),
+                    "An underpowered group must release its reservation for the affordable group");
+            assertTrue(helper, !MyotusAPI.experience().extractExact(energy, storage, IActionSource.empty(), 2, adapter),
+                    "Rate groups must not reuse the same energy budget");
+            assertEquals(helper, 250L, storage.stored(expensive), "Simulation must preserve expensive fluid");
+            assertEquals(helper, 125L, storage.stored(cheap), "Simulation must preserve cheap fluid");
+            assertEquals(helper, 1.5, energy.stored(), "Simulation and failed preflight must preserve energy");
+            assertTrue(helper, MyotusAPI.experience().extractExact(energy, storage, IActionSource.empty(), 1, adapter),
+                    "The affordable rate group should pay even after an incomplete first group");
+            assertEquals(helper, 250L, storage.stored(expensive), "Underpowered fluid must remain untouched");
+            assertEquals(helper, 0L, storage.stored(cheap), "Affordable fluid must supply one XP");
+            assertEquals(helper, 0.5, energy.stored(), "Only one AE should be spent on the complete group");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20)
+    public static void configuredFluidRatesRecognizeTagsAndExplicitIds(GameTestHelper helper) {
+        var config = MyotusServerConfig.SERVER;
+        int originalRate = config.defaultFluidMbPerExperience.get();
+        var originalOverrides = config.fluidMbPerExperienceOverrides.get();
+        try {
+            config.defaultFluidMbPerExperience.set(20);
+            config.fluidMbPerExperienceOverrides.set(List.of("minecraft:lava=1", "minecraft:stick=1"));
+            config.defaultFluidMbPerExperience.clearCache();
+            config.fluidMbPerExperienceOverrides.clearCache();
+            AEFluidKey water = AEFluidKey.of(Fluids.WATER);
+            AEFluidKey lava = AEFluidKey.of(Fluids.LAVA);
+            assertTrue(helper, MyotusAPI.experience().isXpFluid(water), "The test-only XP tag must contain water");
+            assertTrue(helper, !MyotusAPI.experience().isXpFluid(lava), "The exception fixture must lack an XP tag");
+            assertTrue(helper, !MyotusAPI.experience().matchesSource(AEItemKey.of(Items.STICK), FLUID_XP),
+                    "A listed ID must not recognize a non-fluid key");
+            var snapshot = MyotusAPI.experience().configuredFluidStorage();
+            var storage = new MutableStorage(water, 40, lava, 1);
+            assertEquals(helper, 3L, MyotusAPI.experience().stored(storage, FLUID_XP),
+                    "Default calls must combine tagged twenty-rate fluid with an untagged one-rate exception");
+            assertTrue(helper, MyotusAPI.experience().extractExact(new TrackingEnergySource(100), storage,
+                    IActionSource.empty(), 3, FLUID_XP), "Default extraction must use server-configured rates");
+            assertEquals(helper, 0L, storage.stored(water), "Default extraction must debit the tagged fluid exactly");
+            assertEquals(helper, 0L, storage.stored(lava), "Default extraction must debit the exception exactly");
+
+            config.defaultFluidMbPerExperience.set(40);
+            config.fluidMbPerExperienceOverrides.set(List.of("minecraft:lava=2"));
+            config.defaultFluidMbPerExperience.clearCache();
+            config.fluidMbPerExperienceOverrides.clearCache();
+            var changed = new MutableStorage(water, 40, lava, 2);
+            assertEquals(helper, 2L, MyotusAPI.experience().stored(changed, FLUID_XP),
+                    "A new default API call must snapshot changed server settings");
+            assertEquals(helper, 4L, MyotusAPI.experience().stored(changed, snapshot),
+                    "An existing configured adapter must retain its original immutable rates");
+        } finally {
+            config.defaultFluidMbPerExperience.set(originalRate);
+            config.fluidMbPerExperienceOverrides.set(originalOverrides);
+            config.defaultFluidMbPerExperience.clearCache();
+            config.fluidMbPerExperienceOverrides.clearCache();
+        }
+        helper.succeed();
     }
 
     private static ExperienceStorageAdapter fluidAdapter(AEFluidKey... keys) {
@@ -601,7 +826,7 @@ public final class MyoExperienceGameTests {
         }
     }
 
-    private static final class TestTerminalHost extends ItemMenuHost implements ITerminalHost {
+    static final class TestTerminalHost extends ItemMenuHost implements ITerminalHost {
         private final MEStorage storage;
         private final IConfigManager configManager = new ConfigManager(() -> {
         });
@@ -609,6 +834,11 @@ public final class MyoExperienceGameTests {
         private TestTerminalHost(Player player, MEStorage storage) {
             super(player, null, new ItemStack(Items.COMPASS));
             this.storage = storage;
+        }
+
+        TestTerminalHost(Player player, ItemStack stack) {
+            super(player, null, stack);
+            this.storage = new MutableStorage();
         }
 
         @Override
