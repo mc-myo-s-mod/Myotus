@@ -20,3 +20,8 @@ include 'neoforge-1-21-1'
 include 'neoforge-26-1-2'
 // ForgeGradle needs Gradle 8; this bridge runs 26.1.2 with its Gradle 9 wrapper.
 project(':neoforge-26-1-2').buildFileName = 'root.gradle'
+
+// SSEC is a separate source checkout and is embedded in the shipped mod.
+def ssecRoot = providers.gradleProperty('ssecRoot').getOrElse('../SSECLib')
+includeBuild(new File(file(ssecRoot), 'forge-1-20-1')) { name = 'ssec-commands-1.20.1' }
+includeBuild(new File(file(ssecRoot), 'neoforge-1-21-1')) { name = 'ssec-commands-1.21.1' }

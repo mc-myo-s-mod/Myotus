@@ -1,19 +1,20 @@
 package me.myogoo.myotus.init;
 
-import me.myogoo.myotus.api.annotation.commands.MyoCommand;
-import me.myogoo.myotus.command.MyoCommandRegistrar;
+import me.myogoo.ssec.api.command.SSCommand;
+import me.myogoo.ssec.command.CommandRegistrar;
 import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner;
 import me.myogoo.myotus.util.MyoLogger;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
 
 import static me.myogoo.myotus.Myotus.DEV_MODE;
 import static me.myogoo.myotus.Myotus.MODID;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @EventBusSubscriber(modid = MODID)
 public class MyotusCommand {
@@ -21,21 +22,21 @@ public class MyotusCommand {
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         MyoLogger.info("Scanning for Myotus commands...");
 
-        List<Class<?>> commandClasses = new ArrayList<>();
-        Type myoCommandType = Type.getType(MyoCommand.class);
+        Set<Class<?>> commandClasses = new LinkedHashSet<>();
+        Type ssecCommandType = Type.getType(SSCommand.class);
 
         for (AnnotationScanner.ScannedAnnotation annotation : AnnotationScanner.getAnnotations()) {
-            if (!annotation.annotationType().equals(myoCommandType)) {
+            if (!annotation.annotationType().equals(ssecCommandType)) {
                 continue;
             }
             try {
                 Class<?> clazz = Class.forName(annotation.className(), false, MyotusCommand.class.getClassLoader());
                 commandClasses.add(clazz);
-            } catch (ClassNotFoundException | LinkageError e) {
+            } catch (ClassNotFoundException | LinkageError | IllegalClassLoadError e) {
                 MyoLogger.error("Failed to load command class: {}", annotation.className(), e);
             }
         }
 
-        MyoCommandRegistrar.registerAll(event.getDispatcher(), commandClasses, DEV_MODE);
+        CommandRegistrar.registerAll(event.getDispatcher(), event.getBuildContext(), commandClasses, DEV_MODE);
     }
 }

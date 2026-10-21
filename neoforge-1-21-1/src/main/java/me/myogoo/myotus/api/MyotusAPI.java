@@ -15,7 +15,6 @@ import appeng.menu.me.common.MEStorageMenu;
 import appeng.menu.SlotSemantic;
 import com.mojang.blaze3d.platform.InputConstants;
 import me.myogoo.myotus.dto.MyoModDto;
-import me.myogoo.myotus.api.command.argument.MyoArgumentAdapter;
 import me.myogoo.myotus.api.experience.ExperienceMath;
 import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
 import me.myogoo.myotus.api.registrar.IConfigRegistrar;
@@ -28,7 +27,6 @@ import me.myogoo.myotus.client.TerminalEquipmentPanel;
 import me.myogoo.myotus.config.MyotusConfig;
 import me.myogoo.myotus.api.terminal.ITerminalModuleProvider;
 import me.myogoo.myotus.menu.TerminalModuleSlots;
-import me.myogoo.myotus.command.MyoCommandRegistrar;
 import me.myogoo.myotus.menu.TerminalUpgradeHelper;
 import me.myogoo.myotus.util.mod.ModIntegrationManager;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -74,7 +72,6 @@ public final class MyotusAPI {
     private static final TerminalCardsApi TERMINAL_CARDS = new TerminalCardsApi();
     private static final TerminalModulesApi TERMINAL_MODULES = new TerminalModulesApi();
     private static final ExperienceApi EXPERIENCE = ExperienceApi.INSTANCE;
-    private static final CommandsApi COMMANDS = CommandsApi.INSTANCE;
 
     private static IMyotusAPI instance;
 
@@ -163,25 +160,6 @@ public final class MyotusAPI {
      */
     public static ExperienceApi experience() {
         return EXPERIENCE;
-    }
-
-    /** Returns the API for extending annotation-driven command arguments. */
-    public static CommandsApi commands() {
-        return COMMANDS;
-    }
-
-    public static final class CommandsApi {
-        private static final CommandsApi INSTANCE = new CommandsApi();
-
-        private CommandsApi() {
-        }
-
-        /** Registers the Brigadier adapter used for parameters of exactly {@code valueType}. */
-        public <T> void registerArgument(Class<T> valueType, MyoArgumentAdapter<? extends T> adapter) {
-            MyoCommandRegistrar.registerAdapter(
-                    Objects.requireNonNull(valueType, "valueType"),
-                    Objects.requireNonNull(adapter, "adapter"));
-        }
     }
 
     /**
