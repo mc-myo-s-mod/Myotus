@@ -65,6 +65,8 @@ public final class MyoExperienceGameTests {
     private static final Holder<TestEnvironmentDefinition<?>> ENVIRONMENT =
             Holder.direct(new TestEnvironmentDefinition.AllOf());
     private static final List<TestRegistration> TESTS = List.of(
+            test("ssec_registers_myotus_commands_and_retains_admin_permission", 20,
+                    CommandGameTests::ssecRegistersMyotusCommandsAndRetainsAdminPermission),
             test("sparse_upgrade_slots_reject_duplicate_cards", 20,
                     MyoExperienceGameTests::sparseUpgradeSlotsRejectDuplicateCards),
             test("exposes_stable_experience_integration_ids", 20,

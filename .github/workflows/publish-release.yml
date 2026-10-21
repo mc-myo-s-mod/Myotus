@@ -18,6 +18,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ORG_GRADLE_PROJECT_ssecRoot: ${{ github.workspace }}/.ssec
+
 concurrency:
   group: publish-release-${{ github.repository }}-${{ github.event.release.tag_name || inputs.release_tag }}
   cancel-in-progress: false
@@ -42,6 +45,13 @@ jobs:
         with:
           ref: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.source_ref }}
           fetch-depth: 0
+
+      - name: Checkout SSEC command library
+        uses: actions/checkout@v6
+        with:
+          repository: mc-myo-s-mod/SSECLib
+          ref: ${{ vars.SSEC_REF || '20c54b4375cb0994d97a5b1c1b8af1685b452c51' }}
+          path: .ssec
 
       - name: Verify source and release tag belong to the default branch
         env:

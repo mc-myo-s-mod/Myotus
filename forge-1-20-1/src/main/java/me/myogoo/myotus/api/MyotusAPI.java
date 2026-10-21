@@ -12,14 +12,12 @@ import appeng.api.storage.StorageHelper;
 import appeng.menu.me.common.MEStorageMenu;
 import com.mojang.blaze3d.platform.InputConstants;
 import me.myogoo.myotus.dto.MyoModDto;
-import me.myogoo.myotus.api.command.argument.MyoArgumentAdapter;
 import me.myogoo.myotus.api.experience.ExperienceMath;
 import me.myogoo.myotus.api.experience.ExperienceStorageAdapter;
 import me.myogoo.myotus.api.network.IMyotusNetwork;
 import me.myogoo.myotus.api.registrar.IConfigRegistrar;
 import me.myogoo.myotus.api.registrar.ICreativeTabRegistrar;
 import me.myogoo.myotus.client.gui.widgets.KeyBindingButton;
-import me.myogoo.myotus.command.MyoCommandRegistrar;
 import me.myogoo.myotus.menu.TerminalUpgradeHelper;
 import me.myogoo.myotus.platform.AnnotationScanData;
 import me.myogoo.myotus.platform.mod.ForgeModList;
@@ -145,25 +143,6 @@ public final class MyotusAPI {
      */
     public static ExperienceApi experience() {
         return ExperienceApi.INSTANCE;
-    }
-
-    /** Returns the API for extending annotation-driven command arguments. */
-    public static CommandsApi commands() {
-        return CommandsApi.INSTANCE;
-    }
-
-    public static final class CommandsApi {
-        private static final CommandsApi INSTANCE = new CommandsApi();
-
-        private CommandsApi() {
-        }
-
-        /** Registers the Brigadier adapter used for parameters of exactly {@code valueType}. */
-        public <T> void registerArgument(Class<T> valueType, MyoArgumentAdapter<? extends T> adapter) {
-            MyoCommandRegistrar.registerAdapter(
-                    Objects.requireNonNull(valueType, "valueType"),
-                    Objects.requireNonNull(adapter, "adapter"));
-        }
     }
 
     /**
