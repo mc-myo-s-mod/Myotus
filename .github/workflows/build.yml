@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ORG_GRADLE_PROJECT_ssecRoot: ${{ github.workspace }}/.ssec
+
 jobs:
   common-tests:
     name: Test common code
@@ -16,6 +19,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Checkout SSEC command library
+        uses: actions/checkout@v6
+        with:
+          repository: mc-myo-s-mod/SSECLib
+          ref: ${{ vars.SSEC_REF || '34f5c6adcff8d0c6640524facc5f176eeabfbddb' }}
+          path: .ssec
 
       - name: Set up Java toolchains
         uses: actions/setup-java@v5
@@ -72,6 +82,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Checkout SSEC command library
+        uses: actions/checkout@v6
+        with:
+          repository: mc-myo-s-mod/SSECLib
+          ref: ${{ vars.SSEC_REF || '34f5c6adcff8d0c6640524facc5f176eeabfbddb' }}
+          path: .ssec
 
       - name: Set up Java toolchains
         uses: actions/setup-java@v5

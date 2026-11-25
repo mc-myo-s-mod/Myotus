@@ -143,8 +143,17 @@ boolean payable = plan.canPay(); // true: 30 player + 40 fluid + 5 Applied Exper
 
 Register runtime contributions after Myotus initialization. `tryGet()` reports current state; it does not defer a callback until initialization. Keep config tabs, widgets, and optional-mod class references in appropriately isolated code. See the [lifecycle rules](openwiki/architecture.md#bootstrap-and-registration-order).
 
-On all three version lines, commands use the standalone SSEC library (`me.myogoo:ssec-commands-<mc>:1.0.0`, embedded via Jar-in-Jar). **Breaking change for existing command addons:** `MyotusAPI.commands()`, `IMyotusAPI.commands()`, and `@MyoCommand` / `@MyoExecute` / `@MyoArgument` / `@MyoAlias` / `@MyoPermission` have been removed; existing addons must migrate to SSEC (`me.myogoo.ssec.api.command.SSCommand`, `SSCExecute`, `SSCArgument`, `SSCAlias`, and `SSCPermission`, with `me.myogoo.ssec.api.command.permission.PermissionLevel`) and recompile. Register argument adapters through `me.myogoo.ssec.command.CommandRegistrar`.
+On all three version lines, commands use the standalone SSEC library.
+**Breaking change for command addons:** `MyotusAPI.commands()`, `IMyotusAPI.commands()`,
+and the legacy `@MyoCommand`, `@MyoExecute`, `@MyoArgument`, `@MyoAlias`, and
+`@MyoPermission` annotations have been removed. Migrate to SSEC and recompile. New declarations use
+`me.myogoo.ssec.api.command.SSCommand`, `SSCExecute`, `SSCArgument`, `SSCAlias`,
+and `SSCPermission`, with `me.myogoo.ssec.api.command.permission.PermissionLevel`.
+Register argument adapters through `me.myogoo.ssec.command.CommandRegistrar`.
 
+Source builds need a sibling `SSECLib` checkout at `commands-v1.0.0` containing the three command-library
+modules. Use `-PssecRoot=/path/to/SSECLib` when it is elsewhere. The shipped Myotus
+JAR embeds the matching library, so players do not install SSEC separately.
 
 On 1.21.1, existing `ITerminalUpgradeCard` implementations and `terminalUpgrades()` calls remain supported with their original signatures and behavior. New integrations should use `ITerminalCard` and `terminalCards()`. The legacy declarations use `@Deprecated(forRemoval = true)` to signal removal in a future version. No removal version is set, and their implementations remain available in this version. The replacement card API and module slots are not ported to 1.20.1 or 26.1.2.
 
