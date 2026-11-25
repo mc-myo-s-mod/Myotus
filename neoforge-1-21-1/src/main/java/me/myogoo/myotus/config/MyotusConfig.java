@@ -1,6 +1,7 @@
 package me.myogoo.myotus.config;
 
 import me.myogoo.myotus.menu.PlayerUpgradeContainer;
+import me.myogoo.myotus.api.client.TerminalWidthMode;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.List;
@@ -67,6 +68,7 @@ public final class MyotusConfig {
         public final ModConfigSpec.BooleanValue showViewCellSlots;
         public final ModConfigSpec.BooleanValue animatePanelMovement;
         public final ModConfigSpec.BooleanValue snapPanelMovement;
+        public final ModConfigSpec.EnumValue<TerminalWidthMode> terminalWidthMode;
 
         private Client() {
             var builder = new ModConfigSpec.Builder();
@@ -89,6 +91,12 @@ public final class MyotusConfig {
             snapPanelMovement = builder
                     .comment("Snap dragged module panels to nearby terminal and module edges.")
                     .define("snapPanelMovement", true);
+            builder.pop();
+
+            builder.push("terminal");
+            terminalWidthMode = builder
+                    .comment("COMPACT uses the native terminal style. WIDE uses its dedicated wide style when available.")
+                    .defineEnum("widthMode", TerminalWidthMode.COMPACT);
             builder.pop();
 
             this.spec = builder.build();

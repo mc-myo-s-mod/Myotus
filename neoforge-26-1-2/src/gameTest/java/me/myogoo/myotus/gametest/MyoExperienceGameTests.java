@@ -77,6 +77,8 @@ public final class MyoExperienceGameTests {
     private static final Holder<TestEnvironmentDefinition<?>> ENVIRONMENT =
             Holder.direct(new TestEnvironmentDefinition.AllOf());
     private static final List<TestRegistration> TESTS = List.of(
+            test("ssec_registers_myotus_commands_and_retains_admin_permission", 20,
+                    CommandGameTests::ssecRegistersMyotusCommandsAndRetainsAdminPermission),
             test("mixed_fluid_rates_preserve_exact_debits_and_remainders", 20,
                     MyoExperienceGameTests::mixedFluidRatesPreserveExactDebitsAndRemainders),
             test("fluid_remainders_pool_only_within_equal_rates", 20,

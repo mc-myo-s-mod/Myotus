@@ -10,9 +10,18 @@
     "ae2wtlib.AE2wtlibMixin",
     "ae2wtlib.WUTRecipeMixin",
     "ae2.MEStorageMenuMixin",
-    "minecraft.AbstractContainerMenuMixin"
+    "minecraft.AbstractContainerMenuMixin",
+    "inventorysorter.InventorySorterContextAccessor",
+    "inventorysorter.InventorySorterServerMixin",
+    "invtweaks.InventoryTweaksSortingMixin"
   ],
   "client": [
+    "inventorysorter.InventorySorterClientMixin",
+    "ipn.GeneralInventoryActionsMixin",
+    "ipn.ContainerScreenEventHandlerMixin",
+    "ae2.AEBaseScreenWidthMixin",
+    "ae2.StyleManagerMixin",
+    "ae2.MEStorageScreenWidthMixin",
     "ae2.MEStorageScreenMixin",
     "ae2.ScreenStyleAccessor",
     "ae2.WidgetContainerAccessor",

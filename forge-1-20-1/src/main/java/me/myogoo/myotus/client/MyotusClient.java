@@ -5,6 +5,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 @EventBusSubscriber(modid = Myotus.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
@@ -15,6 +16,9 @@ public final class MyotusClient {
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(MyotusConfigTab::initialize);
+        if (ModList.get().isLoaded("inventoryessentials")) {
+            event.enqueueWork(InventoryEssentialsIntegration::register);
+        }
     }
 
     @SubscribeEvent

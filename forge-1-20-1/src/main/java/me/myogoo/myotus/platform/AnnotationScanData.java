@@ -4,6 +4,8 @@ import me.myogoo.myotus.util.reflect.annotation.AnnotationScanner.ScannedAnnotat
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.language.ModFileScanData.AnnotationData;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public final class AnnotationScanData {
@@ -20,6 +22,16 @@ public final class AnnotationScanData {
                 .flatMap(scanData -> scanData.getAnnotations().stream())
                 .map(AnnotationScanData::wrap)
                 .filter(AnnotationScanData::includeStartupTestAnnotation);
+    }
+
+    public static Map<String, String> getClassHierarchy() {
+        Map<String, String> parents = new LinkedHashMap<>();
+        ModList.get().getAllScanData().forEach(scanData -> scanData.getClasses().forEach(clazz -> {
+            if (clazz.parent() != null) {
+                parents.putIfAbsent(clazz.clazz().getClassName(), clazz.parent().getClassName());
+            }
+        }));
+        return parents;
     }
 
     private static boolean includeStartupTestAnnotation(ScannedAnnotation annotation) {

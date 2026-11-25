@@ -49,6 +49,64 @@ Source references: [Sophisticated Core](https://github.com/P3pp3rF1y/Sophisticat
 [Mob Grinding Utils](https://github.com/vadis365/Mob-Grinding-Utils/blob/MC1.20.1-forge/MobGrindingUtils/MobGrindingUtils/src/main/java/mob_grinding_utils/tile/TileEntityXPTap.java),
 [Create: Enchantment Industry](https://github.com/DragonsPlusMinecraft/CreateEnchantmentIndustry/blob/1.21.1/6.0.0-dev/src/main/java/plus/dragons/createenchantmentindustry/common/fluids/experience/ExperienceHelper.java).
 
+## Inventory sorting blacklist
+
+Mark a menu class with `@MyoSortBlacklist` to exclude it from supported inventory
+sorting mods. An abstract base menu also covers its unannotated subclasses,
+including subclasses supplied by other mods:
+
+```java
+import me.myogoo.myotus.api.annotation.MyoSortBlacklist;
+
+@MyoSortBlacklist
+public abstract class ExampleTerminalMenu extends AbstractContainerMenu {
+    // Existing menu implementation.
+}
+```
+
+This is available on all three version lines and does not require AE2 menu
+inheritance. Prefer annotating Minecraft's `AbstractContainerMenu` subclasses:
+server integrations check the menu, and client integrations check the screen's
+menu as well. You can also annotate a `Screen` subclass for a client-only opt-out.
+A screen annotation alone cannot protect against server-side sorting. Interfaces
+and composed annotations do not propagate the marker.
+
+- Inventory Tweaks Refoxed (`invtweaks`): Myotus discovers marked menus, screens,
+  and their subclasses from mod scan metadata, then sends escaped, exact class-name
+  patterns through `blacklist-screen` IMC during mod loading. No target classes
+  are loaded, so screen annotations are safe to discover on a dedicated server.
+- Inventory Sorter (`inventorysorter`): when a marked menu opens on the server,
+  Myotus adds its registered menu-type ID to the sorter's runtime blacklist.
+  This covers every menu sharing that type ID and does not modify its config file.
+  Menus without a registered type cannot use this integration.
+- Inventory Profiles Next (`inventoryprofilesnext`): optional client mixins suppress
+  its injected widgets and block normal, row, and column sorting, including hotkeys.
+  They check the actual menu and active screen without changing IPN's shared hint
+  or menu-class caches. This does not disable unrelated background IPN features.
+- Inventory Essentials (`inventoryessentials`): Myotus directly registers discovered
+  class names through `InventoryEssentialsIgnores`. This uses its full-screen ignore
+  behavior, so other Inventory Essentials actions on that screen are disabled too.
+
+Inventory Sorter integration targets Forge 23.0.11, NeoForge 1.21.1 24.0.20,
+and NeoForge 26.1.2 24.0.31. The 1.21.1 build uses an optional accessor mixin
+because that release does not expose the blacklist through a public method.
+
+The new client integrations support these minimum versions (when installed):
+
+| Minecraft | Inventory Profiles Next | Inventory Essentials |
+|---|---|---|
+| 1.20.1 Forge | 1.10.20 | 8.2.19 |
+| 1.21.1 NeoForge | 2.2.5 | 21.1.20 |
+| 26.1.2 NeoForge | 2.3.8 | 26.1.2.7 |
+
+These are Myotus's verified support baselines, not claims about when the upstream
+APIs were first introduced. Older installed versions require an update; the mod
+metadata reports that dependency mismatch rather than relying on failing mixins.
+None of these sorting mods or their libraries are bundled or required to install
+Myotus. Inventory Sorter must have Myotus on the server; IPN and Inventory Essentials
+need it on the client. Inventory Tweaks Refoxed needs Myotus on the side running its
+checks. Other sorting mods, such as Quark and ClientSort, are not covered.
+
 ## Developer documentation
 
 - [Quickstart](openwiki/quickstart.md): dependencies, runtime metadata, and first API calls.
@@ -78,12 +136,15 @@ boolean payable = plan.canPay(); // true: 30 player + 40 fluid + 5 Applied Exper
 | `MyotusAPI.terminalUpgrades()` / `ITerminalUpgradeCard` | Retained legacy API; deprecated on 1.21.1, still active on 1.20.1 and 26.1.2 |
 | `MyotusAPI.terminalModules()` / `MyotusAPI.Client.registerTerminalModule` | 1.21.1-only permanent module slots, client widgets, and recipe-transfer targets |
 | `MyotusAPI.experience()` / `api.experience` | XP math, pure plans, powered ME extraction, and server-side payment |
-| `MyotusAPI.commands()` / `api.annotation.commands` | Command argument adapters and command declarations |
+| `me.myogoo.ssec.api.command` / `CommandRegistrar` | SSEC command declarations and argument adapters |
 | `api.recipe` / `api.datagen` | Table recipe adapters and loader-specific resource conditions |
 | `MyotusAPI.Client.Widgets` | Client-only key-binding button factories |
 | `MyotusAPI.network()` / `api.wt.AddTerminalEvent` | Forge 1.20.1-only networking and AE2WTLib registration hooks |
 
 Register runtime contributions after Myotus initialization. `tryGet()` reports current state; it does not defer a callback until initialization. Keep config tabs, widgets, and optional-mod class references in appropriately isolated code. See the [lifecycle rules](openwiki/architecture.md#bootstrap-and-registration-order).
+
+On all three version lines, commands use the standalone SSEC library (`me.myogoo:ssec-commands-<mc>:1.0.0`, embedded via Jar-in-Jar). **Breaking change for existing command addons:** `MyotusAPI.commands()`, `IMyotusAPI.commands()`, and `@MyoCommand` / `@MyoExecute` / `@MyoArgument` / `@MyoAlias` / `@MyoPermission` have been removed; existing addons must migrate to SSEC (`me.myogoo.ssec.api.command.SSCommand`, `SSCExecute`, `SSCArgument`, `SSCAlias`, and `SSCPermission`, with `me.myogoo.ssec.api.command.permission.PermissionLevel`) and recompile. Register argument adapters through `me.myogoo.ssec.command.CommandRegistrar`.
+
 
 On 1.21.1, existing `ITerminalUpgradeCard` implementations and `terminalUpgrades()` calls remain supported with their original signatures and behavior. New integrations should use `ITerminalCard` and `terminalCards()`. The legacy declarations use `@Deprecated(forRemoval = true)` to signal removal in a future version. No removal version is set, and their implementations remain available in this version. The replacement card API and module slots are not ported to 1.20.1 or 26.1.2.
 
@@ -98,12 +159,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly "me.myogoo:myotus:15.1.1:api"
-    runtimeOnly fg.deobf("me.myogoo:myotus:15.1.1")
+    compileOnly "me.myogoo:myotus:15.1.2-SNAPSHOT:api"
+    runtimeOnly fg.deobf("me.myogoo:myotus:15.1.2-SNAPSHOT")
 }
 ```
 
-For this checkout's NeoForge 1.21.1 module APIs, use the locally published `19.2.1-SNAPSHOT` and plain `runtimeOnly` without `fg.deobf`. For NeoForge 26.1.2, use `26.0.1` after publishing through the root proxy or the native 26.1.2 build; see the [26.1.2 setup](openwiki/quickstart.md#neoforge-2612). Declare Myotus in the addon's loader metadata as well as in Gradle.
+For this checkout's NeoForge 1.21.1 module APIs, use the locally published `19.2.1-SNAPSHOT` and plain `runtimeOnly` without `fg.deobf`. For NeoForge 26.1.2, use `26.0.2-SNAPSHOT` after publishing through the root proxy or the native 26.1.2 build; see the [26.1.2 setup](openwiki/quickstart.md#neoforge-2612). Declare Myotus in the addon's loader metadata as well as in Gradle.
 
 The API classifier includes `api/**` and supporting DTO/icon/button types exposed by those signatures. It omits runtime implementation and loader metadata. Prefer `me.myogoo.myotus.api.*`; an implementation class being `public` does not make it a cross-version compatibility promise.
 

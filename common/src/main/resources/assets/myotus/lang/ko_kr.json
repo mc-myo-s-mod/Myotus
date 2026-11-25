@@ -1,4 +1,7 @@
 {
+  "gui.myotus.terminal_width": "터미널 폭: %s",
+  "gui.myotus.terminal_width.compact": "Compact (기본 폭)",
+  "gui.myotus.terminal_width.wide": "Wide (넓은 폭)",
   "itemGroup.myotus": "Myotus",
   "gui.myotus.button.bug_report.tooltip": "이 설정 터미널 버그를 모드 제작자에게 제보합니다.",
   "gui.myotus.button.ae2setting": "AE2 터미널 설정",

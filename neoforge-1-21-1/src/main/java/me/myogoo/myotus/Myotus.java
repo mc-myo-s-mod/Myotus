@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.data.MyotusDataGenerators;
 import me.myogoo.myotus.impl.MyotusAPIImpl;
+import me.myogoo.myotus.integration.sort.SortBlacklistRegistration;
 import me.myogoo.myotus.init.MyoBlocks;
 import me.myogoo.myotus.init.MyoCondition;
 import me.myogoo.myotus.init.MyoConfig;
@@ -55,6 +56,7 @@ public class Myotus {
         MyoBlocks.BLOCKS.register(modEventBus);
         MyoItems.ITEMS.register(modEventBus);
         modEventBus.addListener(MyotusDataGenerators::onGatherData);
+        modEventBus.addListener(SortBlacklistRegistration::enqueue);
         MyoConfig.initialize(modContainer);
     }
 

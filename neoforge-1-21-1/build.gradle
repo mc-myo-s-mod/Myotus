@@ -135,6 +135,18 @@ tasks.named('runMultiplayerServer', JavaExec).configure {
 }
 
 dependencies {
+    // Optional sorting integration; never bundled or required at runtime.
+    compileOnly "curse.maven:inventory-sorter-240633:6235889"
+    testRuntimeOnly "curse.maven:inventory-sorter-240633:6235889"
+    compileOnly 'maven.modrinth:Boon8xwi:B2gBjJSj' // Inventory Essentials 21.1.20
+    testRuntimeOnly 'maven.modrinth:Boon8xwi:B2gBjJSj'
+    testRuntimeOnly 'maven.modrinth:MBAkmtvl:gMedgtzL' // Balm for Inventory Essentials tests
+    compileOnly 'maven.modrinth:inventory-profiles-next:vjuNnHLv' // IPN 2.2.5
+    compileOnly 'maven.modrinth:libipn:BGe4KMlE' // libIPN 6.6.3
+
+    api('me.myogoo:ssec-commands-1.21.1:1.0.0')
+    jarJar('me.myogoo:ssec-commands-1.21.1:1.0.0') { version { strictly '[1.0.0,2.0.0)'; prefer '1.0.0' } }
+
     implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
 
     // Optional recipe-viewer bridges; neither viewer is required at runtime.

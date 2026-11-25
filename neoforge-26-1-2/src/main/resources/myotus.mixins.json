@@ -8,9 +8,17 @@
     "ae2.AbstractTerminalPartMixin",
     "ae2.AEBaseMenuMixin",
     "ae2.MEStorageMenuMixin",
-    "minecraft.AbstractContainerMenuMixin"
+    "minecraft.AbstractContainerMenuMixin",
+    "inventorysorter.InventorySorterContextAccessor",
+    "inventorysorter.InventorySorterServerMixin"
   ],
   "client": [
+    "inventorysorter.InventorySorterClientMixin",
+    "ipn.GeneralInventoryActionsMixin",
+    "ipn.ContainerScreenEventHandlerMixin",
+    "ae2.AEBaseScreenWidthMixin",
+    "ae2.StyleManagerMixin",
+    "ae2.MEStorageScreenWidthMixin",
     "ae2wtlib.ScrollingUpgradesPanelAccessor",
     "ae2.MEStorageScreenMixin",
     "ae2.ScreenStyleAccessor",

@@ -1,4 +1,7 @@
 {
+  "gui.myotus.terminal_width": "Terminal width: %s",
+  "gui.myotus.terminal_width.compact": "Compact",
+  "gui.myotus.terminal_width.wide": "Wide",
   "itemGroup.myotus": "Myotus",
   "gui.myotus.button.bug_report.tooltip": "Report a terminal settings bug to the mod author.",
   "gui.myotus.button.ae2setting": "AE2 Terminal Settings",

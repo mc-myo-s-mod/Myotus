@@ -78,3 +78,18 @@ type = "required"
 versionRange = "${AE2_version_range}"
 ordering = "AFTER"
 side = "BOTH"
+
+# Optional client integrations require the API versions verified by Myotus.
+[[dependencies."${mod_id}"]]
+modId = "inventoryprofilesnext"
+type = "optional"
+versionRange = "[2.2.5,)"
+ordering = "AFTER"
+side = "CLIENT"
+
+[[dependencies."${mod_id}"]]
+modId = "inventoryessentials"
+type = "optional"
+versionRange = "[21.1.20,)"
+ordering = "AFTER"
+side = "CLIENT"

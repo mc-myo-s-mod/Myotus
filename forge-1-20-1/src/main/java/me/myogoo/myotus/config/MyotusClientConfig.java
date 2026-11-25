@@ -1,5 +1,6 @@
 package me.myogoo.myotus.config;
 
+import me.myogoo.myotus.api.client.TerminalWidthMode;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public class MyotusClientConfig {
@@ -8,6 +9,7 @@ public class MyotusClientConfig {
         private final ForgeConfigSpec spec;
         public final ForgeConfigSpec.BooleanValue openSidePanel;
         public final ForgeConfigSpec.BooleanValue showUpgradePanelButton;
+        public final ForgeConfigSpec.EnumValue<TerminalWidthMode> terminalWidthMode;
 
         Client() {
             var builder = new ForgeConfigSpec.Builder();
@@ -18,6 +20,12 @@ public class MyotusClientConfig {
             this.showUpgradePanelButton = builder
                     .comment("Whether to show the upgrade panel toggle button in the terminal left toolbar.")
                     .define("showUpgradePanelButton", true);
+            builder.pop();
+
+            builder.push("terminal");
+            terminalWidthMode = builder
+                    .comment("COMPACT uses the native terminal style. WIDE uses its dedicated wide style when available.")
+                    .defineEnum("widthMode", TerminalWidthMode.COMPACT);
             builder.pop();
 
             this.spec = builder.build();

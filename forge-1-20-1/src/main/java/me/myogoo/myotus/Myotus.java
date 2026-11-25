@@ -3,6 +3,7 @@ package me.myogoo.myotus;
 import com.mojang.logging.LogUtils;
 
 import me.myogoo.myotus.impl.MyotusAPIImpl;
+import me.myogoo.myotus.integration.sort.SortBlacklistRegistration;
 import me.myogoo.myotus.api.MyotusAPI;
 import me.myogoo.myotus.init.MyoCondition;
 import me.myogoo.myotus.init.MyoBlocks;
@@ -50,6 +51,7 @@ public class Myotus {
         MyoBlocks.BLOCKS.register(this.modEventBus);
         MyoItems.ITEMS.register(this.modEventBus);
         MyoCondition.register();
+        this.modEventBus.addListener(SortBlacklistRegistration::enqueue);
         MyoConfig.initialize(context);
     }
 

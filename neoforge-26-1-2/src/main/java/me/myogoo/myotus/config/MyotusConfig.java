@@ -1,5 +1,6 @@
 package me.myogoo.myotus.config;
 
+import me.myogoo.myotus.api.client.TerminalWidthMode;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.List;
@@ -51,6 +52,7 @@ public final class MyotusConfig {
         public final ModConfigSpec.BooleanValue openSidePanel;
         public final ModConfigSpec.BooleanValue showUpgradePanelButton;
         public final ModConfigSpec.BooleanValue showViewCellSlots;
+        public final ModConfigSpec.EnumValue<TerminalWidthMode> terminalWidthMode;
 
         private Client() {
             var builder = new ModConfigSpec.Builder();
@@ -64,6 +66,12 @@ public final class MyotusConfig {
             this.showViewCellSlots = builder
                     .comment("Whether terminals should expose view cell slots.")
                     .define("showViewCellSlots", true);
+            builder.pop();
+
+            builder.push("terminal");
+            terminalWidthMode = builder
+                    .comment("COMPACT uses the native terminal style. WIDE uses its dedicated wide style when available.")
+                    .defineEnum("widthMode", TerminalWidthMode.COMPACT);
             builder.pop();
 
             this.spec = builder.build();

@@ -1,4 +1,7 @@
 {
+  "gui.myotus.terminal_width": "终端宽度：%s",
+  "gui.myotus.terminal_width.compact": "紧凑",
+  "gui.myotus.terminal_width.wide": "宽屏",
   "itemGroup.myotus": "Myotus",
   "gui.myotus.button.bug_report.tooltip": "向作者反馈终端配置界面的漏洞。",
   "gui.myotus.button.ae2setting": "AE2终端设置",
@@ -34,5 +37,6 @@
   "myotus.recipe_transfer.target": "转移至%s",
   "gui.myotus.terminal_module.reset_positions": "重置位置",
   "gui.myotus.terminal_module.animate_movement": "启用面板移动动画",
-  "gui.myotus.terminal_module.snap_movement": "吸附面板边缘"
+  "gui.myotus.terminal_module.snap_movement": "吸附面板边缘",
+  "message.myotus.terminal_upgrades_pending": "部分终端升级仍安全保存在原存储中。请腾出物品栏空间或恢复缺失的附属模组，然后重新打开此终端。"
 }

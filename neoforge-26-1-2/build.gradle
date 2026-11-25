@@ -20,6 +20,16 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+    maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+        content { includeGroup 'curse.maven' }
+    }
+    maven {
         name = 'ModMaven'
         url = 'https://modmaven.dev'
         content {
@@ -150,10 +160,19 @@ neoForge {
             logLevel = org.slf4j.event.Level.DEBUG
         }
     }
-
 }
 
 dependencies {
+    // Optional sorting integration; never bundled or required at runtime.
+    compileOnly "curse.maven:inventory-sorter-240633:7940779"
+    testRuntimeOnly "curse.maven:inventory-sorter-240633:7940779"
+    compileOnly 'maven.modrinth:Boon8xwi:2ge9T62m' // Inventory Essentials 26.1.2.7
+    compileOnly 'maven.modrinth:inventory-profiles-next:vNg0KMkb' // IPN 2.3.8
+    compileOnly 'maven.modrinth:libipn:bm1OYABy' // libIPN 6.9.0
+
+    api('me.myogoo:ssec-commands-26.1.2:1.0.0')
+    jarJar('me.myogoo:ssec-commands-26.1.2:1.0.0') { version { strictly '[1.0.0,2.0.0)'; prefer '1.0.0' } }
+
     implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
 
     compileOnly 'org.slf4j:slf4j-api:2.0.1'

@@ -9,6 +9,7 @@ buildscript {
 }
 
 plugins {
+    id 'java-library'
     id 'com.vanniktech.maven.publish'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
 }
@@ -88,6 +89,19 @@ mixin {
 }
 
 dependencies {
+    // Optional sorting integration; never bundled or required at runtime.
+    compileOnly fg.deobf("curse.maven:inventory-sorter-240633:7188685")
+    testRuntimeOnly fg.deobf("curse.maven:inventory-sorter-240633:7188685")
+    compileOnly fg.deobf('maven.modrinth:Boon8xwi:BhuVHyaA') // Inventory Essentials 8.2.19
+    compileOnly fg.deobf('maven.modrinth:inventory-profiles-next:CrtAI3P9') // IPN 1.10.20
+    compileOnly fg.deobf('maven.modrinth:libipn:pdAXmKcS') // libIPN 4.0.2
+
+    api fg.deobf('me.myogoo:ssec-commands-1.20.1:1.0.0')
+    jarJar('me.myogoo:ssec-commands-1.20.1:1.0.0') {
+        transitive = false
+        jarJar.ranged(it, '[1.0.0,2.0.0)')
+    }
+
     implementation fg.deobf("appeng:appliedenergistics2-forge:${AE2_version}")
 
     compileOnly fg.deobf("org.appliedenergistics:guideme:${Guideme_version}:api")

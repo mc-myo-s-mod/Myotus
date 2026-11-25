@@ -7,6 +7,7 @@ import me.myogoo.myotus.init.MyoItems;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 
@@ -16,6 +17,13 @@ public class MyotusClient {
         modEventBus.addListener(MyotusConfigTab::onClientSetup);
         modEventBus.addListener(MyotusClient::registerKeyMappings);
         modEventBus.addListener(MyotusClient::registerTestModule);
+        modEventBus.addListener(MyotusClient::registerSortingIntegrations);
+    }
+
+    private static void registerSortingIntegrations(FMLClientSetupEvent event) {
+        if (ModList.get().isLoaded("inventoryessentials")) {
+            event.enqueueWork(InventoryEssentialsIntegration::register);
+        }
     }
 
     private static void registerTestModule(FMLClientSetupEvent event) {
