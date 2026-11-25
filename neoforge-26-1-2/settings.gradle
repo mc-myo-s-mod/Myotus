@@ -12,3 +12,7 @@ plugins {
 }
 
 rootProject.name = 'myotus'
+
+// SSEC is a separate source checkout and is embedded in the shipped mod.
+def ssecRoot = providers.gradleProperty('ssecRoot').getOrElse('../../SSECLib')
+includeBuild(new File(file(ssecRoot), 'neoforge-26-1-2')) { name = 'ssec-commands-26.1.2' }

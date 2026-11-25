@@ -135,6 +135,9 @@ tasks.named('runMultiplayerServer', JavaExec).configure {
 }
 
 dependencies {
+    api('me.myogoo:ssec-commands-1.21.1:1.0.0-SNAPSHOT')
+    jarJar('me.myogoo:ssec-commands-1.21.1:1.0.0-SNAPSHOT') { version { strictly '[1.0.0-SNAPSHOT,2.0.0)'; prefer '1.0.0-SNAPSHOT' } }
+
     implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
 
     // Optional recipe-viewer bridges; neither viewer is required at runtime.

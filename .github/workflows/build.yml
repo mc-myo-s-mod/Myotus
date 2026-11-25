@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ORG_GRADLE_PROJECT_ssecRoot: ${{ github.workspace }}/.ssec
+
 jobs:
   common-tests:
     name: Test common code
@@ -16,6 +19,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Checkout SSEC command library
+        uses: actions/checkout@v6
+        with:
+          repository: mc-myo-s-mod/SSECLib
+          ref: ${{ vars.SSEC_REF || '20c54b4375cb0994d97a5b1c1b8af1685b452c51' }}
+          path: .ssec
 
       - name: Set up Java toolchains
         uses: actions/setup-java@v5
@@ -45,7 +55,7 @@ jobs:
         include:
           - module: forge-1-20-1
             minecraft: 1.20.1
-            required_tests: 17
+            required_tests: 18
             java_version: |
               17
               21
@@ -54,7 +64,7 @@ jobs:
             gradle_task_prefix: ":forge-1-20-1:"
           - module: neoforge-1-21-1
             minecraft: 1.21.1
-            required_tests: 26
+            required_tests: 27
             java_version: |
               17
               21
@@ -63,7 +73,7 @@ jobs:
             gradle_task_prefix: ":neoforge-1-21-1:"
           - module: neoforge-26-1-2
             minecraft: 26.1.2
-            required_tests: 18
+            required_tests: 19
             java_version: 25
             gradle_wrapper: ./neoforge-26-1-2/gradlew
             gradle_project_directory: neoforge-26-1-2
@@ -72,6 +82,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Checkout SSEC command library
+        uses: actions/checkout@v6
+        with:
+          repository: mc-myo-s-mod/SSECLib
+          ref: ${{ vars.SSEC_REF || '20c54b4375cb0994d97a5b1c1b8af1685b452c51' }}
+          path: .ssec
 
       - name: Set up Java toolchains
         uses: actions/setup-java@v5

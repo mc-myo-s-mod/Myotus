@@ -75,10 +75,6 @@ public interface IMyotusAPI {
         return MyotusAPI.terminalModules();
     }
 
-    default MyotusAPI.CommandsApi commands() {
-        return MyotusAPI.commands();
-    }
-
 
 
     /**

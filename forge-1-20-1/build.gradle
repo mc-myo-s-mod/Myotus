@@ -9,6 +9,7 @@ buildscript {
 }
 
 plugins {
+    id 'java-library'
     id 'com.vanniktech.maven.publish'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
 }
@@ -88,6 +89,13 @@ mixin {
 }
 
 dependencies {
+    api('me.myogoo:ssec-commands-1.20.1:1.0.0-SNAPSHOT') { transitive = false }
+    jarJar('me.myogoo:ssec-commands-1.20.1:1.0.0-SNAPSHOT') {
+        transitive = false
+        capabilities { requireCapability('me.myogoo:ssec-commands-1.20.1-production') }
+        jarJar.ranged(it, '[1.0.0-SNAPSHOT,2.0.0)')
+    }
+
     implementation fg.deobf("appeng:appliedenergistics2-forge:${AE2_version}")
 
     compileOnly fg.deobf("org.appliedenergistics:guideme:${Guideme_version}:api")

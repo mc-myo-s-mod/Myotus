@@ -67,10 +67,6 @@ public interface IMyotusAPI {
         return MyotusAPI.terminalUpgrades();
     }
 
-    default MyotusAPI.CommandsApi commands() {
-        return MyotusAPI.commands();
-    }
-
     /**
      * Returns the shared networking API used to register and send Myotus packets.
      *

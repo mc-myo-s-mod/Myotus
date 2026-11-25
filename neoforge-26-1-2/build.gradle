@@ -154,6 +154,9 @@ neoForge {
 }
 
 dependencies {
+    api('me.myogoo:ssec-commands-26.1.2:1.0.0-SNAPSHOT')
+    jarJar('me.myogoo:ssec-commands-26.1.2:1.0.0-SNAPSHOT') { version { strictly '[1.0.0-SNAPSHOT,2.0.0)'; prefer '1.0.0-SNAPSHOT' } }
+
     implementation "org.appliedenergistics:appliedenergistics2:${AE2_version}"
 
     compileOnly 'org.slf4j:slf4j-api:2.0.1'
